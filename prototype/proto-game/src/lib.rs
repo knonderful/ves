@@ -4,7 +4,6 @@ mod core_api;
 #[macro_use]
 mod rom_data;
 
-use wasm_bindgen::prelude::*;
 use rom_data::*;
 
 #[cfg(feature = "wee_alloc")]
@@ -15,8 +14,9 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[link_section = "rom_data"]
 static ROM_DATA: RomData = RomData::create();
 
-#[wasm_bindgen]
+#[no_mangle]
 pub fn greet() {
-    core_api::call_another(ROM_DATA.gfx().mario());
-    core_api::call_another(ROM_DATA.gfx().mario2());
+    let gfx = core_api::gfx();
+    gfx.set_object(0, ROM_DATA.gfx().mario());
+    gfx.set_object(1, ROM_DATA.gfx().mario2());
 }

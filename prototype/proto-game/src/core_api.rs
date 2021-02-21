@@ -1,16 +1,8 @@
-use wasm_bindgen::prelude::*;
-
 pub type RomDataPointer = *const u8;
 
-#[wasm_bindgen]
+#[link(wasm_import_module = "gpu")]
 extern {
-    pub type Logger;
-
-    #[wasm_bindgen(method)]
-    fn info(this: &Logger, msg: &str);
-
-    #[wasm_bindgen]
-    fn another(obj: RomDataPointer);
+    fn set_object(index: usize, ptr: RomDataPointer);
 }
 
 #[allow(dead_code)]
@@ -25,6 +17,16 @@ impl RomDataRecord {
     }
 }
 
-pub fn call_another(endpoint: RomDataRecord) {
-    another(endpoint.ptr);
+pub struct Gpu {}
+
+impl Gpu {
+    pub fn set_object(&self, index: usize, record: RomDataRecord) {
+        unsafe { set_object(index, record.ptr) };
+    }
+}
+
+static GPU: Gpu = Gpu {};
+
+pub fn gfx() -> &'static Gpu {
+    &GPU
 }

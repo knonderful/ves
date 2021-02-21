@@ -72,9 +72,13 @@ macro_rules! entry_vec {
     };
 }
 
-const ROM_DATA_ENTRY: &'static str = "RomDataEntry";
-const ROM_DATA_GFX: &'static str = "RomDataGfx";
-const ROM_DATA: &'static str = "RomData";
+const FN_CALC_ROM_DATA_OFFSET: &'static str = "calc_rom_data_offset";
+const TYPE_ROM_DATA_POINTER: &'static str = "crate::core_api::RomDataPointer";
+const TYPE_ROM_DATA_RECORD: &'static str = "crate::core_api::RomDataRecord";
+const TYPE_ROM_DATA_ENTRY: &'static str = "RomDataEntry";
+const TYPE_ROM_DATA_GFX: &'static str = "RomDataGfx";
+const TYPE_ROM_DATA: &'static str = "RomData";
+const FIELD_ROM_DATA_GFX: &'static str = "gfx";
 
 fn main() {
     let params = RomDataSpec {
@@ -87,39 +91,75 @@ fn main() {
 
     let mut template = create_file().unwrap();
 
-    template.struct_start(format!("{}<T>", ROM_DATA_ENTRY).as_str());
+    template.raw_line("#[inline(always)]");
+    template.raw_line("fn rom_data() -> &'static RomData");
+    template.raw_line("{");
+    template.raw_line("    unsafe {");
+    template.raw_line("        let null = std::ptr::null();");
+    template.raw_line("        &(*null)");
+    template.raw_line("    }");
+    template.raw_line("}");
+    template.raw_line("");
+
+    template.raw_line("#[inline(always)]");
+    template.raw_line(format!("fn {}<F, T>(func: F) -> {}", FN_CALC_ROM_DATA_OFFSET, TYPE_ROM_DATA_POINTER).as_str());
+    template.raw_line("    where F: FnOnce(&RomData) -> &T");
+    template.raw_line("{");
+    template.raw_line(format!("    func(rom_data()) as *const T as {}", TYPE_ROM_DATA_POINTER).as_str());
+    template.raw_line("}");
+    template.raw_line("");
+
+    template.struct_start(format!("{}<T>", TYPE_ROM_DATA_ENTRY).as_str());
     template.field("data", "T");
     template.struct_end();
 
-    template.raw_line(format!("impl<T> {}<T> {{", ROM_DATA_ENTRY).as_str());
-    template.raw_line("    pub const fn new(data: T) -> Self {");
+    template.raw_line(format!("impl<T> {}<T> {{", TYPE_ROM_DATA_ENTRY).as_str());
+    template.raw_line("    const fn new(data: T) -> Self {");
     template.raw_line("        Self { data }");
     template.raw_line("    }");
     template.raw_line("}");
     template.raw_line("");
 
-    template.struct_start(ROM_DATA_GFX);
+
+    template.struct_start(TYPE_ROM_DATA_GFX);
     for RomDataEntrySpec { id, path: _, byte_count } in &params.gfx {
-        template.field(format!("pub {}", id).as_str(), format!("{}<[u8; {}usize]>", ROM_DATA_ENTRY, byte_count).as_str());
+        template.field(id, format!("{}<[u8; {}usize]>", TYPE_ROM_DATA_ENTRY, byte_count).as_str());
     }
     template.struct_end();
 
-    template.struct_start(ROM_DATA);
-    template.field("pub version", "(u16, u16, u16)");
-    template.field("pub gfx", ROM_DATA_GFX);
+    template.raw_line(format!("impl {} {{", TYPE_ROM_DATA_GFX).as_str());
+    for RomDataEntrySpec { id, path: _, byte_count } in &params.gfx {
+        template.raw_line(format!("    pub fn {}(&self) -> {} {{", id, TYPE_ROM_DATA_RECORD).as_str());
+        template.raw_line(format!("        {}::new(", TYPE_ROM_DATA_RECORD).as_str());
+        template.raw_line(format!("            {}(|rom| &rom.{}.{}),", FN_CALC_ROM_DATA_OFFSET, FIELD_ROM_DATA_GFX, id).as_str());
+        template.raw_line(format!("            {}", byte_count).as_str());
+        template.raw_line("        )");
+        template.raw_line("    }");
+        template.raw_line("");
+    }
+    template.raw_line("}");
+    template.raw_line("");
+
+    template.struct_start(TYPE_ROM_DATA);
+    template.field("version", "(u16, u16, u16)");
+    template.field(FIELD_ROM_DATA_GFX, TYPE_ROM_DATA_GFX);
     template.struct_end();
 
-    template.raw_line("macro_rules! insert_rom_data {");
-    template.raw_line("    () => {");
-    template.raw_line(format!("        {} {{", ROM_DATA).as_str());
+    template.raw_line(format!("impl {} {{", TYPE_ROM_DATA).as_str());
+    template.raw_line(format!("    pub const fn create() -> {} {{", TYPE_ROM_DATA).as_str());
+    template.raw_line(format!("        {} {{", TYPE_ROM_DATA).as_str());
     template.raw_line(format!("            version: {:?},", params.version).as_str());
-    template.raw_line(format!("            gfx: {} {{", ROM_DATA_GFX).as_str());
+    template.raw_line(format!("            {}: {} {{", FIELD_ROM_DATA_GFX, TYPE_ROM_DATA_GFX).as_str());
     for RomDataEntrySpec { id, path, byte_count: _ } in &params.gfx {
-        template.raw_line(format!("                {}: {}::new(*include_bytes!(\"../{}\")),", id, ROM_DATA_ENTRY, path.to_str().unwrap()).as_str());
+        template.raw_line(format!("                {}: {}::new(*include_bytes!(\"../{}\")),", id, TYPE_ROM_DATA_ENTRY, path.to_str().unwrap()).as_str());
     }
     template.raw_line("            },");
     template.raw_line("        }");
-    template.raw_line("    };");
+    template.raw_line("    }");
+    template.raw_line("    ");
+    template.raw_line(format!("    pub fn {}(&self) -> &{} {{", FIELD_ROM_DATA_GFX, TYPE_ROM_DATA_GFX).as_str());
+    template.raw_line(format!("        &self.{}", FIELD_ROM_DATA_GFX).as_str());
+    template.raw_line("    }");
     template.raw_line("}");
 
     println!("cargo:rerun-if-changed=build.rs");

@@ -56,7 +56,6 @@ impl TemplateWriter {
 }
 
 struct RomDataSpec {
-    struct_name: &'static str,
     version: (u16, u16, u16),
     gfx: Vec<RomDataEntrySpec>,
 }
@@ -73,9 +72,12 @@ macro_rules! entry_vec {
     };
 }
 
+const ROM_DATA_ENTRY: &'static str = "RomDataEntry";
+const ROM_DATA_GFX: &'static str = "RomDataGfx";
+const ROM_DATA: &'static str = "RomData";
+
 fn main() {
     let params = RomDataSpec {
-        struct_name: "RomData",
         version: (0, 1, 16),
         gfx: entry_vec!(
             ("mario", "assets/gfx/mario.png"),
@@ -85,35 +87,35 @@ fn main() {
 
     let mut template = create_file().unwrap();
 
-    template.struct_start("RomDataEntry<T>");
+    template.struct_start(format!("{}<T>", ROM_DATA_ENTRY).as_str());
     template.field("data", "T");
     template.struct_end();
 
-    template.raw_line("impl<T> RomDataEntry<T> {");
+    template.raw_line(format!("impl<T> {}<T> {{", ROM_DATA_ENTRY).as_str());
     template.raw_line("    pub const fn new(data: T) -> Self {");
-    template.raw_line("        RomDataEntry { data }");
+    template.raw_line("        Self { data }");
     template.raw_line("    }");
     template.raw_line("}");
     template.raw_line("");
 
-    template.struct_start("RomDataGfx");
+    template.struct_start(ROM_DATA_GFX);
     for RomDataEntrySpec { id, path: _, byte_count } in &params.gfx {
-        template.field(format!("pub {}", id).as_str(), format!("RomDataEntry<[u8; {}usize]>", byte_count).as_str());
+        template.field(format!("pub {}", id).as_str(), format!("{}<[u8; {}usize]>", ROM_DATA_ENTRY, byte_count).as_str());
     }
     template.struct_end();
 
-    template.struct_start(params.struct_name);
+    template.struct_start(ROM_DATA);
     template.field("pub version", "(u16, u16, u16)");
-    template.field("pub gfx", "RomDataGfx");
+    template.field("pub gfx", ROM_DATA_GFX);
     template.struct_end();
 
     template.raw_line("macro_rules! insert_rom_data {");
     template.raw_line("    () => {");
-    template.raw_line(format!("        {} {{", params.struct_name).as_str());
+    template.raw_line(format!("        {} {{", ROM_DATA).as_str());
     template.raw_line(format!("            version: {:?},", params.version).as_str());
-    template.raw_line("            gfx: RomDataGfx {");
+    template.raw_line(format!("            gfx: {} {{", ROM_DATA_GFX).as_str());
     for RomDataEntrySpec { id, path, byte_count: _ } in &params.gfx {
-        template.raw_line(format!("                {}: RomDataEntry::new(*include_bytes!(\"../{}\")),", id, path.to_str().unwrap()).as_str());
+        template.raw_line(format!("                {}: {}::new(*include_bytes!(\"../{}\")),", id, ROM_DATA_ENTRY, path.to_str().unwrap()).as_str());
     }
     template.raw_line("            },");
     template.raw_line("        }");

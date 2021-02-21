@@ -2,7 +2,8 @@ pub type RomDataPointer = *const u8;
 
 #[link(wasm_import_module = "gpu")]
 extern {
-    fn set_object(index: usize, ptr: RomDataPointer);
+    #[link_name = "set_object"]
+    fn gpu_set_object(index: usize, ptr: RomDataPointer);
 }
 
 #[allow(dead_code)]
@@ -21,7 +22,7 @@ pub struct Gpu {}
 
 impl Gpu {
     pub fn set_object(&self, index: usize, record: RomDataRecord) {
-        unsafe { set_object(index, record.ptr) };
+        unsafe { gpu_set_object(index, record.ptr) };
     }
 }
 

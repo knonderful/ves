@@ -1,7 +1,6 @@
 extern crate wee_alloc;
 
 mod core_api;
-#[macro_use]
 mod rom_data;
 
 use rom_data::*;

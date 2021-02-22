@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 wasmtime = "0.23.0"
 anyhow = "1.0.38"
+parity-wasm = "0.42.1"

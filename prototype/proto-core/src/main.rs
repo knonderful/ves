@@ -20,6 +20,12 @@ impl RomData {
     fn new(data: Vec<u8>) -> Self {
         RomData { data }
     }
+
+    fn record(&self, ptr: u32, size: u32) -> RomDataRecord {
+        let start = ptr as usize;
+        let end = start + size as usize;
+        RomDataRecord::new(self, start, end)
+    }
 }
 
 impl Deref for RomData {
@@ -30,40 +36,52 @@ impl Deref for RomData {
     }
 }
 
+impl AsRef<[u8]> for RomData {
+    fn as_ref(&self) -> &[u8] {
+        self.deref()
+    }
+}
+
 /// A record inside a [RomData].
 ///
 /// Essentially, a record consists of an offset (or pointer) and a size.
-pub struct RomDataRecord {
-    #[doc(hidden)]
+pub struct RomDataRecord<'rom> {
+    rom: &'rom RomData,
     start: usize,
-    #[doc(hidden)]
     end: usize,
 }
 
-impl RomDataRecord {
-    /// Creates a [RomDataRecord] from a pointer and a size that come from the WASM ABI.
-    pub fn from_abi(ptr: u32, size: u32) -> Self {
-        let start = ptr as usize;
-        let end = start + size as usize;
-        RomDataRecord { start, end }
-    }
-
-    /// Returns a slice representing the [RomDataRecord] inside the [RomData].
-    pub fn slice<'a>(&self, rom_data: &'a RomData) -> &'a [u8] {
-        &rom_data[self.start..self.end]
+impl<'rom> RomDataRecord<'rom> {
+    fn new(rom: &'rom RomData, start: usize, end: usize) -> Self {
+        Self { rom, start, end }
     }
 }
 
-impl Display for RomDataRecord {
+impl Display for RomDataRecord<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str(format!("[${:04x}-${:04x}]", self.start, self.end - 1).as_str())?;
         Ok(())
     }
 }
 
+impl<'rom> Deref for RomDataRecord<'rom> {
+    type Target = [u8];
+
+    fn deref(&self) -> &Self::Target {
+        &self.rom[self.start..self.end]
+    }
+}
+
+impl AsRef<[u8]> for RomDataRecord<'_> {
+    fn as_ref(&self) -> &[u8] {
+        self.deref()
+    }
+}
+
 fn main() -> Result<()> {
     let wasm_file = std::fs::canonicalize(Path::new("../proto-game/target/wasm32-unknown-unknown/release/proto_game.wasm"))?;
     let rom_data = get_rom_data(&wasm_file)?;
+    std::fs::write("/tmp/rom_data.bin", &rom_data).unwrap();
 
     let store = Store::default();
     let module = Module::from_file(store.engine(), &wasm_file)?;
@@ -74,10 +92,10 @@ fn main() -> Result<()> {
     let mut linker = Linker::new(&store);
 
     linker.func("gpu", "set_object", move |index: u32, ptr: u32, size: u32| {
-        let record = RomDataRecord::from_abi(ptr, size);
-        println!("Request to load record {} into object index {}.", record, index);
+        let record = rom_data.record(ptr, size);
+        println!("Request to load record {} into object index {}.", &record, index);
 
-        std::fs::write(format!("/tmp/object_{}.png", index).as_str(), record.slice(rom_data.as_ref())).unwrap();
+        std::fs::write(format!("/tmp/object_{}.png", index).as_str(), record).unwrap();
     })?;
 
     let instance = linker.instantiate(&module)?;

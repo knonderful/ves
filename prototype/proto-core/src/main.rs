@@ -16,7 +16,7 @@ impl RomDataRecord {
         RomDataRecord { start, end }
     }
 
-    pub fn slice<'a>(&self, in_slice: &'a [u8]) -> &'a[u8] {
+    pub fn slice<'a>(&self, in_slice: &'a [u8]) -> &'a [u8] {
         &in_slice[self.start..self.end]
     }
 }

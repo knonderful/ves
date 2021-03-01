@@ -16,6 +16,5 @@ static ROM_DATA: RomData = RomData::create();
 #[no_mangle]
 pub fn greet() {
     let gfx = core_api::gfx();
-    gfx.set_object(0, ROM_DATA.gfx().mario());
-    gfx.set_object(1, ROM_DATA.gfx().mario2());
+    gfx.set_object(0, ROM_DATA.gfx().example());
 }

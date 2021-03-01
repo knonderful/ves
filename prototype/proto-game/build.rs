@@ -84,8 +84,7 @@ fn main() {
     let params = RomDataSpec {
         version: (0, 1, 16),
         gfx: entry_vec!(
-            ("mario", "assets/gfx/mario.png"),
-            ("mario2", "assets/gfx/mario.png")
+            ("example", "assets/gfx/example.data")
         ),
     };
 

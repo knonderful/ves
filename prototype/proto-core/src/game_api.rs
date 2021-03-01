@@ -2,7 +2,7 @@
 //! for interaction with the game.
 
 use std::ops::Deref;
-use std::fmt::{Display, Formatter};
+
 
 /// ROM data.
 ///
@@ -23,7 +23,7 @@ impl RomData {
     pub fn record(&self, ptr: u32, size: u32) -> RomDataRecord {
         let start = ptr as usize;
         let end = start + size as usize;
-        RomDataRecord::new(self, start, end)
+        RomDataRecord::new(start, end)
     }
 }
 
@@ -44,35 +44,17 @@ impl AsRef<[u8]> for RomData {
 /// A record inside a [RomData].
 ///
 /// Essentially, a record consists of an offset (or pointer) and a size.
-pub struct RomDataRecord<'rom> {
-    rom: &'rom RomData,
+pub struct RomDataRecord {
     start: usize,
     end: usize,
 }
 
-impl<'rom> RomDataRecord<'rom> {
-    fn new(rom: &'rom RomData, start: usize, end: usize) -> Self {
-        Self { rom, start, end }
+impl RomDataRecord {
+    fn new(start: usize, end: usize) -> Self {
+        Self { start, end }
     }
-}
 
-impl Display for RomDataRecord<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(format!("[${:04x}-${:04x}]", self.start, self.end - 1).as_str())?;
-        Ok(())
-    }
-}
-
-impl<'rom> Deref for RomDataRecord<'rom> {
-    type Target = [u8];
-
-    fn deref(&self) -> &Self::Target {
-        &self.rom[self.start..self.end]
-    }
-}
-
-impl AsRef<[u8]> for RomDataRecord<'_> {
-    fn as_ref(&self) -> &[u8] {
-        self.deref()
+    pub fn slice<'rom>(&self, rom_data: &'rom RomData) -> &'rom [u8] {
+        &rom_data[self.start..self.end]
     }
 }

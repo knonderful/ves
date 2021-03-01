@@ -13,7 +13,7 @@ const SCREEN_WIDTH: u32 = 320;
 const SCREEN_HEIGHT: u32 = 240;
 const FRAME_BUFFER_BYTES_PER_PIXEL: usize = 4;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 struct FrameBufferColor {
     r: u8,
     g: u8,

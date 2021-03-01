@@ -4,50 +4,53 @@ mod game;
 #[macro_use]
 extern crate libretro_backend;
 
-use libretro_backend::{AudioVideoInfo, CoreInfo, GameData, LoadGameResult, PixelFormat, RuntimeHandle};
+use libretro_backend::{AudioVideoInfo, CoreInfo, GameData, LoadGameResult, RuntimeHandle};
 
 use crate::game::Game;
 use std::path::Path;
 
 const SCREEN_WIDTH: u32 = 320;
 const SCREEN_HEIGHT: u32 = 240;
-const FRAME_BUFFER_BYTES_PER_PIXEL: usize = 4;
 
+trait Pixel: From<(u8, u8, u8)> + From<(u8, u8, u8, u8)> {
+    fn from_rgb(r: u8, g: u8, b: u8) -> Self;
+    fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Self;
+}
+
+#[repr(C)]
 #[derive(Debug, Copy, Clone, PartialEq)]
-struct FrameBufferColor {
+struct PixelArgb8888 {
     r: u8,
     g: u8,
     b: u8,
     a: u8,
 }
 
-impl FrameBufferColor {
-    pub fn red(&self) -> u8 {
-        self.r
+impl Pixel for PixelArgb8888 {
+    fn from_rgb(r: u8, g: u8, b: u8) -> Self {
+        Self::from_rgba(r, g, b, 255)
     }
 
-    pub fn green(&self) -> u8 {
-        self.g
-    }
-
-    pub fn blue(&self) -> u8 {
-        self.b
-    }
-
-    pub fn alpha(&self) -> u8 {
-        self.a
+    fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
+        Self { r, g, b, a }
     }
 }
 
-impl From<(u8, u8, u8)> for FrameBufferColor {
-    fn from(values: (u8, u8, u8)) -> Self {
-        FrameBufferColor { r: values.0, g: values.1, b: values.2, a: 255 }
+impl From<(u8, u8, u8)> for PixelArgb8888 {
+    fn from(components: (u8, u8, u8)) -> Self {
+        Self::from_rgb(components.0, components.1, components.2)
     }
 }
 
-impl From<(u8, u8, u8, u8)> for FrameBufferColor {
-    fn from(values: (u8, u8, u8, u8)) -> Self {
-        FrameBufferColor { r: values.0, g: values.1, b: values.2, a: values.3 }
+impl From<(u8, u8, u8, u8)> for PixelArgb8888 {
+    fn from(components: (u8, u8, u8, u8)) -> Self {
+        Self::from_rgba(components.0, components.1, components.2, components.3)
+    }
+}
+
+impl Default for PixelArgb8888 {
+    fn default() -> Self {
+        Self::from_rgb(0, 0, 0)
     }
 }
 
@@ -62,30 +65,26 @@ impl<'a> FrameBufferCursor<'a> {
     }
 
     pub fn move_to(&mut self, x: u32, y: u32) {
-        let offset = (y * self.frame_buffer.width) as usize * FRAME_BUFFER_BYTES_PER_PIXEL + x as usize * FRAME_BUFFER_BYTES_PER_PIXEL;
+        let offset = (y * self.frame_buffer.width) as usize + x as usize;
         assert!(offset < self.frame_buffer.data.len());
         self.offset = offset;
     }
 
-    pub fn draw_color(&mut self, color: FrameBufferColor) {
-        match color.alpha() {
-            0 => {},
-            255 => {
-                self.frame_buffer.data[self.offset] = color.blue();
-                self.frame_buffer.data[self.offset + 1] = color.green();
-                self.frame_buffer.data[self.offset + 2] = color.red();
-            },
-            _ => unimplemented!("Blending not supported yet."),
-        }
+    pub fn set_pixel(&mut self, pixel: FrameBufferPixel) {
+        self.frame_buffer.data[self.offset] = pixel;
+    }
 
-        self.offset += FRAME_BUFFER_BYTES_PER_PIXEL;
+    pub fn advance(&mut self) {
+        self.offset += 1;
     }
 }
+
+type FrameBufferPixel = PixelArgb8888;
 
 struct FrameBuffer {
     width: u32,
     _height: u32,
-    data: Vec<u8>,
+    data: Vec<FrameBufferPixel>,
 }
 
 impl FrameBuffer {
@@ -93,7 +92,7 @@ impl FrameBuffer {
         FrameBuffer {
             width,
             _height: height,
-            data: vec!(0; (width * height) as usize * FRAME_BUFFER_BYTES_PER_PIXEL),
+            data: vec!(Default::default(); (width * height) as usize),
         }
     }
 
@@ -138,7 +137,7 @@ impl libretro_backend::Core for Emulator {
                 self.game.replace(game);
                 self.game_data.replace(game_data);
                 let av_info = AudioVideoInfo::new()
-                    .video(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, 60.0, PixelFormat::ARGB8888);
+                    .video(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, 60.0, libretro_backend::PixelFormat::ARGB8888);
                 return LoadGameResult::Success(av_info);
             }
         }
@@ -157,7 +156,13 @@ impl libretro_backend::Core for Emulator {
         game.step();
         game.render(&mut self.frame_buffer);
 
-        handle.upload_video_frame(self.frame_buffer.data.as_slice());
+        let video_data = unsafe {
+            // We are in control of FrameBufferPixel. It is aligned in ARGB8888 format.
+            // Defining the frame buffer data in this type (instead of u8) is more ergonomic
+            // everywhere in our code, but it does require this cast to be efficient.
+            std::mem::transmute::<&[FrameBufferPixel], &[u8]>(self.frame_buffer.data.as_slice())
+        };
+        handle.upload_video_frame(video_data);
 
         // No audio for now, but we need to call this
         handle.upload_audio_frame(&[]);

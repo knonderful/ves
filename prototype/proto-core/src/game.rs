@@ -1,5 +1,5 @@
 use crate::game_api::{RomData, RomDataRecord};
-use crate::{FrameBuffer, FrameBufferColor};
+use crate::{FrameBuffer, FrameBufferPixel};
 
 use std::path::Path;
 use wasmtime::{Store, Linker, Module, Func};
@@ -93,7 +93,7 @@ impl Game {
         let rom_data = &internal.rom_data;
         let state = &internal.state;
 
-        let transparent: FrameBufferColor = (255, 0, 255).into();
+        let transparent: FrameBufferPixel = (255, 0, 255).into();
 
         for sprite_opt in state.obj_table.iter() {
             if let Some(sprite) = sprite_opt {
@@ -112,11 +112,11 @@ impl Game {
                     x = x + 1;
 
                     let color = (chunk[0], chunk[1], chunk[2]).into();
-                    if color == transparent {
-                        cursor.move_to(x, y);
-                    } else {
-                        cursor.draw_color(color);
+                    if color != transparent {
+                        cursor.set_pixel(color);
                     }
+
+                    cursor.advance();
                 }
             }
         }

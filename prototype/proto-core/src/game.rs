@@ -1,11 +1,12 @@
 use crate::game_api::{RomData, RomDataRecord};
-use crate::{FrameBuffer, FrameBufferPixel};
+use crate::core::{FrameBuffer, FrameBufferPixel};
 
 use std::path::Path;
 use wasmtime::{Store, Linker, Module, Func};
 use anyhow::Result;
 use std::rc::Rc;
 use std::cell::{RefCell};
+use crate::core::geometry::{Rectangle, Position, Dimensions};
 
 pub struct SpriteObject {
     record: RomDataRecord,
@@ -44,7 +45,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn from_path(path: &Path) -> Result<Game>  {
+    pub fn from_path(path: &Path) -> Result<Game> {
         let wasm_file = std::fs::canonicalize(path)?;
         let rom_data = get_rom_data(&wasm_file)?;
 
@@ -93,31 +94,16 @@ impl Game {
         let rom_data = &internal.rom_data;
         let state = &internal.state;
 
-        let transparent: FrameBufferPixel = (255, 0, 255).into();
+        // let transparent: FrameBufferPixel = (255, 0, 255).into();
 
         for sprite_opt in state.obj_table.iter() {
             if let Some(sprite) = sprite_opt {
-                let data = sprite.record.slice(rom_data);
-                let mut cursor = framebuffer.cursor();
-                let mut x = 0;
-                let mut y = 0;
-                cursor.move_to(x, y);
-                for chunk in data.chunks_exact(3) {
-                    if x % 8 == 0 {
-                        x = 0;
-                        y = y + 1;
-                        cursor.move_to(0, y);
-                    }
+                let data: Vec<FrameBufferPixel> = sprite.record.slice(rom_data).chunks_exact(3).map(|chunk| {
+                    FrameBufferPixel::from((chunk[0], chunk[1], chunk[2]))
+                }).collect();
 
-                    x = x + 1;
-
-                    let color = (chunk[0], chunk[1], chunk[2]).into();
-                    if color != transparent {
-                        cursor.set_pixel(color);
-                    }
-
-                    cursor.advance();
-                }
+                let mut fbrect = framebuffer.rectangle(Rectangle::new(Position::new(30, 40), Dimensions::new(8, 8)));
+                fbrect.write(data.as_slice());
             }
         }
     }

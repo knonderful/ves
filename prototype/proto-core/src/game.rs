@@ -1,5 +1,5 @@
 use crate::game_api::{RomData, RomDataRecord};
-use crate::core::{FrameBuffer, FrameBufferPixel};
+use crate::core::{FrameBuffer, Pixel};
 
 use std::path::Path;
 use wasmtime::{Store, Linker, Module, Func};
@@ -94,16 +94,23 @@ impl Game {
         let rom_data = &internal.rom_data;
         let state = &internal.state;
 
-        // let transparent: FrameBufferPixel = (255, 0, 255).into();
+        framebuffer.window(Rectangle::new(Position::origin(), Dimensions::new(framebuffer.width(), framebuffer.height())))
+            .for_each(|pixel| {
+                pixel.set_rgb(0, 64, 0);
+            });
+
+        const TRANSPARENT: (u8, u8, u8) = (255, 0, 255);
 
         for sprite_opt in state.obj_table.iter() {
             if let Some(sprite) = sprite_opt {
-                let data: Vec<FrameBufferPixel> = sprite.record.slice(rom_data).chunks_exact(3).map(|chunk| {
-                    FrameBufferPixel::from((chunk[0], chunk[1], chunk[2]))
-                }).collect();
+                let it_src = sprite.record.slice(rom_data).chunks_exact(3).map(|chunk| (chunk[0], chunk[1], chunk[2]));
+                let it_dest = framebuffer.window(Rectangle::new(Position::new(32, 64), Dimensions::new(8, 8)));
 
-                let mut fbrect = framebuffer.rectangle(Rectangle::new(Position::new(30, 40), Dimensions::new(8, 8)));
-                fbrect.write(data.as_slice());
+                it_dest.zip(it_src).for_each(|(dst, src)| {
+                    if src != TRANSPARENT {
+                        dst.set_rgb(src.0, src.1, src.2);
+                    }
+                });
             }
         }
     }

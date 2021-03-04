@@ -4,14 +4,17 @@ use libretro_backend::{AudioVideoInfo, CoreInfo, GameData, LoadGameResult, Runti
 
 use crate::game::Game;
 use std::path::Path;
-use crate::core::geometry::{Dimensions, Rectangle, CoordinateType};
+use crate::core::geometry::{Dimensions, Rectangle, CoordinateType, Position};
 
 const SCREEN_WIDTH: u32 = 320;
 const SCREEN_HEIGHT: u32 = 240;
 
-trait Pixel: From<(u8, u8, u8)> + From<(u8, u8, u8, u8)> {
+pub trait Pixel: From<(u8, u8, u8)> + From<(u8, u8, u8, u8)> {
     fn from_rgb(r: u8, g: u8, b: u8) -> Self;
     fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Self;
+
+    fn set_rgb(&mut self, r: u8, g: u8, b: u8);
+    fn set_rgba(&mut self, r: u8, g: u8, b: u8, a: u8);
 }
 
 #[repr(C)]
@@ -23,13 +26,26 @@ pub struct PixelArgb8888 {
     a: u8,
 }
 
+const ALPHA_OPAQUE: u8 = 255;
+
 impl Pixel for PixelArgb8888 {
     fn from_rgb(r: u8, g: u8, b: u8) -> Self {
-        Self::from_rgba(r, g, b, 255)
+        Self::from_rgba(r, g, b, ALPHA_OPAQUE)
     }
 
     fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { r, g, b, a }
+    }
+
+    fn set_rgb(&mut self, r: u8, g: u8, b: u8) {
+        self.set_rgba(r, g, b, ALPHA_OPAQUE);
+    }
+
+    fn set_rgba(&mut self, r: u8, g: u8, b: u8, a: u8) {
+        self.r = r;
+        self.g = g;
+        self.b = b;
+        self.a = a;
     }
 }
 
@@ -66,8 +82,8 @@ impl FrameBuffer {
         }
     }
 
-    pub fn rectangle(&mut self, rectangle: Rectangle) -> FrameBufferRectangle {
-        FrameBufferRectangle::new(self, rectangle)
+    pub fn window(&mut self, rectangle: Rectangle) -> FrameBufferWindow {
+        FrameBufferWindow::new(self, rectangle)
     }
 
     pub fn width(&self) -> CoordinateType {
@@ -80,28 +96,59 @@ impl FrameBuffer {
     }
 }
 
-pub struct FrameBufferRectangle<'fb> {
-    frame_buffer: &'fb mut FrameBuffer,
-    rectangle: Rectangle,
+pub struct FrameBufferWindow<'fb> {
+    framebuffer: &'fb mut FrameBuffer,
+    origin_x: CoordinateType,
+    position: Position,
+    final_position: Position,
 }
 
-impl<'fb> FrameBufferRectangle<'fb> {
-    fn new(frame_buffer: &'fb mut FrameBuffer, rectangle: Rectangle) -> Self {
-        Self { frame_buffer, rectangle }
-    }
+impl<'fb> FrameBufferWindow<'fb> {
+    fn new(framebuffer: &'fb mut FrameBuffer, rectangle: Rectangle) -> Self {
+        // The underlying type from the euclid crate takes the maximum position as _inclusive_ (probably
+        // because it has to be able to work with float-based coordinates, in which case that makes sense).
+        // For our case that doesn't make sense, so we deduct 1 from both coordinate elements.
+        let final_position = (rectangle.max() - Position::new(1, 1)).to_point();
+        let position = rectangle.origin;
 
-    pub fn write(&mut self, data: &[FrameBufferPixel]) {
-        assert_eq!(self.rectangle.area(), data.len() as CoordinateType);
-        let origin = self.rectangle.origin;
-        let pitch = self.frame_buffer.width() as usize;
-        let mut dest_index = origin.y as usize * pitch + origin.x as usize;
-        let mut src_index = 0;
-        let rect_width = self.rectangle.width() as usize;
-        for _ in self.rectangle.y_range() {
-            self.frame_buffer.data[dest_index..dest_index + rect_width].copy_from_slice(&data[src_index..src_index + rect_width]);
-            src_index += rect_width;
-            dest_index += pitch;
+        assert!(final_position.x < framebuffer.width());
+        assert!(final_position.y < framebuffer.height());
+
+        Self {
+            framebuffer,
+            origin_x: position.x,
+            position,
+            final_position,
         }
+    }
+}
+
+impl<'fb> Iterator for FrameBufferWindow<'fb> {
+    type Item = &'fb mut FrameBufferPixel;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.position.y > self.final_position.y {
+            return None;
+        }
+
+        let pitch = self.framebuffer.width() as usize;
+        let index = self.position.y as usize * pitch + self.position.x as usize;
+
+        // We need to "reset" the lifetime in order to get to the 'fb lifetime.
+        // This is safe because the constructor guarantees that the rectangle is within the data buffer.
+        let pixel = unsafe {
+            let x = self.framebuffer.data.as_mut_ptr().add(index);
+            &mut *x
+        };
+
+        if self.position.x == self.final_position.x {
+            self.position.x = self.origin_x;
+            self.position.y += 1;
+        } else {
+            self.position.x += 1;
+        }
+
+        Some(pixel)
     }
 }
 

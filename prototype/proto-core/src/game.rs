@@ -94,6 +94,7 @@ impl Game {
         let rom_data = &internal.rom_data;
         let state = &internal.state;
 
+        // Fill background with one color
         framebuffer.window(Rectangle::new(Position::origin(), Dimensions::new(framebuffer.width(), framebuffer.height())))
             .for_each(|pixel| {
                 pixel.set_rgb(0, 64, 0);

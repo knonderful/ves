@@ -2,7 +2,7 @@ use crate::game_api::{RomData, RomDataRecord};
 use crate::core::{FrameBuffer, Pixel};
 
 use std::path::Path;
-use wasmtime::{Store, Linker, Module, Func};
+use wasmtime::{Store, Linker, Module, Func, Caller, Extern, Trap, Memory};
 use anyhow::Result;
 use std::rc::Rc;
 use std::cell::{RefCell};
@@ -40,8 +40,32 @@ impl GameInternal {
 }
 
 pub struct Game {
-    greet: Func,
+    instance_ptr: u32,
+    step: Func,
     internal: Rc<RefCell<GameInternal>>,
+}
+
+fn get_memory(caller: &Caller<'_>) -> std::result::Result<Memory, Trap> {
+    match caller.get_export("memory") {
+        Some(Extern::Memory(mem)) => Ok(mem),
+        _ => Err(Trap::new("Failed to find memory.")),
+    }
+}
+
+fn get_slice(mem: &Memory, ptr: u32, len: u32) -> std::result::Result<&[u8], Trap> {
+    unsafe {
+        mem.data_unchecked()
+            .get(ptr as u32 as usize..)
+            .and_then(|arr| arr.get(..len as usize))
+            .ok_or_else(|| Trap::new(format!("Could not get slice with pointer {} and length {}.", ptr, len)))
+    }
+}
+
+fn get_str(data: &[u8]) -> std::result::Result<&str, Trap> {
+    match std::str::from_utf8(data) {
+        Ok(str) => Ok(str),
+        Err(_) => Err(Trap::new("Invalid UTF-8")),
+    }
 }
 
 impl Game {
@@ -70,14 +94,29 @@ impl Game {
             game_int.state.obj_table[index as usize] = Some(SpriteObject::new(record));
         })?;
 
+        linker.func("logger", "info", |caller: Caller<'_>, ptr: u32, len: u32| {
+            let mem = get_memory(&caller)?;
+            let message = get_str(get_slice(&mem, ptr, len)?)?;
+            println!("[GAME:INFO] {}", message);
+            Ok(())
+        })?;
+
         let instance = linker.instantiate(&module)?;
 
-        let hello = instance
-            .get_func("greet")
-            .ok_or(anyhow::format_err!("failed to find `greet` function export"))?;
+        let create_instance = instance
+            .get_func("create_instance")
+            .ok_or(anyhow::format_err!("failed to find `create_instance` function export"))?
+            .get0::<u32>()?;
+
+        let instance_ptr = create_instance()?;
+
+        let step = instance
+            .get_func("step")
+            .ok_or(anyhow::format_err!("failed to find `step` function export"))?;
 
         let game = Game {
-            greet: hello,
+            instance_ptr,
+            step,
             internal: game_internal,
         };
 
@@ -85,8 +124,8 @@ impl Game {
     }
 
     pub(crate) fn step(&self) {
-        let function = self.greet.get0::<()>().unwrap();
-        function().unwrap();
+        let function = self.step.get1::<u32, ()>().unwrap();
+        function(self.instance_ptr).unwrap();
     }
 
     pub(crate) fn render(&self, framebuffer: &mut FrameBuffer) {

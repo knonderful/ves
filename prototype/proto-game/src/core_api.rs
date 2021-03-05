@@ -6,6 +6,12 @@ extern {
     fn gpu_set_object(index: usize, ptr: RomDataPointer, size: usize);
 }
 
+#[link(wasm_import_module = "logger")]
+extern {
+    #[link_name = "info"]
+    fn logger_info(ptr: *const u8, len: usize);
+}
+
 #[allow(dead_code)]
 pub struct RomDataRecord {
     ptr: RomDataPointer,
@@ -18,16 +24,66 @@ impl RomDataRecord {
     }
 }
 
-pub struct Gpu {}
+pub struct Core {
+    logger: Logger,
+    gpu: Gpu,
+}
 
-impl Gpu {
-    pub fn set_object(&self, index: usize, record: RomDataRecord) {
-        unsafe { gpu_set_object(index, record.ptr, record.size) };
+impl Core {
+    pub fn new() -> Self {
+        Self {
+            logger: Logger::new(),
+            gpu: Gpu::new(),
+        }
+    }
+
+    pub fn logger(&self) -> &Logger {
+        &self.logger
+    }
+
+    pub fn gpu(&self) -> &Gpu {
+        &self.gpu
     }
 }
 
-static GPU: Gpu = Gpu {};
+pub struct Logger {}
 
-pub fn gfx() -> &'static Gpu {
-    &GPU
+impl Logger {
+    fn new() -> Self {
+        Self {}
+    }
+
+    pub fn info(&self, message: &String) {
+        unsafe {
+            logger_info(message.as_ptr(), message.len());
+        }
+    }
+}
+
+pub struct Gpu {
+    objects: Objects,
+}
+
+impl Gpu {
+    fn new() -> Self {
+        Self {
+            objects: Objects::new(),
+        }
+    }
+
+    pub fn objects(&self) -> &Objects {
+        &self.objects
+    }
+}
+
+pub struct Objects {}
+
+impl Objects {
+    fn new() -> Self {
+        Self {}
+    }
+
+    pub fn set(&self, index: usize, record: RomDataRecord) {
+        unsafe { gpu_set_object(index, record.ptr, record.size) };
+    }
 }

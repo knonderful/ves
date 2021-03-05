@@ -45,7 +45,7 @@ impl Logger {
         Self {}
     }
 
-    pub fn info(&mut self, message: &String) {
+    pub fn info(&mut self, message: &str) {
         unsafe {
             logger_info(message.as_ptr(), message.len());
         }

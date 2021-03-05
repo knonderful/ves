@@ -43,14 +43,15 @@ impl Game for GameInstance {
     }
 
     fn step(&mut self) {
+        let objects = &mut self.core.gpu.objects;
         if self.frame_count == 0 {
             // initialize state
-
+            self.core.logger.info("Initializing.");;
+            objects.set(0, ROM_DATA.gfx().example());
         }
 
         self.frame_count += 1;
         let msg = format!("Frame #{}", &self.frame_count);
-        self.core.logger.info(&msg);
-        self.core.gpu.objects.set(0, ROM_DATA.gfx().example());
+        self.core.logger.info(msg.as_str());
     }
 }

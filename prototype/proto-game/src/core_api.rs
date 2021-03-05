@@ -25,8 +25,8 @@ impl RomDataRecord {
 }
 
 pub struct Core {
-    logger: Logger,
-    gpu: Gpu,
+    pub logger: Logger,
+    pub gpu: Gpu,
 }
 
 impl Core {
@@ -35,14 +35,6 @@ impl Core {
             logger: Logger::new(),
             gpu: Gpu::new(),
         }
-    }
-
-    pub fn logger(&self) -> &Logger {
-        &self.logger
-    }
-
-    pub fn gpu(&self) -> &Gpu {
-        &self.gpu
     }
 }
 
@@ -53,7 +45,7 @@ impl Logger {
         Self {}
     }
 
-    pub fn info(&self, message: &String) {
+    pub fn info(&mut self, message: &String) {
         unsafe {
             logger_info(message.as_ptr(), message.len());
         }
@@ -61,7 +53,7 @@ impl Logger {
 }
 
 pub struct Gpu {
-    objects: Objects,
+    pub objects: Objects,
 }
 
 impl Gpu {
@@ -69,10 +61,6 @@ impl Gpu {
         Self {
             objects: Objects::new(),
         }
-    }
-
-    pub fn objects(&self) -> &Objects {
-        &self.objects
     }
 }
 
@@ -83,7 +71,7 @@ impl Objects {
         Self {}
     }
 
-    pub fn set(&self, index: usize, record: RomDataRecord) {
+    pub fn set(&mut self, index: usize, record: RomDataRecord) {
         unsafe { gpu_set_object(index, record.ptr, record.size) };
     }
 }

@@ -34,12 +34,6 @@ pub struct GameInstance {
     frame_count: u64,
 }
 
-impl GameInstance {
-    fn core(&self) -> &Core {
-        &self.core
-    }
-}
-
 impl Game for GameInstance {
     fn new(core: Core) -> Self {
         GameInstance {
@@ -49,9 +43,14 @@ impl Game for GameInstance {
     }
 
     fn step(&mut self) {
+        if self.frame_count == 0 {
+            // initialize state
+
+        }
+
         self.frame_count += 1;
         let msg = format!("Frame #{}", &self.frame_count);
-        self.core().logger().info(&msg);
-        self.core().gpu().objects().set(0, ROM_DATA.gfx().example());
+        self.core.logger.info(&msg);
+        self.core.gpu.objects.set(0, ROM_DATA.gfx().example());
     }
 }

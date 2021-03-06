@@ -1,6 +1,8 @@
 mod game_api;
 mod game;
 mod core;
+#[macro_use]
+mod gfx;
 
 #[macro_use]
 extern crate libretro_backend;

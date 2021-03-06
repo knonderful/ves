@@ -1,28 +1,106 @@
 use crate::game_api::{RomData, RomDataRecord};
-use crate::core::{FrameBuffer, Pixel};
 
 use std::path::Path;
 use wasmtime::{Store, Linker, Module, Func, Caller, Extern, Trap, Memory};
 use anyhow::Result;
 use std::rc::Rc;
 use std::cell::{RefCell};
-use crate::core::geometry::{Rectangle, Position, Dimensions};
+use crate::gfx::{FrameBufferPixel, Position, Dimensions, Rectangle, FrameBuffer, Pixel, CoordinateType};
 
+// TODO: Copied from proto-game. Needs unifying.
+#[derive(Copy, Clone)]
+pub struct ObjectCharacterTableIndex {
+    x: u8,
+    y: u8,
+}
+
+impl ObjectCharacterTableIndex {
+    pub fn new(x: u8, y: u8) -> Self {
+        Self { x, y }
+    }
+}
+
+#[derive(Copy, Clone)]
 pub struct SpriteObject {
-    record: RomDataRecord,
+    char_table_index: ObjectCharacterTableIndex,
+    position: Position,
 }
 
 impl SpriteObject {
-    fn new(record: RomDataRecord) -> Self {
+    fn new(char_table_index: ObjectCharacterTableIndex, position: Position) -> Self {
         Self {
-            record
+            char_table_index,
+            position,
         }
+    }
+}
+
+/// The width of a character in pixels.
+const CHAR_WIDTH: usize = 8;
+/// The height of a character in pixels.
+const CHAR_HEIGHT: usize = 8;
+/// The size of a character in pixels.
+const CHAR_SIZE: usize = CHAR_WIDTH * CHAR_HEIGHT;
+/// The width of the character table in number of characters.
+const OBJ_CHAR_TABLE_WIDTH: usize = 16;
+/// The height of the character table in number of characters.
+const OBJ_CHAR_TABLE_HEIGHT: usize = 16;
+/// The size of the character table in pixels.
+const OBJ_CHAR_MEM_SIZE: usize = OBJ_CHAR_TABLE_WIDTH * OBJ_CHAR_TABLE_HEIGHT * CHAR_SIZE;
+/// The size of the object attribute table in number of entries.
+const OBJ_ATTR_MEM_SIZE: usize = 32usize;
+
+// #[derive(Copy, Clone)]
+// struct Character<T> {
+//     data: [T; CHAR_SIZE],
+// }
+//
+// impl<T: Default + Copy> Default for Character<T> {
+//     fn default() -> Self {
+//         Self {
+//             data: [Default::default(); CHAR_SIZE],
+//         }
+//     }
+// }
+//
+// impl<T> Character<T> {
+//     fn iter_rows(&self) -> impl Iterator<Item=&[T]> {
+//         self.data.chunks_exact(CHAR_WIDTH)
+//     }
+//
+//     fn iter_pixels(&self) -> impl Iterator<Item=&T> {
+//         self.data.iter()
+//     }
+// }
+
+crate::surface!(ObjectCharacterSurface, OBJ_CHAR_TABLE_WIDTH, OBJ_CHAR_TABLE_HEIGHT);
+
+/// A character table.
+#[derive(Default)]
+struct ObjectCharacterTable<T: Default + Copy> {
+    surface: ObjectCharacterSurface<T>,
+}
+
+// impl<T: Default + Copy> Default for ObjectCharacterTable<T> {
+//     fn default() -> Self {
+//         Self {
+//             data: [Default::default(); OBJ_CHAR_MEM_SIZE],
+//         }
+//     }
+// }
+
+impl<T: Default + Copy> ObjectCharacterTable<T> {
+    fn surface(&mut self) -> &ObjectCharacterSurface<T> {
+        &self.surface
     }
 }
 
 #[derive(Default)]
 struct GameState {
-    obj_table: [Option<SpriteObject>; 32usize], // 32-sprite limit
+    // TODO: Replace FrameBufferPixel with another pixel type that only stores the NECESSARY data (basically the indices, not the RGBA)
+    obj_char_table: ObjectCharacterTable<FrameBufferPixel>,
+    /// The object attribute table.
+    obj_attr_table: [Option<SpriteObject>; OBJ_ATTR_MEM_SIZE],
 }
 
 struct GameInternal {
@@ -88,10 +166,32 @@ impl Game {
 
         let game_int = game_internal.clone();
 
-        linker.func("gpu", "set_object", move |index: u32, ptr: u32, size: u32| {
+        linker.func("obj_attr_mem", "set", move |index: u32, ocm_x: u32, ocm_y: u32| {
+            let char_mem_index = ObjectCharacterTableIndex::new(ocm_x as u8, ocm_y as u8);
             let mut game_int = (*game_int).borrow_mut();
-            let record = game_int.rom_data.record(ptr, size);
-            game_int.state.obj_table[index as usize] = Some(SpriteObject::new(record));
+            game_int.state.obj_attr_table[index as usize] = Some(SpriteObject::new(char_mem_index, Position::new(0, 0)));
+        })?;
+
+        let game_int = game_internal.clone();
+        linker.func("obj_char_mem", "load", move |x: u32, y: u32, ptr: u32, size: u32| {
+            // We don't support other sizes yet.
+            assert_eq!(0, size);
+
+            let x = x as u8;
+            let y = y as u8;
+
+            let mut game_int = (*game_int).borrow_mut();
+
+            // let len = 8 * 8 * 3; // 3 bytes per pixel
+            // let record = game_int.rom_data.record(ptr, len);
+            // let it_src = record.slice(&game_int.rom_data).chunks_exact(3).map(|chunk| (chunk[0], chunk[1], chunk[2]));
+            // let it_dest = framebuffer.window(Rectangle::new(Position::new(32, 64), Dimensions::new(8, 8)));
+            //
+            // it_dest.zip(it_src).for_each(|(dst, src)| {
+            //     if src != TRANSPARENT {
+            //         dst.set_rgb(src.0, src.1, src.2);
+            //     }
+            // });
         })?;
 
         linker.func("logger", "info", |caller: Caller<'_>, ptr: u32, len: u32| {
@@ -129,28 +229,27 @@ impl Game {
     }
 
     pub(crate) fn render(&self, framebuffer: &mut FrameBuffer) {
-        let internal = self.internal.borrow();
-        let rom_data = &internal.rom_data;
-        let state = &internal.state;
-
         // Fill background with one color
         framebuffer.window(Rectangle::new(Position::origin(), Dimensions::new(framebuffer.width(), framebuffer.height())))
             .for_each(|pixel| {
                 pixel.set_rgb(0, 64, 0);
             });
 
-        const TRANSPARENT: (u8, u8, u8) = (255, 0, 255);
+        let internal = self.internal.borrow();
+        let state = &internal.state;
+        let obj_chars = &state.obj_char_table;
 
-        for sprite_opt in state.obj_table.iter() {
+        for sprite_opt in state.obj_attr_table.iter() {
             if let Some(sprite) = sprite_opt {
-                let it_src = sprite.record.slice(rom_data).chunks_exact(3).map(|chunk| (chunk[0], chunk[1], chunk[2]));
-                let it_dest = framebuffer.window(Rectangle::new(Position::new(32, 64), Dimensions::new(8, 8)));
 
-                it_dest.zip(it_src).for_each(|(dst, src)| {
-                    if src != TRANSPARENT {
-                        dst.set_rgb(src.0, src.1, src.2);
-                    }
-                });
+                // let it_src = sprite.record.slice(rom_data).chunks_exact(3).map(|chunk| (chunk[0], chunk[1], chunk[2]));
+                // let it_dest = framebuffer.window(Rectangle::new(Position::new(32, 64), Dimensions::new(8, 8)));
+                //
+                // it_dest.zip(it_src).for_each(|(dst, src)| {
+                //     if src != TRANSPARENT {
+                //         dst.set_rgb(src.0, src.1, src.2);
+                //     }
+                // });
             }
         }
     }

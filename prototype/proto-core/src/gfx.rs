@@ -27,6 +27,9 @@ impl From<(Unit2D, Unit2D)> for Position2D {
     }
 }
 
+/// A rectangle in a [Surface].
+///
+/// The start and end positions are both _inclusive_.
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Rectangle2D {
     pub start: Position2D,
@@ -34,14 +37,17 @@ pub struct Rectangle2D {
 }
 
 impl Rectangle2D {
+    /// Creates a new [Rectangle2D].
     pub fn new(start: Position2D, end: Position2D) -> Self {
         Self { start, end }
     }
 
+    /// Returns the range of X values.
     pub fn range_x(&self) -> RangeInclusive<Unit2D> {
         self.start.x..=self.end.x
     }
 
+    /// Returns the range of Y values.
     pub fn range_y(&self) -> RangeInclusive<Unit2D> {
         self.start.y..=self.end.y
     }

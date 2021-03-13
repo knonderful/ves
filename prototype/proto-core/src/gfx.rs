@@ -310,13 +310,13 @@ pub struct SurfaceIterMut<'surf, T> {
 }
 
 impl<'surf, T> SurfaceIterMut<'surf, T> {
-    /// Creates a new [SurfaceIter] that contains the entire surface area.
+    /// Creates a new [SurfaceIterMut] that contains the entire surface area.
     pub fn new(surface: &'surf mut Surface<PixelType=T>) -> Self {
         let rect = Rectangle2D::new((0, 0).into(), (surface.width() - 1, surface.height() - 1).into());
         Self::new_with_rectangle(surface, rect)
     }
 
-    /// Creates a new [SurfaceIter] that contains only the provided area.
+    /// Creates a new [SurfaceIterMut] that contains only the provided area.
     pub fn new_with_rectangle(surface: &'surf mut Surface<PixelType=T>, rectangle: Rectangle2D) -> Self {
         Self {
             surface,

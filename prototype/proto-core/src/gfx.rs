@@ -275,19 +275,19 @@ pub trait SurfaceIteratorMut {
 
 /// The default [SurfaceIterator].
 pub struct SurfaceIter<'surf, T> {
-    surface: &'surf Surface<PixelValue=T>,
+    surface: &'surf dyn Surface<PixelValue=T>,
     rectangle: Rectangle2D,
 }
 
 impl<'surf, T> SurfaceIter<'surf, T> {
     /// Creates a new [SurfaceIter] that contains the entire surface area.
-    pub fn new(surface: &'surf Surface<PixelValue=T>) -> Self {
+    pub fn new(surface: &'surf dyn Surface<PixelValue=T>) -> Self {
         let rect = Rectangle2D::new((0, 0).into(), (surface.width() - 1, surface.height() - 1).into());
         Self::new_with_rectangle(surface, rect)
     }
 
     /// Creates a new [SurfaceIter] that contains only the provided area.
-    pub fn new_with_rectangle(surface: &'surf Surface<PixelValue=T>, rectangle: Rectangle2D) -> Self {
+    pub fn new_with_rectangle(surface: &'surf dyn Surface<PixelValue=T>, rectangle: Rectangle2D) -> Self {
         Self {
             surface,
             rectangle,
@@ -311,19 +311,19 @@ impl<'surf, T> SurfaceIterator for SurfaceIter<'surf, T> {
 
 /// The default [SurfaceIteratorMut].
 pub struct SurfaceIterMut<'surf, T> {
-    surface: &'surf mut Surface<PixelValue=T>,
+    surface: &'surf mut dyn Surface<PixelValue=T>,
     rectangle: Rectangle2D,
 }
 
 impl<'surf, T> SurfaceIterMut<'surf, T> {
     /// Creates a new [SurfaceIterMut] that contains the entire surface area.
-    pub fn new(surface: &'surf mut Surface<PixelValue=T>) -> Self {
+    pub fn new(surface: &'surf mut dyn Surface<PixelValue=T>) -> Self {
         let rect = Rectangle2D::new((0, 0).into(), (surface.width() - 1, surface.height() - 1).into());
         Self::new_with_rectangle(surface, rect)
     }
 
     /// Creates a new [SurfaceIterMut] that contains only the provided area.
-    pub fn new_with_rectangle(surface: &'surf mut Surface<PixelValue=T>, rectangle: Rectangle2D) -> Self {
+    pub fn new_with_rectangle(surface: &'surf mut dyn Surface<PixelValue=T>, rectangle: Rectangle2D) -> Self {
         Self {
             surface,
             rectangle,

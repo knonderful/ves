@@ -263,7 +263,7 @@ pub trait SurfaceIterator {
 /// underlying lifetime restriction reasons).
 ///
 /// This iterator provides mutable access to the surface. For the immutable alternative look to
-/// [SurfaceIteratorMut].
+/// [SurfaceIterator].
 pub trait SurfaceIteratorMut {
     /// The type of pixel for the [Surface].
     type PixelType;

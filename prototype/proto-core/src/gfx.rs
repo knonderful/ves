@@ -285,25 +285,19 @@ impl<'surf, T> SurfaceIter<'surf, T> {
             rectangle,
         }
     }
+}
 
-    fn consume<F>(mut self, mut consumer: F) where
-        F: FnMut(BufferBackedPixel<'_, T>)
+impl<'surf, T> SurfaceIterator for SurfaceIter<'surf, T> {
+    type PixelType = T;
+
+    fn for_each<F>(self, mut consumer: F) where
+        F: FnMut(BufferBackedPixel<'_, Self::PixelType>)
     {
         for y in self.rectangle.range_y() {
             for x in self.rectangle.range_x() {
                 consumer(self.surface.pixel(Position2D::new(x, y)));
             }
         }
-    }
-}
-
-impl<'surf, T> SurfaceIterator for SurfaceIter<'surf, T> {
-    type PixelType = T;
-
-    fn for_each<F>(self, consumer: F) where
-        F: FnMut(BufferBackedPixel<'_, Self::PixelType>)
-    {
-        self.consume(consumer);
     }
 }
 
@@ -327,25 +321,19 @@ impl<'surf, T> SurfaceIterMut<'surf, T> {
             rectangle,
         }
     }
+}
 
-    fn consume<F>(mut self, mut consumer: F) where
-        F: FnMut(BufferBackedPixelMut<'_, T>)
+impl<'surf, T> SurfaceIteratorMut for SurfaceIterMut<'surf, T> {
+    type PixelType = T;
+
+    fn for_each<F>(self, mut consumer: F) where
+        F: FnMut(BufferBackedPixelMut<'_, Self::PixelType>)
     {
         for y in self.rectangle.range_y() {
             for x in self.rectangle.range_x() {
                 consumer(self.surface.pixel_mut(Position2D::new(x, y)));
             }
         }
-    }
-}
-
-impl<'surf, T> SurfaceIteratorMut for SurfaceIterMut<'surf, T> {
-    type PixelType = T;
-
-    fn for_each<F>(self, consumer: F) where
-        F: FnMut(BufferBackedPixelMut<'_, Self::PixelType>)
-    {
-        self.consume(consumer);
     }
 }
 

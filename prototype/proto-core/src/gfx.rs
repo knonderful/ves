@@ -59,8 +59,8 @@ impl Rectangle2D {
 /// pixels. The raster has its origin in the top-left corner, i.e. the top-left position is
 /// `(0, 0)`, the one to the right of that is `(1, 0)` and the one below that is `(1, 1)`.
 pub trait Surface {
-    /// The type of pixel for this surface.
-    type PixelType;
+    /// The type of pixel value for this surface.
+    type PixelValue;
 
     /// The (raw) surface data as a slice of bytes.
     fn data(&self) -> &[u8];
@@ -72,10 +72,10 @@ pub trait Surface {
     fn height(&self) -> Unit2D;
 
     /// Retrieves the [Pixel] at the provided [Position2D].
-    fn pixel(&self, position: Position2D) -> BufferBackedPixel<Self::PixelType>;
+    fn pixel(&self, position: Position2D) -> BufferBackedPixel<Self::PixelValue>;
 
     /// Retrieves the [PixelMut] at the provided [Position2D].
-    fn pixel_mut(&mut self, position: Position2D) -> BufferBackedPixelMut<Self::PixelType>;
+    fn pixel_mut(&mut self, position: Position2D) -> BufferBackedPixelMut<Self::PixelValue>;
 }
 
 
@@ -275,19 +275,19 @@ pub trait SurfaceIteratorMut {
 
 /// The default [SurfaceIterator].
 pub struct SurfaceIter<'surf, T> {
-    surface: &'surf Surface<PixelType=T>,
+    surface: &'surf Surface<PixelValue=T>,
     rectangle: Rectangle2D,
 }
 
 impl<'surf, T> SurfaceIter<'surf, T> {
     /// Creates a new [SurfaceIter] that contains the entire surface area.
-    pub fn new(surface: &'surf Surface<PixelType=T>) -> Self {
+    pub fn new(surface: &'surf Surface<PixelValue=T>) -> Self {
         let rect = Rectangle2D::new((0, 0).into(), (surface.width() - 1, surface.height() - 1).into());
         Self::new_with_rectangle(surface, rect)
     }
 
     /// Creates a new [SurfaceIter] that contains only the provided area.
-    pub fn new_with_rectangle(surface: &'surf Surface<PixelType=T>, rectangle: Rectangle2D) -> Self {
+    pub fn new_with_rectangle(surface: &'surf Surface<PixelValue=T>, rectangle: Rectangle2D) -> Self {
         Self {
             surface,
             rectangle,
@@ -311,19 +311,19 @@ impl<'surf, T> SurfaceIterator for SurfaceIter<'surf, T> {
 
 /// The default [SurfaceIteratorMut].
 pub struct SurfaceIterMut<'surf, T> {
-    surface: &'surf mut Surface<PixelType=T>,
+    surface: &'surf mut Surface<PixelValue=T>,
     rectangle: Rectangle2D,
 }
 
 impl<'surf, T> SurfaceIterMut<'surf, T> {
     /// Creates a new [SurfaceIterMut] that contains the entire surface area.
-    pub fn new(surface: &'surf mut Surface<PixelType=T>) -> Self {
+    pub fn new(surface: &'surf mut Surface<PixelValue=T>) -> Self {
         let rect = Rectangle2D::new((0, 0).into(), (surface.width() - 1, surface.height() - 1).into());
         Self::new_with_rectangle(surface, rect)
     }
 
     /// Creates a new [SurfaceIterMut] that contains only the provided area.
-    pub fn new_with_rectangle(surface: &'surf mut Surface<PixelType=T>, rectangle: Rectangle2D) -> Self {
+    pub fn new_with_rectangle(surface: &'surf mut Surface<PixelValue=T>, rectangle: Rectangle2D) -> Self {
         Self {
             surface,
             rectangle,

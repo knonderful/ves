@@ -213,7 +213,7 @@ macro_rules! surface {
         }
 
         impl crate::gfx::Surface for $struct_name {
-            type PixelType = $pixel_type;
+            type PixelValue = $pixel_type;
 
             fn data(&self) -> &[u8] {
                 &self.buffer
@@ -227,12 +227,12 @@ macro_rules! surface {
                 $height
             }
 
-            fn pixel(&self, position: crate::gfx::Position2D) -> crate::gfx::BufferBackedPixel<Self::PixelType> {
+            fn pixel(&self, position: crate::gfx::Position2D) -> crate::gfx::BufferBackedPixel<Self::PixelValue> {
                 let range = Self::buffer_range(position);
                 crate::gfx::BufferBackedPixel::new(&self.buffer[range.start..range.end])
             }
 
-            fn pixel_mut(&mut self, position: crate::gfx::Position2D) -> crate::gfx::BufferBackedPixelMut<Self::PixelType> {
+            fn pixel_mut(&mut self, position: crate::gfx::Position2D) -> crate::gfx::BufferBackedPixelMut<Self::PixelValue> {
                 let range = Self::buffer_range(position);
                 crate::gfx::BufferBackedPixelMut::new(&mut self.buffer[range.start..range.end])
             }

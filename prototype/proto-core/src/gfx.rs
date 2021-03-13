@@ -1,338 +1,403 @@
-use euclid::default::{Point2D, Size2D, Rect};
+use std::marker::PhantomData;
+use std::ops::{Range, RangeInclusive};
 
-pub type CoordinateType = u32;
-pub type Position = Point2D<CoordinateType>;
-pub type Dimensions = Size2D<CoordinateType>;
-pub type Rectangle = Rect<CoordinateType>;
+/// The unit for [Surface] geometry.
+pub type Unit2D = u32;
 
-pub trait Pixel: From<(u8, u8, u8)> + From<(u8, u8, u8, u8)> {
-    fn from_rgb(r: u8, g: u8, b: u8) -> Self;
-    fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Self;
-
-    fn set_rgb(&mut self, r: u8, g: u8, b: u8);
-    fn set_rgba(&mut self, r: u8, g: u8, b: u8, a: u8);
+/// A position in a [Surface].
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct Position2D {
+    /// The X-coordinate.
+    pub x: Unit2D,
+    /// The Y-coordinate.
+    pub y: Unit2D,
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct PixelArgb8888 {
-    r: u8,
-    g: u8,
-    b: u8,
-    a: u8,
-}
-
-const ALPHA_OPAQUE: u8 = 255;
-
-impl Pixel for PixelArgb8888 {
-    fn from_rgb(r: u8, g: u8, b: u8) -> Self {
-        Self::from_rgba(r, g, b, ALPHA_OPAQUE)
-    }
-
-    fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
-        Self { r, g, b, a }
-    }
-
-    fn set_rgb(&mut self, r: u8, g: u8, b: u8) {
-        self.set_rgba(r, g, b, ALPHA_OPAQUE);
-    }
-
-    fn set_rgba(&mut self, r: u8, g: u8, b: u8, a: u8) {
-        self.r = r;
-        self.g = g;
-        self.b = b;
-        self.a = a;
+impl Position2D {
+    pub fn new(x: Unit2D, y: Unit2D) -> Self {
+        Self { x, y }
     }
 }
 
-impl From<(u8, u8, u8)> for PixelArgb8888 {
-    fn from(components: (u8, u8, u8)) -> Self {
-        Self::from_rgb(components.0, components.1, components.2)
+impl From<(Unit2D, Unit2D)> for Position2D {
+    fn from(tuple: (Unit2D, Unit2D)) -> Self {
+        Self::new(tuple.0, tuple.1)
     }
 }
 
-impl From<(u8, u8, u8, u8)> for PixelArgb8888 {
-    fn from(components: (u8, u8, u8, u8)) -> Self {
-        Self::from_rgba(components.0, components.1, components.2, components.3)
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct Rectangle2D {
+    pub start: Position2D,
+    pub end: Position2D,
+}
+
+impl Rectangle2D {
+    pub fn new(start: Position2D, end: Position2D) -> Self {
+        Self { start, end }
+    }
+
+    pub fn range_x(&self) -> RangeInclusive<Unit2D> {
+        self.start.x..=self.end.x
+    }
+
+    pub fn range_y(&self) -> RangeInclusive<Unit2D> {
+        self.start.y..=self.end.y
     }
 }
 
-impl Default for PixelArgb8888 {
-    fn default() -> Self {
-        Self::from_rgb(0, 0, 0)
-    }
-}
-
+/// A drawable 2-dimensional surface.
+///
+/// A surface can be interpreted in two different ways: as a sequence of bytes or as raster of
+/// pixels. The raster has its origin in the top-left corner, i.e. the top-left position is
+/// `(0, 0)`, the one to the right of that is `(1, 0)` and the one below that is `(1, 1)`.
 pub trait Surface {
+    /// The type of pixel for this surface.
     type PixelType;
 
-    fn data(&self) -> &[Self::PixelType];
+    /// The (raw) surface data as a slice of bytes.
+    fn data(&self) -> &[u8];
 
-    fn data_mut(&mut self) -> &mut [Self::PixelType];
+    /// The width of the surface in pixels.
+    fn width(&self) -> Unit2D;
 
-    fn width(&self) -> CoordinateType;
+    /// The width of the surface in pixels.
+    fn height(&self) -> Unit2D;
 
-    fn height(&self) -> CoordinateType;
+    /// Retrieves the [Pixel] at the provided [Position2D].
+    fn pixel(&self, position: Position2D) -> BufferBackedPixel<Self::PixelType>;
 
-    fn get_index_wrapped(&self, position: Position) -> usize {
-        let width = self.width();
-        let height = self.height();
-        let x = position.x % width;
-        let y = position.y & height;
-        (y * width + x) as usize
+    /// Retrieves the [PixelMut] at the provided [Position2D].
+    fn pixel_mut(&mut self, position: Position2D) -> BufferBackedPixelMut<Self::PixelType>;
+}
+
+
+/// A pixel, usually applied to a [Surface].
+///
+/// The value type can be used for transformation operations on the surface and for conversion
+/// between different surface formats.
+pub trait Pixel {
+    /// The value type.
+    type Value;
+
+    /// Retrieves the value.
+    fn get_value(&self) -> Self::Value;
+}
+
+/// A mutable [Pixel].
+pub trait PixelMut {
+    /// The value type.
+    type Value;
+
+    /// Sets the value.
+    fn set_value(&mut self, value: &Self::Value);
+}
+
+/// Describes a type as being linearly stored in a data buffer.
+pub trait LinearlyStored {
+    /// The number of bits per pixel that the implementing data type requires.
+    const BITS_PER_PIXEL: usize;
+}
+
+/// A function for mapping from a pixel-based index to a sequence-of-bytes index.
+/// See [Surface] for more information on these concepts.
+pub trait BufferMapIndex {
+    /// Maps a pixel-based index to a sequence-of-bytes index.
+    ///
+    /// The return type is a [Range], since a single pixel might consist of multiple bytes.
+    fn map_index(index: usize) -> Range<usize>;
+}
+
+impl<T: LinearlyStored> BufferMapIndex for T {
+    fn map_index(index: usize) -> Range<usize> {
+        // First calculate everything in bits
+        let start = index * Self::BITS_PER_PIXEL;
+        let end = start + Self::BITS_PER_PIXEL;
+        // Then divide by 8 to get to bytes
+        let start = start / 8;
+        let end = end / 8;
+        start..end
+    }
+}
+
+/// An entity that can be loaded from a data buffer.
+pub trait BufferLoad {
+    /// Loads an instance from the provided slice.
+    fn load(data: &[u8]) -> Self;
+}
+
+/// An entity that can be stored into a data buffer.
+pub trait BufferStore {
+    /// Stores the instance into the provided slice.
+    fn store(&self, data: &mut [u8]);
+}
+
+/// A buffer-backed [Pixel].
+///
+/// Pixel values are always retrieved from the underlying data buffer.
+pub struct BufferBackedPixel<'buf, T> {
+    buffer: &'buf [u8],
+    _phantom: PhantomData<T>,
+}
+
+impl<'buf, T> BufferBackedPixel<'buf, T> {
+    pub fn new(buffer: &'buf [u8]) -> Self {
+        Self { buffer, _phantom: PhantomData }
+    }
+}
+
+impl<'buf, T: BufferLoad> Pixel for BufferBackedPixel<'buf, T> {
+    type Value = T;
+
+    fn get_value(&self) -> Self::Value {
+        <T as BufferLoad>::load(self.buffer)
+    }
+}
+
+/// A buffer-backed [PixelMut].
+///
+/// Pixel values are always stored to the underlying data buffer.
+pub struct BufferBackedPixelMut<'buf, T> {
+    buffer: &'buf mut [u8],
+    _phantom: PhantomData<T>,
+}
+
+impl<'buf, T> BufferBackedPixelMut<'buf, T> {
+    pub fn new(buffer: &'buf mut [u8]) -> Self {
+        Self { buffer, _phantom: PhantomData }
+    }
+}
+
+impl<'buf, T: BufferStore> PixelMut for BufferBackedPixelMut<'buf, T> {
+    type Value = T;
+
+    fn set_value(&mut self, value: &T) {
+        value.store(self.buffer);
     }
 }
 
 #[macro_export]
 macro_rules! surface {
-    ($struct_name: ident, $width: expr, $height: expr) => {
-        pub struct $struct_name<T> {
-            data: [T; $width * $height],
+    ($struct_name: ident, $pixel_type: ty, $width: expr, $height: expr) => {
+        pub struct $struct_name {
+            buffer: [u8; (<$pixel_type as crate::gfx::LinearlyStored>::BITS_PER_PIXEL * $width as usize * $height as usize) / 8],
         }
 
-        impl<T: Default + Copy> $struct_name<T> {
-            pub fn window(&self, rectangle: crate::gfx::Rectangle) -> crate::gfx::SurfaceWindow<T> {
-                crate::gfx::SurfaceWindow::new(self, rectangle)
-            }
-        }
-
-        impl<T: Default + Copy> Default for $struct_name<T> {
+        impl Default for $struct_name {
             fn default() -> Self {
                 Self {
-                    data: [Default::default(); $width * $height],
+                    buffer: [0; (<$pixel_type as crate::gfx::LinearlyStored>::BITS_PER_PIXEL * $width as usize * $height as usize) / 8]
                 }
             }
         }
 
-        impl<T> crate::gfx::Surface for $struct_name<T> {
-            type PixelType = T;
+        impl $struct_name {
+            #[inline(always)]
+            fn index_wrap(position: crate::gfx::Position2D) -> usize {
+                let x = position.x % $width;
+                let y = position.y % $height;
+                (y * $width + x) as usize
+            }
 
-            fn data(&self) -> &[T] {
-                &self.data
+            #[inline(always)]
+            fn buffer_range(position: crate::gfx::Position2D) -> core::ops::Range<usize> {
+                <$pixel_type as crate::gfx::BufferMapIndex>::map_index(Self::index_wrap(position))
             }
-        
-            fn data_mut(&mut self) -> &mut [T] {
-                &mut self.data
+        }
+
+        impl crate::gfx::Surface for $struct_name {
+            type PixelType = $pixel_type;
+
+            fn data(&self) -> &[u8] {
+                &self.buffer
             }
-        
-            fn width(&self) -> crate::gfx::CoordinateType {
-                $width as crate::gfx::CoordinateType
+
+            fn width(&self) -> crate::gfx::Unit2D {
+                $width
             }
-        
-            fn height(&self) -> crate::gfx::CoordinateType {
-                $height as crate::gfx::CoordinateType
+
+            fn height(&self) -> crate::gfx::Unit2D {
+                $height
+            }
+
+            fn pixel(&self, position: crate::gfx::Position2D) -> crate::gfx::BufferBackedPixel<Self::PixelType> {
+                let range = Self::buffer_range(position);
+                crate::gfx::BufferBackedPixel::new(&self.buffer[range.start..range.end])
+            }
+
+            fn pixel_mut(&mut self, position: crate::gfx::Position2D) -> crate::gfx::BufferBackedPixelMut<Self::PixelType> {
+                let range = Self::buffer_range(position);
+                crate::gfx::BufferBackedPixelMut::new(&mut self.buffer[range.start..range.end])
             }
         }
     }
 }
 
-pub struct SurfaceWindow<'surf, T> {
-    surface: &'surf Surface<PixelType=T>,
-    start: Position,
-    end: Position,
+
+pub trait SurfaceIterator {
+    type PixelType;
+
+    fn for_each<F>(self, consumer: F) where
+        F: FnMut(BufferBackedPixel<'_, Self::PixelType>);
 }
 
-impl<'surf, T> SurfaceWindow<'surf, T> {
-    pub fn new(surface: &'surf Surface<PixelType=T>, rectangle: Rectangle) -> Self {
-        // The underlying type from the euclid crate takes the maximum position as _inclusive_ (probably
-        // because it has to be able to work with float-based coordinates, in which case that makes sense).
-        // For our case that doesn't make sense, so we deduct 1 from both coordinate elements.
-        let start = rectangle.origin;
-        let end = Position::new(rectangle.max_x() - 1, rectangle.max_y() - 1);
+pub trait SurfaceIteratorMut {
+    type PixelType;
 
-        Self {
-            surface,
-            start,
-            end,
-        }
-    }
-
-    pub fn iter(&self) -> SurfaceIter<T> {
-        SurfaceIter::new(self.surface, self.start, self.end)
-    }
+    fn for_each<F>(self, consumer: F) where
+        F: FnMut(BufferBackedPixelMut<'_, Self::PixelType>);
 }
 
 pub struct SurfaceIter<'surf, T> {
     surface: &'surf Surface<PixelType=T>,
-    origin_x: CoordinateType,
-    position: Position,
-    final_position: Position,
+    rectangle: Rectangle2D,
 }
 
 impl<'surf, T> SurfaceIter<'surf, T> {
-    fn new(surface: &'surf Surface<PixelType=T>, start: Position, end: Position) -> Self {
+    pub fn new(surface: &'surf Surface<PixelType=T>, rectangle: Rectangle2D) -> Self {
         Self {
             surface,
-            origin_x: start.x,
-            position: start,
-            final_position: end,
+            rectangle,
+        }
+    }
+
+    fn consume<F>(mut self, mut consumer: F) where
+        F: FnMut(BufferBackedPixel<'_, T>)
+    {
+        for y in self.rectangle.range_y() {
+            for x in self.rectangle.range_x() {
+                consumer(self.surface.pixel(Position2D::new(x, y)));
+            }
         }
     }
 }
 
-impl<'surf, T> Iterator for SurfaceIter<'surf, T> {
-    type Item = &'surf T;
+impl<'surf, T> SurfaceIterator for SurfaceIter<'surf, T> {
+    type PixelType = T;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.position.y > self.final_position.y {
-            return None;
-        }
-
-        let index = self.surface.get_index_wrapped(self.position);
-        let pixel = &self.surface.data()[index];
-
-        if self.position.x == self.final_position.x {
-            self.position.x = self.origin_x;
-            self.position.y += 1;
-        } else {
-            self.position.x += 1;
-        }
-
-        Some(pixel)
+    fn for_each<F>(self, consumer: F) where
+        F: FnMut(BufferBackedPixel<'_, Self::PixelType>)
+    {
+        self.consume(consumer);
     }
 }
-
-
 
 pub struct SurfaceIterMut<'surf, T> {
     surface: &'surf mut Surface<PixelType=T>,
-    origin_x: CoordinateType,
-    position: Position,
-    final_position: Position,
+    rectangle: Rectangle2D,
 }
 
 impl<'surf, T> SurfaceIterMut<'surf, T> {
-    fn new(surface: &'surf mut Surface<PixelType=T>, start: Position, end: Position) -> Self {
+    pub fn new(surface: &'surf mut Surface<PixelType=T>) -> Self {
+        let rect = Rectangle2D::new((0, 0).into(), (surface.width() - 1, surface.height() - 1).into());
+        Self::new_with_rectangle(surface, rect)
+    }
+
+    pub fn new_with_rectangle(surface: &'surf mut Surface<PixelType=T>, rectangle: Rectangle2D) -> Self {
         Self {
             surface,
-            origin_x: start.x,
-            position: start,
-            final_position: end,
+            rectangle,
+        }
+    }
+
+    fn consume<F>(mut self, mut consumer: F) where
+        F: FnMut(BufferBackedPixelMut<'_, T>)
+    {
+        for y in self.rectangle.range_y() {
+            for x in self.rectangle.range_x() {
+                consumer(self.surface.pixel_mut(Position2D::new(x, y)));
+            }
         }
     }
 }
 
-impl<'surf, T> Iterator for SurfaceIterMut<'surf, T> {
-    type Item = &'surf mut T;
+impl<'surf, T> SurfaceIteratorMut for SurfaceIterMut<'surf, T> {
+    type PixelType = T;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.position.y > self.final_position.y {
-            return None;
-        }
-
-        let index = self.surface.get_index_wrapped(self.position);
-        // We need to "reset" the lifetime in order to satisfy the 'surf lifetime.
-        // This is safe because Surface guarantees that the index is within its data buffer.
-        let pixel = unsafe {
-            let x = self.surface.data_mut().as_mut_ptr().add(index);
-            &mut *x
-        };
-
-        if self.position.x == self.final_position.x {
-            self.position.x = self.origin_x;
-            self.position.y += 1;
-        } else {
-            self.position.x += 1;
-        }
-
-        Some(pixel)
+    fn for_each<F>(self, consumer: F) where
+        F: FnMut(BufferBackedPixelMut<'_, Self::PixelType>)
+    {
+        self.consume(consumer);
     }
 }
 
-
-
-
-
-pub type FrameBufferPixel = PixelArgb8888;
-
-pub struct FrameBuffer {
-    dimensions: Dimensions,
-    data: Vec<FrameBufferPixel>,
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct Rgba8888 {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub a: u8,
 }
 
-impl FrameBuffer {
-    pub fn new(dimensions: Dimensions) -> Self {
-        FrameBuffer {
-            dimensions,
-            data: vec!(Default::default(); dimensions.area() as usize),
-        }
-    }
+impl LinearlyStored for Rgba8888 {
+    const BITS_PER_PIXEL: usize = 4 * 8;
+}
 
-    pub fn window(&mut self, rectangle: Rectangle) -> FrameBufferWindow {
-        FrameBufferWindow::new(self, rectangle)
-    }
-
-    pub fn width(&self) -> CoordinateType {
-        self.dimensions.width
-    }
-
-    #[allow(dead_code)]
-    pub fn height(&self) -> CoordinateType {
-        self.dimensions.height
-    }
-
-    pub fn raw_data(&self) -> &[u8] {
-        unsafe {
-            // We are in control of FrameBufferPixel. It is aligned in ARGB8888 format.
-            // Defining the frame buffer data in this type (instead of u8) is more ergonomic
-            // everywhere in our code, but it does require this cast to be efficient.
-            std::mem::transmute::<&[FrameBufferPixel], &[u8]>(self.data.as_slice())
+impl BufferLoad for Rgba8888 {
+    fn load(data: &[u8]) -> Self {
+        Rgba8888 {
+            r: data[0],
+            g: data[1],
+            b: data[2],
+            a: data[3],
         }
     }
 }
 
-pub struct FrameBufferWindow<'fb> {
-    framebuffer: &'fb mut FrameBuffer,
-    origin_x: CoordinateType,
-    position: Position,
-    final_position: Position,
+impl BufferStore for Rgba8888 {
+    fn store(&self, data: &mut [u8]) {
+        data[0] = self.r;
+        data[1] = self.g;
+        data[2] = self.b;
+        data[3] = self.a;
+    }
 }
 
-impl<'fb> FrameBufferWindow<'fb> {
-    fn new(framebuffer: &'fb mut FrameBuffer, rectangle: Rectangle) -> Self {
-        // The underlying type from the euclid crate takes the maximum position as _inclusive_ (probably
-        // because it has to be able to work with float-based coordinates, in which case that makes sense).
-        // For our case that doesn't make sense, so we deduct 1 from both coordinate elements.
-        let final_position = (rectangle.max() - Position::new(1, 1)).to_point();
-        let position = rectangle.origin;
-
-        assert!(final_position.x < framebuffer.width());
-        assert!(final_position.y < framebuffer.height());
-
+impl From<(u8, u8, u8, u8)> for Rgba8888 {
+    fn from(tuple: (u8, u8, u8, u8)) -> Self {
         Self {
-            framebuffer,
-            origin_x: position.x,
-            position,
-            final_position,
+            r: tuple.0,
+            g: tuple.1,
+            b: tuple.2,
+            a: tuple.3,
         }
     }
 }
 
-impl<'fb> Iterator for FrameBufferWindow<'fb> {
-    type Item = &'fb mut FrameBufferPixel;
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct Rgb888 {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+}
 
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.position.y > self.final_position.y {
-            return None;
+impl LinearlyStored for Rgb888 {
+    const BITS_PER_PIXEL: usize = 3 * 8;
+}
+
+impl BufferLoad for Rgb888 {
+    fn load(data: &[u8]) -> Self {
+        Rgb888 {
+            r: data[0],
+            g: data[1],
+            b: data[2],
         }
+    }
+}
 
-        let pitch = self.framebuffer.width() as usize;
-        let index = self.position.y as usize * pitch + self.position.x as usize;
+impl BufferStore for Rgb888 {
+    fn store(&self, data: &mut [u8]) {
+        data[0] = self.r;
+        data[1] = self.g;
+        data[2] = self.b;
+    }
+}
 
-        // We need to "reset" the lifetime in order to get to the 'fb lifetime.
-        // This is safe because the constructor guarantees that the rectangle is within the data buffer.
-        let pixel = unsafe {
-            let x = self.framebuffer.data.as_mut_ptr().add(index);
-            &mut *x
-        };
-
-        if self.position.x == self.final_position.x {
-            self.position.x = self.origin_x;
-            self.position.y += 1;
-        } else {
-            self.position.x += 1;
+impl From<(u8, u8, u8)> for Rgb888 {
+    fn from(tuple: (u8, u8, u8)) -> Self {
+        Self {
+            r: tuple.0,
+            g: tuple.1,
+            b: tuple.2,
         }
-
-        Some(pixel)
     }
 }

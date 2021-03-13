@@ -2,10 +2,12 @@ use libretro_backend::{AudioVideoInfo, CoreInfo, GameData, LoadGameResult, Runti
 
 use crate::game::Game;
 use std::path::Path;
-use crate::gfx::{FrameBuffer, FrameBufferPixel, Dimensions};
+use crate::gfx::{Rgba8888, Unit2D, Surface};
 
-const SCREEN_WIDTH: u32 = 320;
-const SCREEN_HEIGHT: u32 = 240;
+const SCREEN_WIDTH: Unit2D = 320;
+const SCREEN_HEIGHT: Unit2D = 240;
+
+crate::surface!(FrameBuffer, Rgba8888, SCREEN_WIDTH, SCREEN_HEIGHT);
 
 pub struct ProtoCore {
     game: Option<Game>,
@@ -19,7 +21,7 @@ impl ProtoCore {
         ProtoCore {
             game: Option::None,
             game_data: Option::None,
-            frame_buffer: FrameBuffer::new(Dimensions::new(SCREEN_WIDTH, SCREEN_HEIGHT)),
+            frame_buffer: FrameBuffer::default(),
             frame_count: 0,
         }
     }
@@ -62,7 +64,7 @@ impl libretro_backend::Core for ProtoCore {
         game.step();
         game.render(&mut self.frame_buffer);
 
-        handle.upload_video_frame(self.frame_buffer.raw_data());
+        handle.upload_video_frame(self.frame_buffer.data());
 
         // No audio for now, but we need to call this
         handle.upload_audio_frame(&[]);

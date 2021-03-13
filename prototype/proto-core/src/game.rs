@@ -5,7 +5,8 @@ use wasmtime::{Store, Linker, Module, Func, Caller, Extern, Trap, Memory};
 use anyhow::Result;
 use std::rc::Rc;
 use std::cell::{RefCell};
-use crate::gfx::{FrameBufferPixel, Position, Dimensions, Rectangle, FrameBuffer, Pixel, CoordinateType};
+use crate::gfx::{Position2D, Pixel, Rgb888, SurfaceIterMut, Rectangle2D, Surface, PixelMut, Unit2D, SurfaceIteratorMut, Rgba8888};
+use crate::core::FrameBuffer;
 
 // TODO: Copied from proto-game. Needs unifying.
 #[derive(Copy, Clone)]
@@ -23,11 +24,11 @@ impl ObjectCharacterTableIndex {
 #[derive(Copy, Clone)]
 pub struct SpriteObject {
     char_table_index: ObjectCharacterTableIndex,
-    position: Position,
+    position: Position2D,
 }
 
 impl SpriteObject {
-    fn new(char_table_index: ObjectCharacterTableIndex, position: Position) -> Self {
+    fn new(char_table_index: ObjectCharacterTableIndex, position: Position2D) -> Self {
         Self {
             char_table_index,
             position,
@@ -42,63 +43,30 @@ const CHAR_HEIGHT: usize = 8;
 /// The size of a character in pixels.
 const CHAR_SIZE: usize = CHAR_WIDTH * CHAR_HEIGHT;
 /// The width of the character table in number of characters.
-const OBJ_CHAR_TABLE_WIDTH: usize = 16;
+const OBJ_CHAR_TABLE_WIDTH: Unit2D = 16;
 /// The height of the character table in number of characters.
-const OBJ_CHAR_TABLE_HEIGHT: usize = 16;
-/// The size of the character table in pixels.
-const OBJ_CHAR_MEM_SIZE: usize = OBJ_CHAR_TABLE_WIDTH * OBJ_CHAR_TABLE_HEIGHT * CHAR_SIZE;
+const OBJ_CHAR_TABLE_HEIGHT: Unit2D = 16;
 /// The size of the object attribute table in number of entries.
 const OBJ_ATTR_MEM_SIZE: usize = 32usize;
 
-// #[derive(Copy, Clone)]
-// struct Character<T> {
-//     data: [T; CHAR_SIZE],
-// }
-//
-// impl<T: Default + Copy> Default for Character<T> {
-//     fn default() -> Self {
-//         Self {
-//             data: [Default::default(); CHAR_SIZE],
-//         }
-//     }
-// }
-//
-// impl<T> Character<T> {
-//     fn iter_rows(&self) -> impl Iterator<Item=&[T]> {
-//         self.data.chunks_exact(CHAR_WIDTH)
-//     }
-//
-//     fn iter_pixels(&self) -> impl Iterator<Item=&T> {
-//         self.data.iter()
-//     }
-// }
-
-crate::surface!(ObjectCharacterSurface, OBJ_CHAR_TABLE_WIDTH, OBJ_CHAR_TABLE_HEIGHT);
+// TODO: Replace FrameBufferPixel with another pixel type that only stores the NECESSARY data (basically the indices, not the RGBA)
+crate::surface!(ObjectCharacterSurface, Rgb888, OBJ_CHAR_TABLE_WIDTH, OBJ_CHAR_TABLE_HEIGHT);
 
 /// A character table.
 #[derive(Default)]
-struct ObjectCharacterTable<T: Default + Copy> {
-    surface: ObjectCharacterSurface<T>,
+struct ObjectCharacterTable {
+    surface: ObjectCharacterSurface,
 }
 
-// impl<T: Default + Copy> Default for ObjectCharacterTable<T> {
-//     fn default() -> Self {
-//         Self {
-//             data: [Default::default(); OBJ_CHAR_MEM_SIZE],
-//         }
-//     }
-// }
-
-impl<T: Default + Copy> ObjectCharacterTable<T> {
-    fn surface(&mut self) -> &ObjectCharacterSurface<T> {
+impl ObjectCharacterTable {
+    fn surface(&mut self) -> &ObjectCharacterSurface {
         &self.surface
     }
 }
 
 #[derive(Default)]
 struct GameState {
-    // TODO: Replace FrameBufferPixel with another pixel type that only stores the NECESSARY data (basically the indices, not the RGBA)
-    obj_char_table: ObjectCharacterTable<FrameBufferPixel>,
+    obj_char_table: ObjectCharacterTable,
     /// The object attribute table.
     obj_attr_table: [Option<SpriteObject>; OBJ_ATTR_MEM_SIZE],
 }
@@ -169,7 +137,7 @@ impl Game {
         linker.func("obj_attr_mem", "set", move |index: u32, ocm_x: u32, ocm_y: u32| {
             let char_mem_index = ObjectCharacterTableIndex::new(ocm_x as u8, ocm_y as u8);
             let mut game_int = (*game_int).borrow_mut();
-            game_int.state.obj_attr_table[index as usize] = Some(SpriteObject::new(char_mem_index, Position::new(0, 0)));
+            game_int.state.obj_attr_table[index as usize] = Some(SpriteObject::new(char_mem_index, Position2D::new(0, 0)));
         })?;
 
         let game_int = game_internal.clone();
@@ -230,9 +198,10 @@ impl Game {
 
     pub(crate) fn render(&self, framebuffer: &mut FrameBuffer) {
         // Fill background with one color
-        framebuffer.window(Rectangle::new(Position::origin(), Dimensions::new(framebuffer.width(), framebuffer.height())))
-            .for_each(|pixel| {
-                pixel.set_rgb(0, 64, 0);
+        let bg_color = (0, 64, 0, 255).into();
+        SurfaceIterMut::new(framebuffer)
+            .for_each(|mut pixel| {
+                pixel.set_value(&bg_color);
             });
 
         let internal = self.internal.borrow();

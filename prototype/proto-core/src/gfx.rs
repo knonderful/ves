@@ -62,22 +62,24 @@ pub trait Surface {
     /// The type of pixel value for this surface.
     type PixelValue;
 
-    /// The (raw) surface data as a slice of bytes.
-    fn data(&self) -> &[u8];
-
     /// The width of the surface in pixels.
     fn width(&self) -> Unit2D;
 
     /// The width of the surface in pixels.
     fn height(&self) -> Unit2D;
-
-    /// Retrieves the [Pixel] at the provided [Position2D].
-    fn pixel(&self, position: Position2D) -> BufferBackedPixel<Self::PixelValue>;
-
-    /// Retrieves the [PixelMut] at the provided [Position2D].
-    fn pixel_mut(&mut self, position: Position2D) -> BufferBackedPixelMut<Self::PixelValue>;
 }
 
+/// A [Surface] that provides [BufferBackedPixel] instances.
+pub trait BufferBackedSurface: Surface {
+    /// Retrieves the [Pixel] at the provided [Position2D].
+    fn pixel(&self, position: Position2D) -> BufferBackedPixel<<Self as Surface>::PixelValue>;
+}
+
+/// A [Surface] that provides [BufferBackedPixelMut] instances.
+pub trait BufferBackedSurfaceMut: Surface {
+    /// Retrieves the [PixelMut] at the provided [Position2D].
+    fn pixel_mut(&mut self, position: Position2D) -> BufferBackedPixelMut<<Self as Surface>::PixelValue>;
+}
 
 /// A pixel, usually applied to a [Surface].
 ///
@@ -184,7 +186,7 @@ impl<'buf, T: BufferStore> PixelMut for BufferBackedPixelMut<'buf, T> {
 }
 
 #[macro_export]
-macro_rules! surface {
+macro_rules! linear_pixel_buffer {
     ($struct_name: ident, $pixel_type: ty, $width: expr, $height: expr) => {
         pub struct $struct_name {
             buffer: [u8; (<$pixel_type as crate::gfx::LinearlyStored>::BITS_PER_PIXEL * $width as usize * $height as usize) / 8],
@@ -199,44 +201,90 @@ macro_rules! surface {
         }
 
         impl $struct_name {
-            #[inline(always)]
-            fn index_wrap(position: crate::gfx::Position2D) -> usize {
-                let x = position.x % $width;
-                let y = position.y % $height;
-                (y * $width + x) as usize
-            }
-
-            #[inline(always)]
-            fn buffer_range(position: crate::gfx::Position2D) -> core::ops::Range<usize> {
-                <$pixel_type as crate::gfx::BufferMapIndex>::map_index(Self::index_wrap(position))
-            }
-        }
-
-        impl crate::gfx::Surface for $struct_name {
-            type PixelValue = $pixel_type;
-
-            fn data(&self) -> &[u8] {
+            #[allow(dead_code)]
+            pub fn data(&self) -> &[u8] {
                 &self.buffer
             }
 
+            #[allow(dead_code)]
+            pub fn as_surface(&self) -> impl crate::gfx::BufferBackedSurface<PixelValue=$pixel_type> + '_ {
+                crate::gfx::SliceBackedSurface::new(&self.buffer, $width, $height)
+            }
+
+            #[allow(dead_code)]
+            pub fn as_surface_mut(&mut self) -> impl crate::gfx::BufferBackedSurfaceMut<PixelValue=$pixel_type> + '_ {
+                crate::gfx::SliceBackedSurfaceMut::new(&mut self.buffer, $width, $height)
+            }
+        }
+    }
+}
+
+macro_rules! slice_backed_surface {
+    ($struct_name: ident $($mut:tt)? ) => {
+        /// A [Surface] that is backed by a slice.
+        pub struct $struct_name<'buf, T> {
+            buffer: &'buf $($mut)? [u8],
+            width: crate::gfx::Unit2D,
+            height: crate::gfx::Unit2D,
+            _phantom: PhantomData<T>,
+        }
+
+        impl<'buf, T: crate::gfx::BufferMapIndex> $struct_name<'buf, T> {
+            /// Creates a new instance.
+            pub fn new(buffer: &'buf $($mut)? [u8], width: crate::gfx::Unit2D, height: crate::gfx::Unit2D) -> Self {
+                assert_eq!(buffer.len(), (width * height) as usize);
+                Self { buffer, width, height, _phantom: PhantomData }
+            }
+
+            #[inline(always)]
+            fn index_wrap(&self, position: crate::gfx::Position2D) -> usize {
+                let x = position.x % self.width;
+                let y = position.y % self.height;
+                (y * self.width + x) as usize
+            }
+
+            #[inline(always)]
+            fn buffer_range(&self, position: crate::gfx::Position2D) -> core::ops::Range<usize> {
+                <T as crate::gfx::BufferMapIndex>::map_index(self.index_wrap(position))
+            }
+        }
+
+        impl<'buf, T> crate::gfx::Surface for $struct_name<'buf, T> {
+            type PixelValue = T;
+
             fn width(&self) -> crate::gfx::Unit2D {
-                $width
+                self.width
             }
 
             fn height(&self) -> crate::gfx::Unit2D {
-                $height
-            }
-
-            fn pixel(&self, position: crate::gfx::Position2D) -> crate::gfx::BufferBackedPixel<Self::PixelValue> {
-                let range = Self::buffer_range(position);
-                crate::gfx::BufferBackedPixel::new(&self.buffer[range.start..range.end])
-            }
-
-            fn pixel_mut(&mut self, position: crate::gfx::Position2D) -> crate::gfx::BufferBackedPixelMut<Self::PixelValue> {
-                let range = Self::buffer_range(position);
-                crate::gfx::BufferBackedPixelMut::new(&mut self.buffer[range.start..range.end])
+                self.height
             }
         }
+    }
+}
+
+slice_backed_surface!(SliceBackedSurface);
+
+impl<'buf, T: crate::gfx::BufferMapIndex> BufferBackedSurface for SliceBackedSurface<'buf, T> {
+    fn pixel(&self, position: Position2D) -> BufferBackedPixel<Self::PixelValue> {
+        let range = self.buffer_range(position);
+        crate::gfx::BufferBackedPixel::new(&self.buffer[range.start..range.end])
+    }
+}
+
+slice_backed_surface!(SliceBackedSurfaceMut mut);
+
+impl<'buf, T: crate::gfx::BufferMapIndex> BufferBackedSurface for SliceBackedSurfaceMut<'buf, T> {
+    fn pixel(&self, position: Position2D) -> BufferBackedPixel<Self::PixelValue> {
+        let range = self.buffer_range(position);
+        crate::gfx::BufferBackedPixel::new(&self.buffer[range.start..range.end])
+    }
+}
+
+impl<'buf, T: crate::gfx::BufferMapIndex> BufferBackedSurfaceMut for SliceBackedSurfaceMut<'buf, T> {
+    fn pixel_mut(&mut self, position: Position2D) -> BufferBackedPixelMut<Self::PixelValue> {
+        let range = self.buffer_range(position);
+        crate::gfx::BufferBackedPixelMut::new(&mut self.buffer[range.start..range.end])
     }
 }
 
@@ -275,19 +323,19 @@ pub trait SurfaceIteratorMut {
 
 /// The default [SurfaceIterator].
 pub struct SurfaceIter<'surf, T> {
-    surface: &'surf dyn Surface<PixelValue=T>,
+    surface: &'surf dyn BufferBackedSurface<PixelValue=T>,
     rectangle: Rectangle2D,
 }
 
 impl<'surf, T> SurfaceIter<'surf, T> {
     /// Creates a new [SurfaceIter] that contains the entire surface area.
-    pub fn new(surface: &'surf dyn Surface<PixelValue=T>) -> Self {
+    pub fn new(surface: &'surf dyn BufferBackedSurface<PixelValue=T>) -> Self {
         let rect = Rectangle2D::new((0, 0).into(), (surface.width() - 1, surface.height() - 1).into());
         Self::new_with_rectangle(surface, rect)
     }
 
     /// Creates a new [SurfaceIter] that contains only the provided area.
-    pub fn new_with_rectangle(surface: &'surf dyn Surface<PixelValue=T>, rectangle: Rectangle2D) -> Self {
+    pub fn new_with_rectangle(surface: &'surf dyn BufferBackedSurface<PixelValue=T>, rectangle: Rectangle2D) -> Self {
         Self {
             surface,
             rectangle,
@@ -311,19 +359,19 @@ impl<'surf, T> SurfaceIterator for SurfaceIter<'surf, T> {
 
 /// The default [SurfaceIteratorMut].
 pub struct SurfaceIterMut<'surf, T> {
-    surface: &'surf mut dyn Surface<PixelValue=T>,
+    surface: &'surf mut dyn BufferBackedSurfaceMut<PixelValue=T>,
     rectangle: Rectangle2D,
 }
 
 impl<'surf, T> SurfaceIterMut<'surf, T> {
     /// Creates a new [SurfaceIterMut] that contains the entire surface area.
-    pub fn new(surface: &'surf mut dyn Surface<PixelValue=T>) -> Self {
+    pub fn new(surface: &'surf mut dyn BufferBackedSurfaceMut<PixelValue=T>) -> Self {
         let rect = Rectangle2D::new((0, 0).into(), (surface.width() - 1, surface.height() - 1).into());
         Self::new_with_rectangle(surface, rect)
     }
 
     /// Creates a new [SurfaceIterMut] that contains only the provided area.
-    pub fn new_with_rectangle(surface: &'surf mut dyn Surface<PixelValue=T>, rectangle: Rectangle2D) -> Self {
+    pub fn new_with_rectangle(surface: &'surf mut dyn BufferBackedSurfaceMut<PixelValue=T>, rectangle: Rectangle2D) -> Self {
         Self {
             surface,
             rectangle,

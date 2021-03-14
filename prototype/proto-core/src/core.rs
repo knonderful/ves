@@ -7,7 +7,7 @@ use crate::gfx::{Rgba8888, Unit2D, Surface};
 const SCREEN_WIDTH: Unit2D = 320;
 const SCREEN_HEIGHT: Unit2D = 240;
 
-crate::surface!(FrameBuffer, Rgba8888, SCREEN_WIDTH, SCREEN_HEIGHT);
+crate::linear_pixel_buffer!(FrameBuffer, Rgba8888, SCREEN_WIDTH, SCREEN_HEIGHT);
 
 pub struct ProtoCore {
     game: Option<Game>,
@@ -62,7 +62,7 @@ impl libretro_backend::Core for ProtoCore {
 
         let game = self.game.as_ref().unwrap();
         game.step();
-        game.render(&mut self.frame_buffer);
+        game.render(self.frame_buffer.as_surface_mut());
 
         handle.upload_video_frame(self.frame_buffer.data());
 

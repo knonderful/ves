@@ -5,7 +5,7 @@ use wasmtime::{Store, Linker, Module, Func, Caller, Extern, Trap, Memory};
 use anyhow::Result;
 use std::rc::Rc;
 use std::cell::{RefCell};
-use crate::gfx::{Position2D, Pixel, Rgb888, SurfaceIterMut, Rectangle2D, Surface, PixelMut, Unit2D, SurfaceIteratorMut, Rgba8888};
+use crate::gfx::{Position2D, Pixel, Rgb888, SurfaceIterMut, Rectangle2D, Surface, PixelMut, Unit2D, SurfaceIteratorMut, Rgba8888, BufferBackedSurface, BufferBackedSurfaceMut};
 use crate::core::FrameBuffer;
 
 // TODO: Copied from proto-game. Needs unifying.
@@ -50,17 +50,21 @@ const OBJ_CHAR_TABLE_HEIGHT: Unit2D = 16;
 const OBJ_ATTR_MEM_SIZE: usize = 32usize;
 
 // TODO: Replace FrameBufferPixel with another pixel type that only stores the NECESSARY data (basically the indices, not the RGBA)
-crate::surface!(ObjectCharacterSurface, Rgb888, OBJ_CHAR_TABLE_WIDTH, OBJ_CHAR_TABLE_HEIGHT);
+crate::linear_pixel_buffer!(ObjectCharacterSurfaceBuffer, Rgb888, OBJ_CHAR_TABLE_WIDTH, OBJ_CHAR_TABLE_HEIGHT);
 
 /// A character table.
 #[derive(Default)]
 struct ObjectCharacterTable {
-    surface: ObjectCharacterSurface,
+    surface_buffer: ObjectCharacterSurfaceBuffer,
 }
 
 impl ObjectCharacterTable {
-    fn surface(&mut self) -> &ObjectCharacterSurface {
-        &self.surface
+    pub fn surface(&self) -> impl crate::gfx::BufferBackedSurface<PixelValue=Rgb888> + '_ {
+        self.surface_buffer.as_surface()
+    }
+
+    pub fn surface_mut(&mut self) -> impl crate::gfx::BufferBackedSurfaceMut<PixelValue=Rgb888> + '_ {
+        self.surface_buffer.as_surface_mut()
     }
 }
 
@@ -196,10 +200,10 @@ impl Game {
         function(self.instance_ptr).unwrap();
     }
 
-    pub(crate) fn render(&self, framebuffer: &mut FrameBuffer) {
+    pub(crate) fn render(&self, mut framebuffer: impl BufferBackedSurfaceMut<PixelValue=Rgba8888>) {
         // Fill background with one color
         let bg_color = (0, 64, 0, 255).into();
-        SurfaceIterMut::new(framebuffer)
+        SurfaceIterMut::new(&mut framebuffer)
             .for_each(|mut pixel| {
                 pixel.set_value(&bg_color);
             });

@@ -27,29 +27,55 @@ impl From<(Unit2D, Unit2D)> for Position2D {
     }
 }
 
+/// Dimensions of a body in a [Surface].
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct Dimensions2D {
+    /// The width.
+    pub width: Unit2D,
+    /// The height.
+    pub height: Unit2D,
+}
+
+impl Dimensions2D {
+    pub fn new(width: Unit2D, height: Unit2D) -> Self {
+        Self { width, height }
+    }
+}
+
+impl From<(Unit2D, Unit2D)> for Dimensions2D {
+    fn from(tuple: (Unit2D, Unit2D)) -> Self {
+        Self::new(tuple.0, tuple.1)
+    }
+}
+
 /// A rectangle in a [Surface].
 ///
-/// The start and end positions are both _inclusive_.
+/// The _origin_ defines the top-left point of the rectangle.
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Rectangle2D {
-    pub start: Position2D,
-    pub end: Position2D,
+    pub origin: Position2D,
+    pub dimensions: Dimensions2D,
 }
 
 impl Rectangle2D {
     /// Creates a new [Rectangle2D].
-    pub fn new(start: Position2D, end: Position2D) -> Self {
-        Self { start, end }
+    pub fn new(origin: Position2D, dimensions: Dimensions2D) -> Self {
+        Self { origin, dimensions }
     }
 
     /// Returns the range of X values.
-    pub fn range_x(&self) -> RangeInclusive<Unit2D> {
-        self.start.x..=self.end.x
+    pub fn range_x(&self) -> Range<Unit2D> {
+        self.origin.x..self.origin.x + self.dimensions.width
     }
 
     /// Returns the range of Y values.
-    pub fn range_y(&self) -> RangeInclusive<Unit2D> {
-        self.start.y..=self.end.y
+    pub fn range_y(&self) -> Range<Unit2D> {
+        self.origin.y..self.origin.y + self.dimensions.height
+    }
+
+    /// Returns a new [Rectangle2D] with the provided position as an origin.
+    pub fn moved(&self, origin: Position2D) -> Self {
+        Self { origin, dimensions: self.dimensions }
     }
 }
 
@@ -329,7 +355,7 @@ pub struct SurfaceIter<'surf, T> {
 impl<'surf, T> SurfaceIter<'surf, T> {
     /// Creates a new [SurfaceIter] that contains the entire surface area.
     pub fn new(surface: &'surf dyn BufferBackedSurface<PixelValue=T>) -> Self {
-        let rect = Rectangle2D::new((0, 0).into(), (surface.width() - 1, surface.height() - 1).into());
+        let rect = Rectangle2D::new((0, 0).into(), (surface.width(), surface.height()).into());
         Self::new_with_rectangle(surface, rect)
     }
 
@@ -365,7 +391,7 @@ pub struct SurfaceIterMut<'surf, T> {
 impl<'surf, T> SurfaceIterMut<'surf, T> {
     /// Creates a new [SurfaceIterMut] that contains the entire surface area.
     pub fn new(surface: &'surf mut dyn BufferBackedSurfaceMut<PixelValue=T>) -> Self {
-        let rect = Rectangle2D::new((0, 0).into(), (surface.width() - 1, surface.height() - 1).into());
+        let rect = Rectangle2D::new((0, 0).into(), (surface.width(), surface.height()).into());
         Self::new_with_rectangle(surface, rect)
     }
 

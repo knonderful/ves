@@ -232,7 +232,6 @@ macro_rules! slice_backed_surface {
         impl<'buf, T: crate::gfx::BufferMapIndex> $struct_name<'buf, T> {
             /// Creates a new instance.
             pub fn new(buffer: &'buf $($mut)? [u8], width: crate::gfx::Unit2D, height: crate::gfx::Unit2D) -> Self {
-                assert_eq!(buffer.len(), (width * height) as usize);
                 Self { buffer, width, height, _phantom: PhantomData }
             }
 

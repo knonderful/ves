@@ -62,7 +62,7 @@ impl libretro_backend::Core for ProtoCore {
 
         let game = self.game.as_ref().unwrap();
         game.step();
-        game.render(self.frame_buffer.as_surface_mut());
+        game.render(&mut self.frame_buffer.as_surface_mut());
 
         handle.upload_video_frame(self.frame_buffer.data());
 

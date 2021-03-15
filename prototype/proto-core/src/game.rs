@@ -205,15 +205,12 @@ impl Game {
         function(self.instance_ptr).unwrap();
     }
 
-    pub(crate) fn render(&self, mut framebuffer: SliceBackedSurfaceMut<Rgba8888>) {
+    pub(crate) fn render(&self, framebuffer: &mut SliceBackedSurfaceMut<Rgba8888>) {
         // Fill background with one color
         let bg_color = (0, 64, 0, 255).into();
 
-        let dims = framebuffer.dimensions();
-
-        let fb = &mut framebuffer;
-        RectangleIterator::new(dims).for_each(|pos| {
-            fb.set_value(pos, &bg_color);
+        RectangleIterator::new(framebuffer.dimensions()).for_each(|pos| {
+            framebuffer.set_value(pos, &bg_color);
         });
 
         let internal = self.internal.borrow();

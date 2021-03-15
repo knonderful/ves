@@ -5,8 +5,7 @@ use wasmtime::{Store, Linker, Module, Func, Caller, Extern, Trap, Memory};
 use anyhow::Result;
 use std::rc::Rc;
 use std::cell::{RefCell};
-use crate::gfx::{Position2D, Pixel, Rgb888, SurfaceIterMut, Rectangle2D, Surface, PixelMut, Unit2D, SurfaceIteratorMut, Rgba8888, BufferBackedSurface, BufferBackedSurfaceMut, SliceBackedSurface, SurfaceIter, SurfaceIterator, BufferBackedPixel, BufferBackedPixelMut};
-use crate::core::FrameBuffer;
+use crate::gfx::{Position2D, Rgb888, Rectangle2D, Surface, Unit2D, Rgba8888, SliceBackedSurface, RectangleIterator, SliceBackedSurfaceMut, SurfaceValueSet, SurfaceValueGet};
 use std::ops::DerefMut;
 
 // TODO: Copied from proto-game. Needs unifying.
@@ -60,11 +59,11 @@ struct ObjectCharacterTable {
 }
 
 impl ObjectCharacterTable {
-    pub fn surface(&self) -> impl crate::gfx::BufferBackedSurface<PixelValue=Rgb888> + '_ {
+    pub fn surface(&self) -> SliceBackedSurface<Rgb888> {
         self.surface_buffer.as_surface()
     }
 
-    pub fn surface_mut(&mut self) -> impl crate::gfx::BufferBackedSurfaceMut<PixelValue=Rgb888> + '_ {
+    pub fn surface_mut(&mut self) -> SliceBackedSurfaceMut<Rgb888> {
         self.surface_buffer.as_surface_mut()
     }
 }
@@ -154,27 +153,22 @@ impl Game {
             let y = y as Unit2D * 8;
 
             let mut game_int = (*game_int).borrow_mut();
-            let mut game_int = game_int.deref_mut();
+            let game_int = game_int.deref_mut();
 
             let len = 8 * 8 * 3; // 3 bytes per pixel
             let record = game_int.rom_data.record(ptr, len);
             let record_slice = record.slice(&game_int.rom_data);
-            let src_surf = SliceBackedSurface::<Rgb888>::new(record_slice, 8, 8);
+            let src_surf = SliceBackedSurface::<Rgb888>::new(record_slice, (8, 8).into());
 
-            // TODO: This is horribly inefficient, but for now the iterators only provide for_each(), which forces us into this solution.
-            //       In order to resolve that, we'd have to figure out the lifetimes problem with the iterators. Maybe have a look at the
-            //       streaming iterators for inspiration.
-            // let mut src_pixels: Vec<Rgb888> = vec![(0, 0, 0).into(); 8 * 8];
-            let mut src_iter = SurfaceIter::<Rgb888>::new(&src_surf);
-
-            // let mut src_iter = src_pixels.iter();
             let mut dest_surf = game_int.state.obj_char_table.surface_mut();
-            let mut dst_iter = SurfaceIterMut::<Rgb888>::new_with_rectangle(&mut dest_surf, Rectangle2D::new((x, y).into(), (8 as Unit2D, 8 as Unit2D).into()));
 
-            while let Some(src_pixel) = src_iter.next() {
-                let mut dst_pixel = dst_iter.next().expect("Source and destination surfaces do not provide the same number of pixels.");
-                dst_pixel.set_value(&src_pixel.get_value());
-            }
+            let src_iter = RectangleIterator::new(src_surf.dimensions());
+            let dest_rect = Rectangle2D::new((x, y).into(), src_surf.dimensions());
+            let dest_iter = RectangleIterator::new_with_rectangle(dest_surf.dimensions(), dest_rect);
+
+            src_iter.zip(dest_iter).for_each(|(src_pos, dest_pos)| {
+                dest_surf.set_value(dest_pos, &src_surf.get_value(src_pos));
+            });
         })?;
 
         linker.func("logger", "info", |caller: Caller<'_>, ptr: u32, len: u32| {
@@ -211,13 +205,16 @@ impl Game {
         function(self.instance_ptr).unwrap();
     }
 
-    pub(crate) fn render(&self, mut framebuffer: impl BufferBackedSurfaceMut<PixelValue=Rgba8888>) {
+    pub(crate) fn render(&self, mut framebuffer: SliceBackedSurfaceMut<Rgba8888>) {
         // Fill background with one color
         let bg_color = (0, 64, 0, 255).into();
-        let mut iter = SurfaceIterMut::<Rgba8888>::new(&mut framebuffer);
-        while let Some(mut pixel) = iter.next() {
-            pixel.set_value(&bg_color);
-        }
+
+        let dims = framebuffer.dimensions();
+
+        let fb = &mut framebuffer;
+        RectangleIterator::new(dims).for_each(|pos| {
+            fb.set_value(pos, &bg_color);
+        });
 
         let internal = self.internal.borrow();
         let state = &internal.state;

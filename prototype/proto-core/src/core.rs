@@ -2,7 +2,7 @@ use libretro_backend::{AudioVideoInfo, CoreInfo, GameData, LoadGameResult, Runti
 
 use crate::game::Game;
 use std::path::Path;
-use crate::gfx::{Rgba8888, Unit2D, Surface};
+use crate::gfx::{Rgba8888, Unit2D};
 
 const SCREEN_WIDTH: Unit2D = 320;
 const SCREEN_HEIGHT: Unit2D = 240;

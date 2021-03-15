@@ -1,4 +1,4 @@
-use crate::game_api::{RomData, RomDataRecord};
+use crate::game_api::RomData;
 
 use std::path::Path;
 use wasmtime::{Store, Linker, Module, Func, Caller, Extern, Trap, Memory};
@@ -37,11 +37,9 @@ impl SpriteObject {
 }
 
 /// The width of a character in pixels.
-const CHAR_WIDTH: usize = 8;
+const CHAR_WIDTH: Unit2D = 8;
 /// The height of a character in pixels.
-const CHAR_HEIGHT: usize = 8;
-/// The size of a character in pixels.
-const CHAR_SIZE: usize = CHAR_WIDTH * CHAR_HEIGHT;
+const CHAR_HEIGHT: Unit2D = 8;
 /// The width of the character table in number of characters.
 const OBJ_CHAR_TABLE_WIDTH: Unit2D = 16;
 /// The height of the character table in number of characters.
@@ -65,6 +63,12 @@ impl ObjectCharacterTable {
 
     pub fn surface_mut(&mut self) -> SliceBackedSurfaceMut<Rgb888> {
         self.surface_buffer.as_surface_mut()
+    }
+
+    pub fn sprite_rectangle(&self, sprite: &SpriteObject) -> Rectangle2D {
+        let origin = (sprite.char_table_index.x as Unit2D * CHAR_WIDTH, sprite.char_table_index.y as Unit2D * CHAR_HEIGHT).into();
+        // TODO: Support different sized sprites here
+        Rectangle2D::new(origin, (CHAR_WIDTH, CHAR_HEIGHT).into())
     }
 }
 
@@ -215,19 +219,37 @@ impl Game {
 
         let internal = self.internal.borrow();
         let state = &internal.state;
-        let obj_chars = &state.obj_char_table;
+        let obj_char_table = &state.obj_char_table;
+        let obj_char_surface = &obj_char_table.surface();
+
+        // Use this color for transparency
+        let transparent = (255, 0, 255).into();
 
         for sprite_opt in state.obj_attr_table.iter() {
             if let Some(sprite) = sprite_opt {
+                let sprite_rect = obj_char_table.sprite_rectangle(&sprite);
+                let src_iter = RectangleIterator::new_with_rectangle(obj_char_surface.dimensions(), sprite_rect);
 
-                // let it_src = sprite.record.slice(rom_data).chunks_exact(3).map(|chunk| (chunk[0], chunk[1], chunk[2]));
-                // let it_dest = framebuffer.window(Rectangle::new(Position::new(32, 64), Dimensions::new(8, 8)));
-                //
-                // it_dest.zip(it_src).for_each(|(dst, src)| {
-                //     if src != TRANSPARENT {
-                //         dst.set_rgb(src.0, src.1, src.2);
-                //     }
-                // });
+                let dest_rect = Rectangle2D::new(sprite.position, sprite_rect.dimensions);
+                let dest_iter = RectangleIterator::new_with_rectangle(framebuffer.dimensions(), dest_rect);
+
+                src_iter.zip(dest_iter).for_each(|(src_pos, dest_pos)| {
+                    let src_value = obj_char_surface.get_value(src_pos);
+                    if src_value == transparent {
+                        return;
+                    }
+
+                    // TODO: Perform conversion with dedicated structs or something.
+                    //       Think about lossy vs non-lossy and how that should be reflected in the code.
+                    let dest_value = Rgba8888 {
+                        r: src_value.r,
+                        g: src_value.g,
+                        b: src_value.b,
+                        a: 255,
+                    };
+
+                    framebuffer.set_value(dest_pos, &dest_value);
+                });
             }
         }
     }

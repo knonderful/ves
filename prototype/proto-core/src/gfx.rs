@@ -2,6 +2,7 @@
 
 use std::marker::PhantomData;
 use std::ops::{Range, RangeInclusive};
+use std::io::IntoInnerError;
 
 /// The unit for [Surface] geometry.
 pub type Unit2D = u32;
@@ -76,6 +77,45 @@ impl Rectangle2D {
     /// Returns a new [Rectangle2D] with the provided position as an origin.
     pub fn moved(&self, origin: Position2D) -> Self {
         Self { origin, dimensions: self.dimensions }
+    }
+
+    pub fn iter(&self) -> Rectangle2DIter {
+        Rectangle2DIter {
+            origin_x: self.origin.x,
+            pos_x: self.origin.x,
+            pos_y: self.origin.y,
+            end_x: self.origin.x + self.dimensions.width - 1,
+            end_y: self.origin.y + self.dimensions.height - 1,
+        }
+    }
+}
+
+pub struct Rectangle2DIter {
+    origin_x: Unit2D,
+    pos_x: Unit2D,
+    pos_y: Unit2D,
+    end_x: Unit2D,
+    end_y: Unit2D,
+}
+
+impl Iterator for Rectangle2DIter {
+    type Item = Position2D;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.pos_y > self.end_y {
+            return None;
+        }
+
+        let out = Position2D::new(self.pos_x, self.pos_y);
+
+        if self.pos_x < self.end_x {
+            self.pos_x += 1;
+        } else {
+            self.pos_x = self.origin_x;
+            self.pos_y += 1;
+        }
+
+        Some(out)
     }
 }
 
@@ -324,9 +364,8 @@ pub trait SurfaceIterator {
     /// The type of pixel for the [Surface].
     type PixelType;
 
-    /// Iterates over all pixels and passes them to the provided consumer function.
-    fn for_each<F>(self, consumer: F) where
-        F: FnMut(BufferBackedPixel<'_, Self::PixelType>);
+    /// Retrieves the next pixel.
+    fn next(&mut self) -> Option<BufferBackedPixel<'_, Self::PixelType>>;
 }
 
 
@@ -341,15 +380,14 @@ pub trait SurfaceIteratorMut {
     /// The type of pixel for the [Surface].
     type PixelType;
 
-    /// Iterates over all pixels and passes them to the provided consumer function.
-    fn for_each<F>(self, consumer: F) where
-        F: FnMut(BufferBackedPixelMut<'_, Self::PixelType>);
+    /// Retrieves the next pixel.
+    fn next(&mut self) -> Option<BufferBackedPixelMut<'_, Self::PixelType>>;
 }
 
 /// The default [SurfaceIterator].
 pub struct SurfaceIter<'surf, T> {
     surface: &'surf dyn BufferBackedSurface<PixelValue=T>,
-    rectangle: Rectangle2D,
+    iterator: Rectangle2DIter,
 }
 
 impl<'surf, T> SurfaceIter<'surf, T> {
@@ -363,7 +401,7 @@ impl<'surf, T> SurfaceIter<'surf, T> {
     pub fn new_with_rectangle(surface: &'surf dyn BufferBackedSurface<PixelValue=T>, rectangle: Rectangle2D) -> Self {
         Self {
             surface,
-            rectangle,
+            iterator: rectangle.iter(),
         }
     }
 }
@@ -371,21 +409,15 @@ impl<'surf, T> SurfaceIter<'surf, T> {
 impl<'surf, T> SurfaceIterator for SurfaceIter<'surf, T> {
     type PixelType = T;
 
-    fn for_each<F>(self, mut consumer: F) where
-        F: FnMut(BufferBackedPixel<'_, Self::PixelType>)
-    {
-        for y in self.rectangle.range_y() {
-            for x in self.rectangle.range_x() {
-                consumer(self.surface.pixel(Position2D::new(x, y)));
-            }
-        }
+    fn next(&mut self) -> Option<BufferBackedPixel<'_, Self::PixelType>> {
+        self.iterator.next().map(move |pos| self.surface.pixel(pos))
     }
 }
 
 /// The default [SurfaceIteratorMut].
 pub struct SurfaceIterMut<'surf, T> {
     surface: &'surf mut dyn BufferBackedSurfaceMut<PixelValue=T>,
-    rectangle: Rectangle2D,
+    iterator: Rectangle2DIter,
 }
 
 impl<'surf, T> SurfaceIterMut<'surf, T> {
@@ -399,7 +431,7 @@ impl<'surf, T> SurfaceIterMut<'surf, T> {
     pub fn new_with_rectangle(surface: &'surf mut dyn BufferBackedSurfaceMut<PixelValue=T>, rectangle: Rectangle2D) -> Self {
         Self {
             surface,
-            rectangle,
+            iterator: rectangle.iter(),
         }
     }
 }
@@ -407,14 +439,8 @@ impl<'surf, T> SurfaceIterMut<'surf, T> {
 impl<'surf, T> SurfaceIteratorMut for SurfaceIterMut<'surf, T> {
     type PixelType = T;
 
-    fn for_each<F>(self, mut consumer: F) where
-        F: FnMut(BufferBackedPixelMut<'_, Self::PixelType>)
-    {
-        for y in self.rectangle.range_y() {
-            for x in self.rectangle.range_x() {
-                consumer(self.surface.pixel_mut(Position2D::new(x, y)));
-            }
-        }
+    fn next(&mut self) -> Option<BufferBackedPixelMut<'_, Self::PixelType>> {
+        self.iterator.next().map(move |pos| self.surface.pixel_mut(pos))
     }
 }
 

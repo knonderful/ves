@@ -34,30 +34,24 @@
 /// ```
 #[macro_export]
 macro_rules! bit_struct {
-    ( $(#[$outer:meta])* $struct_vis:vis $struct_name:ident, $from_type:ty, $fields_vis:vis $impl_trait_name:ident $( { $field_name:ident : $field_type:ident @ $field_shift:expr ; $field_mask:expr } )* ) => {
-        $(#[$outer])*
+    ( $(#[$struct_meta:meta])* $struct_vis:vis $struct_name:ident, $from_type:ty $( { $(#[$field_meta:meta])* $field_vis:vis $field_name:ident : $field_type:ident @ $field_shift:expr ; $field_mask:expr } )* ) => {
+        $(#[$struct_meta])*
         #[allow(dead_code)]
-        #[derive(Copy, Clone, Debug, Eq, PartialEq)]
         $struct_vis struct $struct_name {
             value: $from_type,
         }
 
         paste! {
-            $fields_vis trait $impl_trait_name {
-                $(
-                    fn $field_name(&self) -> $field_type;
-                    fn [<set_ $field_name>](&mut self, val: $field_type);
-                )*
-            }
-
             #[allow(dead_code)]
-            impl $impl_trait_name for $struct_name {
+            impl $struct_name {
                 $(
+                    $(#[$field_meta])*
                     #[inline(always)]
                     fn $field_name(&self) -> $field_type {
                         ((self.value >> $field_shift) & $field_mask) as $field_type
                     }
 
+                    $(#[$field_meta])*
                     #[inline(always)]
                     fn [<set_ $field_name>](&mut self, val: $field_type) {
                         let masked_val = val & $field_mask;

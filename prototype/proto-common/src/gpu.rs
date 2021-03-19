@@ -39,7 +39,8 @@ bit_struct!(
     /// * Bit 29: Horizontal flip flag.
     /// * Bit 30: Vertical flip flag.
     /// * Bit 31: Unused.
-    OamEntry, u32, OamEntryImpl
+    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+    OamEntry, u32
     { pos_x_internal: u8 @ 0; 0xFF }
     { pos_y_internal: u8 @ 8; 0xFF }
     { char_table_index_internal: u8 @ 16 ; 0xFF }

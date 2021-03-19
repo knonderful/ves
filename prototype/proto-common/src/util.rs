@@ -95,5 +95,11 @@ macro_rules! bit_struct {
                 }
             }
         }
+
+        impl From<$struct_name> for $value_type {
+            fn from(obj: $struct_name) -> Self {
+                obj.value
+            }
+        }
     }
 }

@@ -21,15 +21,22 @@
 /// # Example
 ///
 /// ```rust
-/// bit_struct!(pub OamEntry, u32,
-///     { pos_x: u8 @ 0; 0xFF }
-///     { pos_y: u8 @ 8; 0xFF }
-///     { pos_x_neg: u8 @ 27; 0b1 }
-///     { pos_y_neg: u8 @ 28; 0b1 }
-///     { char_table_index: u8 @ 16 ; 0xFF }
-///     { palette_table_index: u8 @ 24 ; 0b111 }
-///     { flip_x: u8 @ 29; 0b1 }
-///     { flip_y: u8 @ 30; 0b1 }
+/// bit_struct!(
+///     /// An entry in the object character table.
+///     #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+///     pub struct ObjectCharacterTableIndex {
+///         value: u8
+///     }
+///
+///     impl {
+///         #[bit_struct_field(shift = 0, mask = 0xF)]
+///         /// The X-coordinate in the table.
+///         pub fn x(&self) -> u8;
+///
+///         #[bit_struct_field(shift = 4, mask = 0xF)]
+///         /// The Y-coordinate in the table.
+///         pub fn y(&self) -> u8;
+///     }
 /// );
 /// ```
 #[macro_export]

@@ -40,27 +40,47 @@ bit_struct!(
     /// * Bit 30: Vertical flip flag.
     /// * Bit 31: Unused.
     #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-    OamEntry, u32
-    { pos_x_internal: u8 @ 0; 0xFF }
-    { pos_y_internal: u8 @ 8; 0xFF }
-    { char_table_index_internal: u8 @ 16 ; 0xFF }
-    { palette_table_index_internal: u8 @ 24 ; 0b111 }
-    { pos_x_neg_internal: u8 @ 27; 0b1 }
-    { pos_y_neg_internal: u8 @ 28; 0b1 }
-    { flip_x_internal: u8 @ 29; 0b1 }
-    { flip_y_internal: u8 @ 30; 0b1 }
+    struct OamEntry {
+        value: u32
+    }
+
+    impl {
+        #[bit_struct_field(shift = 0, mask = 0xFF)]
+        fn pos_x(&self) -> u8;
+
+        #[bit_struct_field(shift = 8, mask = 0xFF)]
+        fn pos_y(&self) -> u8;
+
+        #[bit_struct_field(shift = 16, mask = 0xFF)]
+        fn char_table_index_u8(&self) -> u8;
+
+        #[bit_struct_field(shift = 24, mask = 0b111)]
+        fn palette_table_index_u8(&self) -> u8;
+
+        #[bit_struct_field(shift = 27, mask = 0b1)]
+        fn pos_x_neg(&self) -> u8;
+
+        #[bit_struct_field(shift = 28, mask = 0b1)]
+        fn pos_y_neg(&self) -> u8;
+
+        #[bit_struct_field(shift = 29, mask = 0b1)]
+        fn flip_x(&self) -> u8;
+
+        #[bit_struct_field(shift = 30, mask = 0b1)]
+        fn flip_y(&self) -> u8;
+    }
 );
 
 impl OamEntry {
     /// Retrieves the [ScenePosition].
     pub fn position(&self) -> ScenePosition {
-        let mut x = self.pos_x_internal() as i16;
-        if self.pos_x_neg_internal() != 0 {
+        let mut x = self.pos_x() as i16;
+        if self.pos_x_neg() != 0 {
             x *= -1;
         }
 
-        let mut y = self.pos_y_internal() as i16;
-        if self.pos_y_neg_internal() != 0 {
+        let mut y = self.pos_y() as i16;
+        if self.pos_y_neg() != 0 {
             y *= -1;
         }
 
@@ -69,50 +89,50 @@ impl OamEntry {
 
     /// Sets the [ScenePosition].
     pub fn set_position(&mut self, position: ScenePosition) {
-        self.set_pos_x_internal(position.x.abs() as u8);
-        self.set_pos_x_neg_internal(position.x.is_negative() as u8);
-        self.set_pos_y_internal(position.y.abs() as u8);
-        self.set_pos_y_neg_internal(position.y.is_negative() as u8);
+        self.set_pos_x(position.x.abs() as u8);
+        self.set_pos_x_neg(position.x.is_negative() as u8);
+        self.set_pos_y(position.y.abs() as u8);
+        self.set_pos_y_neg(position.y.is_negative() as u8);
     }
 
     /// Retrieves the horizontal-flip flag.
     pub fn h_flip(&self) -> bool {
-        self.flip_x_internal() != 0
+        self.flip_x() != 0
     }
 
     /// Sets the horizontal-flip flag.
     pub fn set_h_flip(&mut self, flip: bool) {
-        self.set_flip_x_internal(flip as u8);
+        self.set_flip_x(flip as u8);
     }
 
     /// Retrieves the vertical-flip flag.
     pub fn v_flip(&self) -> bool {
-        self.flip_y_internal() != 0
+        self.flip_y() != 0
     }
 
     /// Sets the vertical-flip flag.
     pub fn set_v_flip(&mut self, flip: bool) {
-        self.set_flip_y_internal(flip as u8);
+        self.set_flip_y(flip as u8);
     }
 
     /// Retrieves the character table index.
     pub fn char_table_index(&self) -> u8 {
-        self.char_table_index_internal()
+        self.char_table_index_u8()
     }
 
     /// Sets the character table index.
     pub fn set_char_table_index(&mut self, index: u8) {
-        self.set_char_table_index_internal(index)
+        self.set_char_table_index_u8(index)
     }
 
     /// Retrieves the palette table index.
     pub fn palette_table_index(&self) -> u8 {
-        self.palette_table_index_internal()
+        self.palette_table_index_u8()
     }
 
     /// Sets the palette table index.
     pub fn set_palette_table_index(&mut self, index: u8) {
-        self.set_palette_table_index_internal(index)
+        self.set_palette_table_index_u8(index)
     }
 }
 

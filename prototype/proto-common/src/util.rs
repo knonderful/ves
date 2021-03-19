@@ -34,11 +34,24 @@
 /// ```
 #[macro_export]
 macro_rules! bit_struct {
-    ( $(#[$struct_meta:meta])* $struct_vis:vis $struct_name:ident, $from_type:ty $( { $(#[$field_meta:meta])* $field_vis:vis $field_name:ident : $field_type:ident @ $field_shift:expr ; $field_mask:expr } )* ) => {
+    (
+        $(#[$struct_meta:meta])*
+        $struct_vis:vis struct $struct_name:ident {
+            value: $value_type:ty
+        }
+
+        impl {
+            $(
+                #[bit_struct_field(shift = $field_shift:expr, mask = $field_mask:expr)]
+                $(#[$field_meta:meta])*
+                $field_vis:vis fn $field_name:ident (&self) -> $field_type:ident; // $field_shift:expr ; $field_mask:expr ;
+            )*
+        }
+    ) => {
         $(#[$struct_meta])*
         #[allow(dead_code)]
         $struct_vis struct $struct_name {
-            value: $from_type,
+            value: $value_type,
         }
 
         paste! {
@@ -59,17 +72,17 @@ macro_rules! bit_struct {
                         assert_eq!(val, masked_val, "Provided value for {} should not exceed {}, but is {}.", stringify!([<set_ $field_name>]), $field_mask, val);
 
                         // Clear the backing bits.
-                        let window = ($field_mask as $from_type) << $field_shift;
+                        let window = ($field_mask as $value_type) << $field_shift;
                         let cleared = self.value ^ (self.value & window);
                         // Apply the provided value.
-                        self.value = cleared | ((masked_val as $from_type) << $field_shift);
+                        self.value = cleared | ((masked_val as $value_type) << $field_shift);
                     }
                 )*
             }
         }
 
-        impl From<$from_type> for $struct_name {
-            fn from(value: $from_type) -> Self {
+        impl From<$value_type> for $struct_name {
+            fn from(value: $value_type) -> Self {
                 Self {
                     value
                 }

@@ -116,13 +116,13 @@ impl OamEntry {
     }
 
     /// Retrieves the character table index.
-    pub fn char_table_index(&self) -> u8 {
-        self.char_table_index_u8()
+    pub fn char_table_index(&self) -> ObjectCharacterTableIndex {
+        self.char_table_index_u8().into()
     }
 
     /// Sets the character table index.
-    pub fn set_char_table_index(&mut self, index: u8) {
-        self.set_char_table_index_u8(index)
+    pub fn set_char_table_index(&mut self, index: ObjectCharacterTableIndex) {
+        self.set_char_table_index_u8(index.into())
     }
 
     /// Retrieves the palette table index.
@@ -157,6 +157,8 @@ mod tests_oam_entry {
         assert_eq!(subject.position(), (0, 0).into());
         assert_eq!(subject.h_flip(), false);
         assert_eq!(subject.v_flip(), false);
+        assert_eq!(subject.char_table_index(), 0.into());
+        assert_eq!(subject.palette_table_index(), 0);
     }
 
     #[test]
@@ -166,7 +168,7 @@ mod tests_oam_entry {
         assert_eq!(subject.position(), (0xAC, -0x13).into());
         assert_eq!(subject.h_flip(), true);
         assert_eq!(subject.v_flip(), false);
-        assert_eq!(subject.char_table_index(), 5);
+        assert_eq!(subject.char_table_index(), 5.into());
         assert_eq!(subject.palette_table_index(), 4);
     }
 
@@ -177,7 +179,7 @@ mod tests_oam_entry {
         let position = (-0x11, 0x22).into();
         let h_flip = true;
         let v_flip = true;
-        let char_table_index = 12;
+        let char_table_index = 12.into();
         let palette_table_index = 1;
 
         subject.set_position(position);

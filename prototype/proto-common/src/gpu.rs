@@ -138,7 +138,7 @@ impl OamEntry {
 
 #[cfg(test)]
 mod tests_oam_entry {
-    use crate::gpu::OamEntry;
+    use super::OamEntry;
 
     // pos_x: 0xAC
     // pos_y: 0x13

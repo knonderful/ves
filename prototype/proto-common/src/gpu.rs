@@ -196,6 +196,10 @@ mod tests_oam_entry {
 
 bit_struct!(
     /// An entry in the object character table.
+    ///
+    /// The internal format is as follows:
+    /// * Bits 0-3: X-position.
+    /// * Bits 4-7: Y-position.
     #[derive(Copy, Clone, Debug, Eq, PartialEq)]
     pub struct ObjectCharacterTableIndex {
         value: u8

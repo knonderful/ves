@@ -193,3 +193,60 @@ mod tests_oam_entry {
         assert_eq!(subject.palette_table_index(), palette_table_index);
     }
 }
+
+bit_struct!(
+    /// An entry in the object character table.
+    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+    pub struct ObjectCharacterTableIndex {
+        value: u8
+    }
+
+    impl {
+        #[bit_struct_field(shift = 0, mask = 0xF)]
+        /// The X-coordinate in the table.
+        pub fn x(&self) -> u8;
+
+        #[bit_struct_field(shift = 4, mask = 0xF)]
+        /// The Y-coordinate in the table.
+        pub fn y(&self) -> u8;
+    }
+);
+
+#[cfg(test)]
+mod tests_obj_char_table_index {
+    use super::ObjectCharacterTableIndex;
+
+    // x: 0xC
+    // y: 0xA
+    const TEST_VAL: u8 = 0xAC;
+
+    #[test]
+    fn zero() {
+        let subject: ObjectCharacterTableIndex = 0.into();
+        assert_eq!(subject.value, 0);
+        assert_eq!(subject.x(), 0);
+        assert_eq!(subject.y(), 0);
+    }
+
+    #[test]
+    fn getters() {
+        let subject: ObjectCharacterTableIndex = TEST_VAL.into();
+        assert_eq!(subject.value, TEST_VAL);
+        assert_eq!(subject.x(), 0xC);
+        assert_eq!(subject.y(), 0xA);
+    }
+
+    #[test]
+    fn setters() {
+        let mut subject: ObjectCharacterTableIndex = TEST_VAL.into();
+
+        let x = 0x8;
+        let y = 0xA;
+
+        subject.set_x(x);
+        subject.set_y(y);
+
+        assert_eq!(subject.x(), x);
+        assert_eq!(subject.y(), y);
+    }
+}

@@ -24,50 +24,42 @@ impl From<(i16, i16)> for ScenePosition {
     }
 }
 
-bit_struct!(OamEntryInternal, u32,
-    { pos_x: u8 @ 0; 0xFF }
-    { pos_y: u8 @ 8; 0xFF }
-    { char_table_index: u8 @ 16 ; 0xFF }
-    { palette_table_index: u8 @ 24 ; 0b111 }
-    { pos_x_neg: u8 @ 27; 0b1 }
-    { pos_y_neg: u8 @ 28; 0b1 }
-    { flip_x: u8 @ 29; 0b1 }
-    { flip_y: u8 @ 30; 0b1 }
+bit_struct!(
+    /// An entry in the OAM table.
+    ///
+    /// The entry can be converted to an [u32] and sent from the game to the core.
+    ///
+    /// The internal format is as follows:
+    /// * Bits 0-7: X-position.
+    /// * Bits 8-15: Y-position.
+    /// * Bits 16-23: Character table index.
+    /// * Bits 24-26: Palette table index.
+    /// * Bit 27: X-position negative flag.
+    /// * Bit 28: Y-position negative flag.
+    /// * Bit 29: Horizontal flip flag.
+    /// * Bit 30: Vertical flip flag.
+    /// * Bit 31: Unused.
+    OamEntry, u32, OamEntryImpl
+    { pos_x_internal: u8 @ 0; 0xFF }
+    { pos_y_internal: u8 @ 8; 0xFF }
+    { char_table_index_internal: u8 @ 16 ; 0xFF }
+    { palette_table_index_internal: u8 @ 24 ; 0b111 }
+    { pos_x_neg_internal: u8 @ 27; 0b1 }
+    { pos_y_neg_internal: u8 @ 28; 0b1 }
+    { flip_x_internal: u8 @ 29; 0b1 }
+    { flip_y_internal: u8 @ 30; 0b1 }
 );
-
-/// An entry in the OAM table.
-///
-/// The entry can be converted to an [u32] and sent from the game to the core.
-///
-/// The internal format is as follows:
-/// * Bits 0-7: X-position.
-/// * Bits 8-15: Y-position.
-/// * Bits 16-23: Character table index.
-/// * Bits 24-26: Palette table index.
-/// * Bit 27: X-position negative flag.
-/// * Bit 28: Y-position negative flag.
-/// * Bit 29: Horizontal flip flag.
-/// * Bit 30: Vertical flip flag.
-/// * Bit 31: Unused.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct OamEntry(OamEntryInternal);
-
-impl From<u32> for OamEntry {
-    fn from(value: u32) -> Self {
-        Self(value.into())
-    }
-}
 
 impl OamEntry {
     /// Retrieves the [ScenePosition].
     pub fn position(&self) -> ScenePosition {
-        let mut x = self.0.pos_x() as i16;
-        if self.0.pos_x_neg() != 0 {
+        let mut x = self.pos_x_internal() as i16;
+        if self.pos_x_neg_internal() != 0 {
             x *= -1;
         }
 
-        let mut y = self.0.pos_y() as i16;
-        if self.0.pos_y_neg() != 0 {
+        let mut y = self.pos_y_internal() as i16;
+        if self.pos_y_neg_internal() != 0 {
             y *= -1;
         }
 
@@ -76,50 +68,50 @@ impl OamEntry {
 
     /// Sets the [ScenePosition].
     pub fn set_position(&mut self, position: ScenePosition) {
-        self.0.set_pos_x(position.x.abs() as u8);
-        self.0.set_pos_x_neg(position.x.is_negative() as u8);
-        self.0.set_pos_y(position.y.abs() as u8);
-        self.0.set_pos_y_neg(position.y.is_negative() as u8);
+        self.set_pos_x_internal(position.x.abs() as u8);
+        self.set_pos_x_neg_internal(position.x.is_negative() as u8);
+        self.set_pos_y_internal(position.y.abs() as u8);
+        self.set_pos_y_neg_internal(position.y.is_negative() as u8);
     }
 
     /// Retrieves the horizontal-flip flag.
     pub fn h_flip(&self) -> bool {
-        self.0.flip_x() != 0
+        self.flip_x_internal() != 0
     }
 
     /// Sets the horizontal-flip flag.
     pub fn set_h_flip(&mut self, flip: bool) {
-        self.0.set_flip_x(flip as u8);
+        self.set_flip_x_internal(flip as u8);
     }
 
     /// Retrieves the vertical-flip flag.
     pub fn v_flip(&self) -> bool {
-        self.0.flip_y() != 0
+        self.flip_y_internal() != 0
     }
 
     /// Sets the vertical-flip flag.
     pub fn set_v_flip(&mut self, flip: bool) {
-        self.0.set_flip_y(flip as u8);
+        self.set_flip_y_internal(flip as u8);
     }
 
     /// Retrieves the character table index.
     pub fn char_table_index(&self) -> u8 {
-        self.0.char_table_index()
+        self.char_table_index_internal()
     }
 
     /// Sets the character table index.
     pub fn set_char_table_index(&mut self, index: u8) {
-        self.0.set_char_table_index(index)
+        self.set_char_table_index_internal(index)
     }
 
     /// Retrieves the palette table index.
     pub fn palette_table_index(&self) -> u8 {
-        self.0.palette_table_index()
+        self.palette_table_index_internal()
     }
 
     /// Sets the palette table index.
     pub fn set_palette_table_index(&mut self, index: u8) {
-        self.0.set_palette_table_index(index)
+        self.set_palette_table_index_internal(index)
     }
 }
 
@@ -140,7 +132,7 @@ mod tests_oam_entry {
     #[test]
     fn zero() {
         let subject: OamEntry = 0.into();
-        assert_eq!(subject.0.value, 0);
+        assert_eq!(subject.value, 0);
         assert_eq!(subject.position(), (0, 0).into());
         assert_eq!(subject.h_flip(), false);
         assert_eq!(subject.v_flip(), false);
@@ -149,7 +141,7 @@ mod tests_oam_entry {
     #[test]
     fn getters() {
         let subject: OamEntry = TEST_VAL.into();
-        assert_eq!(subject.0.value, TEST_VAL);
+        assert_eq!(subject.value, TEST_VAL);
         assert_eq!(subject.position(), (0xAC, -0x13).into());
         assert_eq!(subject.h_flip(), true);
         assert_eq!(subject.v_flip(), false);

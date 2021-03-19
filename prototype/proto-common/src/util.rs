@@ -34,24 +34,32 @@
 /// ```
 #[macro_export]
 macro_rules! bit_struct {
-    ( $vis:vis $struct_name:ident, $from_type:ty, $( { $field_name:ident : $field_type:ident @ $field_shift:expr ; $field_mask:expr } )* ) => {
+    ( $(#[$outer:meta])* $struct_vis:vis $struct_name:ident, $from_type:ty, $fields_vis:vis $impl_trait_name:ident $( { $field_name:ident : $field_type:ident @ $field_shift:expr ; $field_mask:expr } )* ) => {
+        $(#[$outer])*
         #[allow(dead_code)]
         #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-        $vis struct $struct_name {
+        $struct_vis struct $struct_name {
             value: $from_type,
         }
 
         paste! {
+            $fields_vis trait $impl_trait_name {
+                $(
+                    fn $field_name(&self) -> $field_type;
+                    fn [<set_ $field_name>](&mut self, val: $field_type);
+                )*
+            }
+
             #[allow(dead_code)]
-            impl $struct_name {
+            impl $impl_trait_name for $struct_name {
                 $(
                     #[inline(always)]
-                    $vis fn $field_name(&self) -> $field_type {
+                    fn $field_name(&self) -> $field_type {
                         ((self.value >> $field_shift) & $field_mask) as $field_type
                     }
 
                     #[inline(always)]
-                    $vis fn [<set_ $field_name>](&mut self, val: $field_type) {
+                    fn [<set_ $field_name>](&mut self, val: $field_type) {
                         let masked_val = val & $field_mask;
                         // Make sure the provided value does not exceed the mask range.
                         assert_eq!(val, masked_val, "Provided value for {} should not exceed {}, but is {}.", stringify!([<set_ $field_name>]), $field_mask, val);

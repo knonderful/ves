@@ -56,6 +56,16 @@ macro_rules! bit_struct {
                 $field_vis:vis fn $field_name:ident (&self) -> $field_type:ident;
             )*
         }
+
+        $(
+            padding {
+                $(
+                    #[bit_struct_field(shift = $padding_shift:expr, mask = $padding_mask:expr)]
+                    $(#[$_padding_meta:meta])*
+                    $_padding_vis:vis fn $padding_name:ident (&self) -> $padding_type:ident;
+                )*
+            }
+        )?
     ) => {
         $(#[$struct_meta])*
         #[allow(dead_code)]
@@ -125,6 +135,35 @@ macro_rules! bit_struct {
                     .field(stringify!($field_name), &self.$field_name())
                 )*
                     .finish()
+            }
+        }
+
+        paste::paste! {
+            #[allow(non_snake_case)]
+            mod [<test_gen_ $struct_name>] {
+                // use super::$struct_name;
+
+                /// This is a sanity check for overlapping fields. It works by XORing all bitmasks (fields and padding)
+                /// and then expects that the resulting value contains no binary zeros. Note that this is not a fail-proof
+                /// test. For instance, if a bit overlaps twice (i.e. three fields use the same bit), the XORed will
+                /// "cancel out" and this test will not fail. This is just intended to be a test for the most common types
+                /// of declarative errors.
+                #[test]
+                fn field_conflicts() {
+                    let full_bitmask = 0
+                    $(
+                        ^ super::$struct_name::[<$field_name _mask>]()
+                    )*
+                    $(
+                        $(
+                            ^ (($padding_mask as $value_type) << $padding_shift)
+                        )*
+                    )?
+                    ;
+
+                    let zeros = full_bitmask.count_zeros();
+                    assert_eq!(zeros, 0, "The bit mask contains {} zero(s) (might be the most-significant bits): {:b}", zeros, full_bitmask);
+                }
             }
         }
     }

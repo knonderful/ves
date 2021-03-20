@@ -67,6 +67,11 @@ bit_struct!(
         #[bit_struct_field(shift = 30, mask = 0b1)]
         fn flip_y(&self) -> u8;
     }
+
+    padding {
+        #[bit_struct_field(shift = 31, mask = 0b1)]
+        fn unused(&self) -> u8;
+    }
 );
 
 #[allow(dead_code)]
@@ -302,6 +307,11 @@ bit_struct!(
         /// The index into the palette table.
         pub fn index(&self) -> u8;
     }
+
+    padding {
+        #[bit_struct_field(shift = 3, mask = 0b11111)]
+        fn unused(&self) -> u8;
+    }
 );
 
 #[cfg(test)]
@@ -367,6 +377,11 @@ bit_struct!(
         #[bit_struct_field(shift = 0, mask = 0xF)]
         /// The index.
         pub fn index(&self) -> u8;
+    }
+
+    padding {
+        #[bit_struct_field(shift = 4, mask = 0xF)]
+        fn unused(&self) -> u8;
     }
 );
 
@@ -435,12 +450,19 @@ bit_struct!(
         #[bit_struct_field(shift = 0, mask = 0b11111)]
         /// The red color component.
         pub fn r(&self) -> u8;
+
         #[bit_struct_field(shift = 5, mask = 0b11111)]
         /// The green color component.
         pub fn g(&self) -> u8;
+
         #[bit_struct_field(shift = 10, mask = 0b11111)]
         /// The blue color component.
         pub fn b(&self) -> u8;
+    }
+
+    padding {
+        #[bit_struct_field(shift = 15, mask = 0b1)]
+        fn unused(&self) -> u8;
     }
 );
 

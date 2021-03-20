@@ -1,6 +1,3 @@
-use paste::paste;
-use std::fmt::{Debug, Formatter};
-
 /// The position of an entity in the scene.
 ///
 /// This is almost the same as the screen position, except that an entity can be (partially)

@@ -61,7 +61,7 @@ macro_rules! bit_struct {
             value: $value_type,
         }
 
-        paste! {
+        paste::paste! {
             #[allow(dead_code)]
             impl $struct_name {
                 $(
@@ -102,8 +102,8 @@ macro_rules! bit_struct {
             }
         }
 
-        impl Debug for $struct_name {
-            fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+        impl std::fmt::Debug for $struct_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> core::fmt::Result {
                 f.debug_struct(stringify!($struct_name))
                 $(
                     .field(stringify!($field_name), &self.$field_name())

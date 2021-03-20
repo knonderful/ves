@@ -69,6 +69,7 @@ bit_struct!(
     }
 );
 
+#[allow(dead_code)]
 impl OamEntry {
     /// Retrieves the [ScenePosition].
     pub fn position(&self) -> ScenePosition {

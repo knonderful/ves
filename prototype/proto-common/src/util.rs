@@ -141,8 +141,6 @@ macro_rules! bit_struct {
         paste::paste! {
             #[allow(non_snake_case)]
             mod [<test_gen_ $struct_name>] {
-                // use super::$struct_name;
-
                 /// This is a sanity check for overlapping fields. It works by XORing all bitmasks (fields and padding)
                 /// and then expects that the resulting value contains no binary zeros. Note that this is not a fail-proof
                 /// test. For instance, if a bit overlaps twice (i.e. three fields use the same bit), the XORed will

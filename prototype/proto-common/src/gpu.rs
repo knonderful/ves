@@ -364,7 +364,7 @@ bit_struct!(
     }
 
     impl {
-        #[bit_struct_field(shift = 0, mask = 0b1111)]
+        #[bit_struct_field(shift = 0, mask = 0xF)]
         /// The index.
         pub fn index(&self) -> u8;
     }

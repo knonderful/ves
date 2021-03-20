@@ -53,7 +53,7 @@ macro_rules! bit_struct {
             $(
                 #[bit_struct_field(shift = $field_shift:expr, mask = $field_mask:expr)]
                 $(#[$field_meta:meta])*
-                $field_vis:vis fn $field_name:ident (&self) -> $field_type:ident; // $field_shift:expr ; $field_mask:expr ;
+                $field_vis:vis fn $field_name:ident (&self) -> $field_type:ident;
             )*
         }
     ) => {

@@ -1,16 +1,5 @@
 /// Creates a bit-based struct that has another (primitive) data type as the internal value.
 ///
-/// # Parameters
-///
-/// * Visibility of the struct.
-/// * Name of the struct.
-/// * Internal data type.
-/// * Multiple field sections with:
-///   * Name of the field.
-///   * Type of the field.
-///   * Offset of the first bit (lsb) in the internal value.
-///   * Bit mask to apply _at the provided offset_.
-///
 /// # Usage notes
 ///
 /// The macro does not verify things like overlapping bit masks or internal value bounds. The latter

@@ -76,7 +76,7 @@ macro_rules! bit_struct {
                     fn [<set_ $field_name>](&mut self, val: $field_type) {
                         let masked_val = val & $field_mask;
                         // Make sure the provided value does not exceed the mask range.
-                        assert_eq!(val, masked_val, "Provided value for {} should not exceed {}, but is {}.", stringify!([<set_ $field_name>]), $field_mask, val);
+                        assert_eq!(val, masked_val, "Provided value for {} should not exceed {}, but is {}.", stringify!([<set_ $field_name>]), $field_mask as $field_type, val);
 
                         // Clear the backing bits.
                         let window = ($field_mask as $value_type) << $field_shift;

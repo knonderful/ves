@@ -335,3 +335,144 @@ mod tests_palette_table_entry {
         );
     }
 }
+
+bit_struct!(
+    /// An entry in a palette. Note that not all palettes support the full resolution of 16 entries.
+    ///
+    /// The internal format is as follows:
+    /// * Bits 0-3: Index.
+    /// * Bits 4-7: Unused.
+    #[derive(Copy, Clone, Eq, PartialEq)]
+    pub struct PaletteEntry {
+        value: u8
+    }
+
+    impl {
+        #[bit_struct_field(shift = 0, mask = 0b1111)]
+        /// The index.
+        pub fn index(&self) -> u8;
+    }
+);
+
+#[cfg(test)]
+mod tests_palette_entry {
+    use super::PaletteEntry;
+
+    // index: 6
+    const TEST_VAL: u8 = 6;
+
+    #[test]
+    fn zero() {
+        let subject: PaletteEntry = 0.into();
+        assert_eq!(subject.value, 0);
+        assert_eq!(subject.index(), 0);
+    }
+
+    #[test]
+    fn getters() {
+        let subject: PaletteEntry = TEST_VAL.into();
+        assert_eq!(subject.value, TEST_VAL);
+        assert_eq!(subject.index(), 6);
+    }
+
+    #[test]
+    fn setters() {
+        let mut subject: PaletteEntry = TEST_VAL.into();
+
+        let index = 3;
+
+        subject.set_index(index);
+
+        assert_eq!(subject.index(), index);
+    }
+
+    #[test]
+    fn debug() {
+        let subject: PaletteEntry = TEST_VAL.into();
+        assert_eq!(
+            format!("{:?}", subject).as_str(),
+            "PaletteEntry { index: 6 }"
+        );
+    }
+}
+
+bit_struct!(
+    /// A color in a palette.
+    ///
+    /// The internal format is as follows:
+    /// * Bits 0-4: Red component.
+    /// * Bits 5-9: Green component.
+    /// * Bits 10-14: Blue component.
+    /// * Bit 14: Unused.
+    #[derive(Copy, Clone, Eq, PartialEq)]
+    pub struct PaletteColor {
+        value: u16
+    }
+
+    impl {
+        #[bit_struct_field(shift = 0, mask = 0b11111)]
+        /// The red color component.
+        pub fn r(&self) -> u8;
+        #[bit_struct_field(shift = 5, mask = 0b11111)]
+        /// The green color component.
+        pub fn g(&self) -> u8;
+        #[bit_struct_field(shift = 10, mask = 0b11111)]
+        /// The blue color component.
+        pub fn b(&self) -> u8;
+    }
+);
+
+#[cfg(test)]
+mod tests_palette_color {
+    use super::PaletteColor;
+
+    // r: 12
+    // g: 22
+    // b: 7
+    //                        b     g     r
+    const TEST_VAL: u16 = 0b0_00111_10110_01100;
+
+    #[test]
+    fn zero() {
+        let subject: PaletteColor = 0.into();
+        assert_eq!(subject.value, 0);
+        assert_eq!(subject.r(), 0);
+        assert_eq!(subject.g(), 0);
+        assert_eq!(subject.b(), 0);
+    }
+
+    #[test]
+    fn getters() {
+        let subject: PaletteColor = TEST_VAL.into();
+        assert_eq!(subject.value, TEST_VAL);
+        assert_eq!(subject.r(), 12);
+        assert_eq!(subject.g(), 22);
+        assert_eq!(subject.b(), 7);
+    }
+
+    #[test]
+    fn setters() {
+        let mut subject: PaletteColor = TEST_VAL.into();
+
+        let r = 3;
+        let g = 15;
+        let b = 29;
+
+        subject.set_r(r);
+        subject.set_g(g);
+        subject.set_b(b);
+
+        assert_eq!(subject.r(), r);
+        assert_eq!(subject.g(), g);
+        assert_eq!(subject.b(), b);
+    }
+
+    #[test]
+    fn debug() {
+        let subject: PaletteColor = TEST_VAL.into();
+        assert_eq!(
+            format!("{:?}", subject).as_str(),
+            "PaletteColor { r: 12, g: 22, b: 7 }"
+        );
+    }
+}

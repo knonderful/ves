@@ -171,6 +171,12 @@ mod tests_oam_entry {
     }
 
     #[test]
+    fn constructor() {
+        let subject = OamEntry::new(0xAC, 0x13, 5, 4, 0, 1, 1, 0);
+        assert_eq!(subject.value, TEST_VAL);
+    }
+
+    #[test]
     fn setters() {
         let mut subject: OamEntry = TEST_VAL.into();
 
@@ -250,6 +256,12 @@ mod tests_obj_char_table_entry {
     }
 
     #[test]
+    fn constructor() {
+        let subject = ObjectCharacterTableEntry::new(0xC, 0xA);
+        assert_eq!(subject.value, TEST_VAL);
+    }
+
+    #[test]
     fn setters() {
         let mut subject: ObjectCharacterTableEntry = TEST_VAL.into();
 
@@ -313,6 +325,12 @@ mod tests_palette_table_entry {
     }
 
     #[test]
+    fn constructor() {
+        let subject = PaletteTableEntry::new(6);
+        assert_eq!(subject.value, TEST_VAL);
+    }
+
+    #[test]
     fn setters() {
         let mut subject: PaletteTableEntry = TEST_VAL.into();
 
@@ -370,6 +388,12 @@ mod tests_palette_entry {
         let subject: PaletteEntry = TEST_VAL.into();
         assert_eq!(subject.value, TEST_VAL);
         assert_eq!(subject.index(), 6);
+    }
+
+    #[test]
+    fn constructor() {
+        let subject = PaletteEntry::new(6);
+        assert_eq!(subject.value, TEST_VAL);
     }
 
     #[test]
@@ -445,6 +469,12 @@ mod tests_palette_color {
         assert_eq!(subject.r(), 12);
         assert_eq!(subject.g(), 22);
         assert_eq!(subject.b(), 7);
+    }
+
+    #[test]
+    fn constructor() {
+        let subject = PaletteColor::new(12, 22, 7);
+        assert_eq!(subject.value, TEST_VAL);
     }
 
     #[test]

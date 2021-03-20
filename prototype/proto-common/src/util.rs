@@ -64,6 +64,20 @@ macro_rules! bit_struct {
         paste::paste! {
             #[allow(dead_code)]
             impl $struct_name {
+                /// Creates a new instance from the bit fields.
+                pub fn new(
+                $(
+                       $field_name: $field_type,
+                )*
+                ) -> Self {
+                    let value = 0
+                    $(
+                        | (($field_name & $field_mask) as $value_type) << $field_shift
+                    )* ;
+
+                    Self { value }
+                }
+
                 $(
                     $(#[$field_meta])*
                     #[inline(always)]

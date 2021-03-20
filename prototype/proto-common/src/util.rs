@@ -61,28 +61,29 @@ macro_rules! bit_struct {
             value: $value_type,
         }
 
-        paste::paste! {
-            #[allow(dead_code)]
-            impl $struct_name {
-                /// Creates a new instance from the bit fields.
-                pub fn new(
+        #[allow(dead_code)]
+        impl $struct_name {
+            /// Creates a new instance from the bit fields.
+            pub fn new($($field_name: $field_type,)*) -> Self {
+                let value = 0
                 $(
-                       $field_name: $field_type,
-                )*
-                ) -> Self {
-                    let value = 0
-                    $(
-                        | (($field_name & $field_mask) as $value_type) << $field_shift
-                    )* ;
+                    | (($field_name & $field_mask) as $value_type) << $field_shift
+                )* ;
 
-                    Self { value }
+                Self { value }
+            }
+
+            $(
+                $(#[$field_meta])*
+                #[inline(always)]
+                fn $field_name(&self) -> $field_type {
+                    ((self.value >> $field_shift) & $field_mask) as $field_type
                 }
 
-                $(
-                    $(#[$field_meta])*
+                paste::paste! {
                     #[inline(always)]
-                    fn $field_name(&self) -> $field_type {
-                        ((self.value >> $field_shift) & $field_mask) as $field_type
+                    fn [<$field_name _mask>]() -> $value_type {
+                        ($field_mask as $value_type) << $field_shift
                     }
 
                     $(#[$field_meta])*
@@ -93,13 +94,12 @@ macro_rules! bit_struct {
                         assert_eq!(val, masked_val, "Provided value for {} should not exceed {}, but is {}.", stringify!([<set_ $field_name>]), $field_mask as $field_type, val);
 
                         // Clear the backing bits.
-                        let window = ($field_mask as $value_type) << $field_shift;
-                        let cleared = self.value ^ (self.value & window);
+                        let cleared = self.value ^ (self.value & Self::[<$field_name _mask>]());
                         // Apply the provided value.
                         self.value = cleared | ((masked_val as $value_type) << $field_shift);
                     }
-                )*
-            }
+                }
+            )*
         }
 
         impl From<$value_type> for $struct_name {

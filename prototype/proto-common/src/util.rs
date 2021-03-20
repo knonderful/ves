@@ -21,9 +21,11 @@
 /// # Example
 ///
 /// ```rust
+/// use proto_common::bit_struct;
+///
 /// bit_struct!(
 ///     /// An entry in the object character table.
-///     #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+///     #[derive(Copy, Clone, Eq, PartialEq)]
 ///     pub struct ObjectCharacterTableIndex {
 ///         value: u8
 ///     }

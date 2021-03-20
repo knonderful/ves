@@ -281,6 +281,7 @@ bit_struct!(
     ///
     /// The internal format is as follows:
     /// * Bits 0-3: Index.
+    /// * Bits 4-7: Unused.
     #[derive(Copy, Clone, Eq, PartialEq)]
     pub struct PaletteTableEntry {
         value: u8

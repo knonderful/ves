@@ -101,5 +101,15 @@ macro_rules! bit_struct {
                 obj.value
             }
         }
+
+        impl Debug for $struct_name {
+            fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+                f.debug_struct(stringify!($struct_name))
+                $(
+                    .field(stringify!($field_name), &self.$field_name())
+                )*
+                    .finish()
+            }
+        }
     }
 }

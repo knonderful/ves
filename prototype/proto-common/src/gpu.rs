@@ -1,4 +1,5 @@
 use paste::paste;
+use std::fmt::{Debug, Formatter};
 
 /// The position of an entity in the scene.
 ///
@@ -39,7 +40,7 @@ bit_struct!(
     /// * Bit 29: Horizontal flip flag.
     /// * Bit 30: Vertical flip flag.
     /// * Bit 31: Unused.
-    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+    #[derive(Copy, Clone, Eq, PartialEq)]
     struct OamEntry {
         value: u32
     }
@@ -194,6 +195,15 @@ mod tests_oam_entry {
         assert_eq!(subject.char_table_index(), char_table_index);
         assert_eq!(subject.palette_table_index(), palette_table_index);
     }
+
+    #[test]
+    fn debug() {
+        let subject: OamEntry = TEST_VAL.into();
+        assert_eq!(
+            format!("{:?}", subject).as_str(),
+            "OamEntry { pos_x: 172, pos_y: 19, char_table_index_u8: 5, palette_table_index_u8: 4, pos_x_neg: 0, pos_y_neg: 1, flip_x: 1, flip_y: 0 }"
+        );
+    }
 }
 
 bit_struct!(
@@ -202,7 +212,7 @@ bit_struct!(
     /// The internal format is as follows:
     /// * Bits 0-3: X-position.
     /// * Bits 4-7: Y-position.
-    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+    #[derive(Copy, Clone, Eq, PartialEq)]
     pub struct ObjectCharacterTableEntry {
         value: u8
     }
@@ -254,5 +264,73 @@ mod tests_obj_char_table_entry {
 
         assert_eq!(subject.x(), x);
         assert_eq!(subject.y(), y);
+    }
+
+    #[test]
+    fn debug() {
+        let subject: ObjectCharacterTableEntry = TEST_VAL.into();
+        assert_eq!(
+            format!("{:?}", subject).as_str(),
+            "ObjectCharacterTableEntry { x: 12, y: 10 }"
+        );
+    }
+}
+
+bit_struct!(
+    /// An entry in a palette table. A palette table is always at most 8 entries in size
+    ///
+    /// The internal format is as follows:
+    /// * Bits 0-3: Index.
+    #[derive(Copy, Clone, Eq, PartialEq)]
+    pub struct PaletteTableEntry {
+        value: u8
+    }
+
+    impl {
+        #[bit_struct_field(shift = 0, mask = 0b111)]
+        /// The index into the palette table.
+        pub fn index(&self) -> u8;
+    }
+);
+
+#[cfg(test)]
+mod tests_palette_table_entry {
+    use super::PaletteTableEntry;
+
+    // index: 6
+    const TEST_VAL: u8 = 6;
+
+    #[test]
+    fn zero() {
+        let subject: PaletteTableEntry = 0.into();
+        assert_eq!(subject.value, 0);
+        assert_eq!(subject.index(), 0);
+    }
+
+    #[test]
+    fn getters() {
+        let subject: PaletteTableEntry = TEST_VAL.into();
+        assert_eq!(subject.value, TEST_VAL);
+        assert_eq!(subject.index(), 6);
+    }
+
+    #[test]
+    fn setters() {
+        let mut subject: PaletteTableEntry = TEST_VAL.into();
+
+        let index = 3;
+
+        subject.set_index(index);
+
+        assert_eq!(subject.index(), index);
+    }
+
+    #[test]
+    fn debug() {
+        let subject: PaletteTableEntry = TEST_VAL.into();
+        assert_eq!(
+            format!("{:?}", subject).as_str(),
+            "PaletteTableEntry { index: 6 }"
+        );
     }
 }

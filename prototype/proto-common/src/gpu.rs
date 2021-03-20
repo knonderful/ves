@@ -116,12 +116,12 @@ impl OamEntry {
     }
 
     /// Retrieves the character table index.
-    pub fn char_table_index(&self) -> ObjectCharacterTableIndex {
+    pub fn char_table_index(&self) -> ObjectCharacterTableEntry {
         self.char_table_index_u8().into()
     }
 
     /// Sets the character table index.
-    pub fn set_char_table_index(&mut self, index: ObjectCharacterTableIndex) {
+    pub fn set_char_table_index(&mut self, index: ObjectCharacterTableEntry) {
         self.set_char_table_index_u8(index.into())
     }
 
@@ -203,7 +203,7 @@ bit_struct!(
     /// * Bits 0-3: X-position.
     /// * Bits 4-7: Y-position.
     #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-    pub struct ObjectCharacterTableIndex {
+    pub struct ObjectCharacterTableEntry {
         value: u8
     }
 
@@ -219,8 +219,8 @@ bit_struct!(
 );
 
 #[cfg(test)]
-mod tests_obj_char_table_index {
-    use super::ObjectCharacterTableIndex;
+mod tests_obj_char_table_entry {
+    use super::ObjectCharacterTableEntry;
 
     // x: 0xC
     // y: 0xA
@@ -228,7 +228,7 @@ mod tests_obj_char_table_index {
 
     #[test]
     fn zero() {
-        let subject: ObjectCharacterTableIndex = 0.into();
+        let subject: ObjectCharacterTableEntry = 0.into();
         assert_eq!(subject.value, 0);
         assert_eq!(subject.x(), 0);
         assert_eq!(subject.y(), 0);
@@ -236,7 +236,7 @@ mod tests_obj_char_table_index {
 
     #[test]
     fn getters() {
-        let subject: ObjectCharacterTableIndex = TEST_VAL.into();
+        let subject: ObjectCharacterTableEntry = TEST_VAL.into();
         assert_eq!(subject.value, TEST_VAL);
         assert_eq!(subject.x(), 0xC);
         assert_eq!(subject.y(), 0xA);
@@ -244,7 +244,7 @@ mod tests_obj_char_table_index {
 
     #[test]
     fn setters() {
-        let mut subject: ObjectCharacterTableIndex = TEST_VAL.into();
+        let mut subject: ObjectCharacterTableEntry = TEST_VAL.into();
 
         let x = 0x8;
         let y = 0xA;

@@ -277,7 +277,7 @@ mod tests_obj_char_table_entry {
 }
 
 bit_struct!(
-    /// An entry in a palette table. A palette table is always at most 8 entries in size
+    /// An entry in a palette table. A palette table is always at most 8 entries in size.
     ///
     /// The internal format is as follows:
     /// * Bits 0-3: Index.

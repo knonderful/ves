@@ -6,18 +6,18 @@
 /// whether an object should be drawn and where to cut off the drawing, if necessary.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct ScenePosition {
-    pub x: i16,
-    pub y: i16,
+    pub x: u16,
+    pub y: u16,
 }
 
 impl ScenePosition {
-    pub fn new(x: i16, y: i16) -> Self {
+    pub fn new(x: u16, y: u16) -> Self {
         Self { x, y }
     }
 }
 
-impl From<(i16, i16)> for ScenePosition {
-    fn from(tuple: (i16, i16)) -> Self {
+impl From<(u16, u16)> for ScenePosition {
+    fn from(tuple: (u16, u16)) -> Self {
         Self::new(tuple.0, tuple.1)
     }
 }
@@ -28,12 +28,10 @@ bit_struct!(
     /// The entry can be converted to an [u32] and sent from the game to the core.
     ///
     /// The internal format is as follows:
-    /// * Bits 0-7: X-position.
-    /// * Bits 8-15: Y-position.
-    /// * Bits 16-23: Character table index.
-    /// * Bits 24-26: Palette table index.
-    /// * Bit 27: X-position negative flag.
-    /// * Bit 28: Y-position negative flag.
+    /// * Bits 0-8: X-position.
+    /// * Bits 9-17: Y-position.
+    /// * Bits 18-25: Character table index.
+    /// * Bits 26-28: Palette table index.
     /// * Bit 29: Horizontal flip flag.
     /// * Bit 30: Vertical flip flag.
     /// * Bit 31: Unused.
@@ -43,23 +41,17 @@ bit_struct!(
     }
 
     impl {
-        #[bit_struct_field(shift = 0, mask = 0xFF)]
-        fn pos_x(&self) -> u8;
+        #[bit_struct_field(shift = 0, mask = 0x1FF)]
+        fn pos_x(&self) -> u16;
 
-        #[bit_struct_field(shift = 8, mask = 0xFF)]
-        fn pos_y(&self) -> u8;
+        #[bit_struct_field(shift = 9, mask = 0x1FF)]
+        fn pos_y(&self) -> u16;
 
-        #[bit_struct_field(shift = 16, mask = 0xFF)]
+        #[bit_struct_field(shift = 18, mask = 0xFF)]
         fn char_table_index_u8(&self) -> u8;
 
-        #[bit_struct_field(shift = 24, mask = 0b111)]
+        #[bit_struct_field(shift = 26, mask = 0b111)]
         fn palette_table_index_u8(&self) -> u8;
-
-        #[bit_struct_field(shift = 27, mask = 0b1)]
-        fn pos_x_neg(&self) -> u8;
-
-        #[bit_struct_field(shift = 28, mask = 0b1)]
-        fn pos_y_neg(&self) -> u8;
 
         #[bit_struct_field(shift = 29, mask = 0b1)]
         fn flip_x(&self) -> u8;
@@ -77,25 +69,15 @@ bit_struct!(
 impl OamEntry {
     /// Retrieves the [ScenePosition].
     pub fn position(&self) -> ScenePosition {
-        let mut x = self.pos_x() as i16;
-        if self.pos_x_neg() != 0 {
-            x *= -1;
-        }
-
-        let mut y = self.pos_y() as i16;
-        if self.pos_y_neg() != 0 {
-            y *= -1;
-        }
-
-        (x, y).into()
+        let x = self.pos_x();
+        let y = self.pos_y();
+        ScenePosition { x, y }
     }
 
     /// Sets the [ScenePosition].
     pub fn set_position(&mut self, position: ScenePosition) {
-        self.set_pos_x(position.x.abs() as u8);
-        self.set_pos_x_neg(position.x.is_negative() as u8);
-        self.set_pos_y(position.y.abs() as u8);
-        self.set_pos_y_neg(position.y.is_negative() as u8);
+        self.set_pos_x(position.x);
+        self.set_pos_y(position.y);
     }
 
     /// Retrieves the horizontal-flip flag.
@@ -143,15 +125,14 @@ impl OamEntry {
 mod tests_oam_entry {
     use super::OamEntry;
 
-    // pos_x: 0xAC
+    // pos_x: 0x1AC
     // pos_y: 0x13
     // char_table_index: 5
     // palette_table_index: 4
-    // pos_x_neg: 0
-    // pos_y_neg: 1
     // flip_x: 1
     // flip_y: 0
-    const TEST_VAL: u32 = 0x340513AC;
+    //                        y x pal chr_idx  pos_y     pos_x
+    const TEST_VAL: u32 = 0b0_0_1_100_00000101_000010011_110101100;
 
     #[test]
     fn zero() {
@@ -168,7 +149,7 @@ mod tests_oam_entry {
     fn getters() {
         let subject: OamEntry = TEST_VAL.into();
         assert_eq!(subject.value, TEST_VAL);
-        assert_eq!(subject.position(), (0xAC, -0x13).into());
+        assert_eq!(subject.position(), (0x1AC, 0x13).into());
         assert_eq!(subject.h_flip(), true);
         assert_eq!(subject.v_flip(), false);
         assert_eq!(subject.char_table_index(), 5.into());
@@ -177,7 +158,7 @@ mod tests_oam_entry {
 
     #[test]
     fn constructor() {
-        let subject = OamEntry::new(0xAC, 0x13, 5, 4, 0, 1, 1, 0);
+        let subject = OamEntry::new(0x1AC, 0x13, 5, 4, 1, 0);
         assert_eq!(subject.value, TEST_VAL);
     }
 
@@ -185,7 +166,7 @@ mod tests_oam_entry {
     fn setters() {
         let mut subject: OamEntry = TEST_VAL.into();
 
-        let position = (-0x11, 0x22).into();
+        let position = (0x11, 0x22).into();
         let h_flip = true;
         let v_flip = true;
         let char_table_index = 12.into();
@@ -209,7 +190,7 @@ mod tests_oam_entry {
         let subject: OamEntry = TEST_VAL.into();
         assert_eq!(
             format!("{:?}", subject).as_str(),
-            "OamEntry { pos_x: 172, pos_y: 19, char_table_index_u8: 5, palette_table_index_u8: 4, pos_x_neg: 0, pos_y_neg: 1, flip_x: 1, flip_y: 0 }"
+            "OamEntry { pos_x: 428, pos_y: 19, char_table_index_u8: 5, palette_table_index_u8: 4, flip_x: 1, flip_y: 0 }"
         );
     }
 }

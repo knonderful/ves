@@ -1,27 +1,3 @@
-/// The position of an entity in the scene.
-///
-/// This is almost the same as the screen position, except that an entity can be (partially)
-/// off-screen, but still be considered part of the scene. This helps creating a virtual space for
-/// things like sprites, where such behavior is common. It is up to the rendering code to figure out
-/// whether an object should be drawn and where to cut off the drawing, if necessary.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct ScenePosition {
-    pub x: u16,
-    pub y: u16,
-}
-
-impl ScenePosition {
-    pub fn new(x: u16, y: u16) -> Self {
-        Self { x, y }
-    }
-}
-
-impl From<(u16, u16)> for ScenePosition {
-    fn from(tuple: (u16, u16)) -> Self {
-        Self::new(tuple.0, tuple.1)
-    }
-}
-
 bit_struct!(
     /// An entry in the OAM table.
     ///
@@ -67,17 +43,19 @@ bit_struct!(
 );
 
 impl OamEntry {
-    /// Retrieves the [ScenePosition].
-    pub fn position(&self) -> ScenePosition {
-        let x = self.pos_x();
-        let y = self.pos_y();
-        ScenePosition { x, y }
+    /// Retrieves the position of the top-left pixel.
+    ///
+    /// Note that only the 9 least-significant bits of the coordinates are used.
+    pub fn position(&self) -> (u16, u16) {
+        (self.pos_x(), self.pos_y())
     }
 
-    /// Sets the [ScenePosition].
-    pub fn set_position(&mut self, position: ScenePosition) {
-        self.set_pos_x(position.x);
-        self.set_pos_y(position.y);
+    /// Sets the position of the top-left pixel.
+    ///
+    /// Note that only the 9 least-significant bits of the coordinates are used.
+    pub fn set_position(&mut self, x: u16, y: u16) {
+        self.set_pos_x(x);
+        self.set_pos_y(y);
     }
 
     /// Retrieves the horizontal-flip flag.
@@ -166,13 +144,13 @@ mod tests_oam_entry {
     fn setters() {
         let mut subject: OamEntry = TEST_VAL.into();
 
-        let position = (0x11, 0x22).into();
+        let position = (0x11, 0x22);
         let h_flip = true;
         let v_flip = true;
         let char_table_index = 12.into();
         let palette_table_index = 1;
 
-        subject.set_position(position);
+        subject.set_position(position.0, position.1);
         subject.set_h_flip(h_flip);
         subject.set_v_flip(v_flip);
         subject.set_char_table_index(char_table_index);

@@ -1,5 +1,3 @@
-use crate::game_api::RomData;
-
 use proto_common::gpu::{OamTableEntry, OcmTableIndex, OamTableIndex};
 use std::path::Path;
 use wasmtime::{Store, Linker, Module, Func, Caller, Extern, Trap, Memory};
@@ -80,8 +78,7 @@ impl CoreInterface for Core {
         let len = rom_block.len();
         assert_eq!(len, 8 * 8 * 3); // 3 bytes per pixel
 
-        let record = self.rom_data.record(rom_block.offset(), len);
-        let record_slice = record.slice(&self.rom_data);
+        let record_slice = self.rom_data.slice(rom_block);
         let src_surf = SliceBackedSurface::<Rgb888>::new(record_slice, (8, 8).into());
 
         let mut dest_surf = self.state.obj_char_table.surface_mut();
@@ -132,7 +129,7 @@ fn get_str(data: &[u8]) -> std::result::Result<&str, Trap> {
 impl CoreAndGame {
     pub fn from_path(path: &Path) -> Result<CoreAndGame> {
         let wasm_file = std::fs::canonicalize(path)?;
-        let rom_data = get_rom_data(&wasm_file)?;
+        let rom_data = RomData::from_path(&wasm_file)?;
 
         let store = Store::default();
         let module = Module::from_file(store.engine(), &wasm_file)?;
@@ -250,14 +247,37 @@ impl CoreAndGame {
     }
 }
 
-fn get_rom_data(path: impl AsRef<Path>) -> Result<RomData> {
-    const ROM_DATA: &str = "rom_data";
+/// ROM data.
+///
+/// This is usually a custom section in the WASM binary and contains assets for the game that are to
+/// be used by the core, such as graphics and sound data. Such assets are normally not mutable or
+/// generated at run-time and as such do not need to cross the WASM ABI. A game implementation can
+/// pass references to parts of the ROM data to the core (essentially an offset and a size). Such a
+/// reference is called a [RomDataRecord].
+pub struct RomData {
+    data: Vec<u8>,
+}
 
-    let module = parity_wasm::deserialize_file(&path)?;
-    let payload = module
-        .custom_sections()
-        .find(|sect| sect.name() == ROM_DATA)
-        .ok_or(anyhow::Error::msg(format!("Could not find rom data (custom section '{}') in {}.", ROM_DATA, path.as_ref().display())))?
-        .payload();
-    Ok(RomData::new(Vec::from(payload)))
+impl RomData {
+    pub fn new(data: Vec<u8>) -> Self {
+        Self { data }
+    }
+
+    pub fn from_path(path: impl AsRef<Path>) -> Result<RomData> {
+        const ROM_DATA: &str = "rom_data";
+
+        let module = parity_wasm::deserialize_file(&path)?;
+        let payload = module
+            .custom_sections()
+            .find(|sect| sect.name() == ROM_DATA)
+            .ok_or(anyhow::Error::msg(format!("Could not find rom data (custom section '{}') in {}.", ROM_DATA, path.as_ref().display())))?
+            .payload();
+        Ok(Self::new(Vec::from(payload)))
+    }
+
+    pub fn slice(&self, rom_block: RomBlock) -> &[u8] {
+        let start = rom_block.offset() as usize;
+        let end = start + rom_block.len() as usize;
+        &self.data[start..end]
+    }
 }

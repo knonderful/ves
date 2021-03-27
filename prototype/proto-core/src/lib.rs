@@ -1,4 +1,3 @@
-mod game_api;
 mod core;
 mod libretro_core;
 #[macro_use]

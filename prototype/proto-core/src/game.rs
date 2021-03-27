@@ -1,6 +1,6 @@
 use crate::game_api::RomData;
 
-use proto_common::gpu::OamEntry;
+use proto_common::gpu::{OamTableEntry, OcmTableIndex};
 use std::path::Path;
 use wasmtime::{Store, Linker, Module, Func, Caller, Extern, Trap, Memory};
 use anyhow::Result;
@@ -8,6 +8,7 @@ use std::rc::Rc;
 use std::cell::{RefCell};
 use crate::gfx::{Rgb888, Rectangle2D, Surface, Unit2D, Rgba8888, SliceBackedSurface, RectangleIterator, SliceBackedSurfaceMut, SurfaceValueSet, SurfaceValueGet};
 use std::ops::DerefMut;
+use proto_common::mem::RomBlock;
 
 /// The width of a character in pixels.
 const CHAR_WIDTH: Unit2D = 8;
@@ -38,7 +39,7 @@ impl ObjectCharacterTable {
         self.surface_buffer.as_surface_mut()
     }
 
-    pub fn sprite_rectangle(&self, sprite: &OamEntry) -> Rectangle2D {
+    pub fn sprite_rectangle(&self, sprite: &OamTableEntry) -> Rectangle2D {
         let char_table_index = sprite.char_table_index();
         let origin = (char_table_index.x() as Unit2D * CHAR_WIDTH, char_table_index.y() as Unit2D * CHAR_HEIGHT).into();
         // TODO: Support different sized sprites here
@@ -50,7 +51,7 @@ impl ObjectCharacterTable {
 struct GameState {
     obj_char_table: ObjectCharacterTable,
     /// The object attribute table.
-    obj_attr_table: [Option<OamEntry>; OBJ_ATTR_MEM_SIZE],
+    obj_attr_table: [Option<OamTableEntry>; OBJ_ATTR_MEM_SIZE],
 }
 
 struct GameInternal {
@@ -116,25 +117,27 @@ impl Game {
 
         let game_int = game_internal.clone();
 
-        linker.func("obj_attr_mem", "set", move |index: u32, oam_entry: u32| {
-            let oam_entry: OamEntry = oam_entry.into();
+        linker.func("oam", "set", move |index: u32, oam_entry: u32| {
+            let oam_entry: OamTableEntry = oam_entry.into();
             let mut game_int = (*game_int).borrow_mut();
             game_int.state.obj_attr_table[index as usize] = Some(oam_entry);
         })?;
 
         let game_int = game_internal.clone();
-        linker.func("obj_char_mem", "load", move |x: u32, y: u32, ptr: u32, size: u32| {
-            // We don't support other sizes yet.
-            assert_eq!(0, size);
+        linker.func("ocm", "load", move |index: u32, rom_block: u64| {
+            let ocm_index: OcmTableIndex = (index as u8).into();
+            let rom_block: RomBlock = rom_block.into();
 
-            let x = x as Unit2D * 8;
-            let y = y as Unit2D * 8;
+            let x = ocm_index.x() as Unit2D * 8;
+            let y = ocm_index.y() as Unit2D * 8;
 
             let mut game_int = (*game_int).borrow_mut();
             let game_int = game_int.deref_mut();
 
-            let len = 8 * 8 * 3; // 3 bytes per pixel
-            let record = game_int.rom_data.record(ptr, len);
+            let len = rom_block.len();
+            assert_eq!(len, 8 * 8 * 3); // 3 bytes per pixel
+
+            let record = game_int.rom_data.record(rom_block.offset(), len);
             let record_slice = record.slice(&game_int.rom_data);
             let src_surf = SliceBackedSurface::<Rgb888>::new(record_slice, (8, 8).into());
 

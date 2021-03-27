@@ -36,7 +36,7 @@ bit_struct!(
     /// * Bit 30: Vertical flip flag.
     /// * Bit 31: Unused.
     #[derive(Copy, Clone, Eq, PartialEq, Default)]
-    pub struct OamEntry {
+    pub struct OamTableEntry {
         value: u32
     }
 
@@ -66,7 +66,7 @@ bit_struct!(
     }
 );
 
-impl OamEntry {
+impl OamTableEntry {
     /// Retrieves the position of the top-left pixel.
     ///
     /// Note that only the 9 least-significant bits of the coordinates are used.
@@ -125,7 +125,7 @@ impl OamEntry {
 
 #[cfg(test)]
 mod tests_oam_entry {
-    use super::OamEntry;
+    use super::OamTableEntry;
 
     // pos_x: 0x1AC
     // pos_y: 0x13
@@ -138,7 +138,7 @@ mod tests_oam_entry {
 
     #[test]
     fn zero() {
-        let subject: OamEntry = 0.into();
+        let subject: OamTableEntry = 0.into();
         assert_eq!(subject.value, 0);
         assert_eq!(subject.position(), (0, 0).into());
         assert_eq!(subject.h_flip(), false);
@@ -149,7 +149,7 @@ mod tests_oam_entry {
 
     #[test]
     fn getters() {
-        let subject: OamEntry = TEST_VAL.into();
+        let subject: OamTableEntry = TEST_VAL.into();
         assert_eq!(subject.value, TEST_VAL);
         assert_eq!(subject.position(), (0x1AC, 0x13).into());
         assert_eq!(subject.h_flip(), true);
@@ -160,13 +160,13 @@ mod tests_oam_entry {
 
     #[test]
     fn constructor() {
-        let subject = OamEntry::new(0x1AC, 0x13, 5, 4, 1, 0);
+        let subject = OamTableEntry::new(0x1AC, 0x13, 5, 4, 1, 0);
         assert_eq!(subject.value, TEST_VAL);
     }
 
     #[test]
     fn setters() {
-        let mut subject: OamEntry = TEST_VAL.into();
+        let mut subject: OamTableEntry = TEST_VAL.into();
 
         let position = (0x11, 0x22);
         let h_flip = true;
@@ -189,10 +189,10 @@ mod tests_oam_entry {
 
     #[test]
     fn debug() {
-        let subject: OamEntry = TEST_VAL.into();
+        let subject: OamTableEntry = TEST_VAL.into();
         assert_eq!(
             format!("{:?}", subject).as_str(),
-            "OamEntry { pos_x: 428, pos_y: 19, char_table_index_u8: 5, palette_table_index_u8: 4, flip_x: 1, flip_y: 0 }"
+            "OamTableEntry { pos_x: 428, pos_y: 19, char_table_index_u8: 5, palette_table_index_u8: 4, flip_x: 1, flip_y: 0 }"
         );
     }
 }

@@ -73,8 +73,8 @@ macro_rules! entry_vec {
 }
 
 const FN_CALC_ROM_DATA_OFFSET: &'static str = "calc_rom_data_offset";
-const TYPE_ROM_DATA_POINTER: &'static str = "crate::core_api::RomDataPointer";
-const TYPE_ROM_DATA_RECORD: &'static str = "crate::core_api::RomDataRecord";
+const TYPE_ROM_DATA_POINTER: &'static str = "u32";
+const TYPE_ROM_BLOCK: &'static str = "proto_common::mem::RomBlock";
 const TYPE_ROM_DATA_ENTRY: &'static str = "RomDataEntry";
 const TYPE_ROM_DATA_GFX: &'static str = "RomDataGfx";
 const TYPE_ROM_DATA: &'static str = "RomData";
@@ -128,8 +128,8 @@ fn main() {
 
     template.raw_line(format!("impl {} {{", TYPE_ROM_DATA_GFX).as_str());
     for RomDataEntrySpec { id, path: _, byte_count } in &params.gfx {
-        template.raw_line(format!("    pub fn {}(&self) -> {} {{", id, TYPE_ROM_DATA_RECORD).as_str());
-        template.raw_line(format!("        {}::new(", TYPE_ROM_DATA_RECORD).as_str());
+        template.raw_line(format!("    pub fn {}(&self) -> {} {{", id, TYPE_ROM_BLOCK).as_str());
+        template.raw_line(format!("        {}::new(", TYPE_ROM_BLOCK).as_str());
         template.raw_line(format!("            {}(|rom| &rom.{}.{}),", FN_CALC_ROM_DATA_OFFSET, FIELD_ROM_DATA_GFX, id).as_str());
         template.raw_line(format!("            {}", byte_count).as_str());
         template.raw_line("        )");

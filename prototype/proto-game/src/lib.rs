@@ -1,11 +1,11 @@
 extern crate wee_alloc;
 
-mod core_api;
-mod rom_data;
+use proto_common::api::{CoreInterface, CoreInterfaceForGame, GameInterface};
+use proto_common::gpu::{OamTableEntry, OcmTableIndex};
 
 use rom_data::*;
-use crate::core_api::{Core, ObjectSize, ObjectCharacterTableIndex};
-use proto_common::gpu::{OamEntry, OcmTableIndex};
+
+mod rom_data;
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -15,56 +15,77 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[link_section = "rom_data"]
 static ROM_DATA: RomData = RomData::create();
 
-#[no_mangle]
-pub fn create_instance() -> Box<GameInstance> {
-    Box::new(GameInstance::new(Core::new()))
+#[link(wasm_import_module = "logger")]
+extern {
+    #[link_name = "info"]
+    fn logger_info(ptr: *const u8, len: usize);
 }
+
+#[link(wasm_import_module = "ocm")]
+extern {
+    #[link_name = "load"]
+    fn ocm_load(index: u8, rom_block: u64);
+}
+
+#[link(wasm_import_module = "oam")]
+extern {
+    #[link_name = "set"]
+    fn oam_set(index: u8, oam_entry: u32);
+}
+
 
 #[no_mangle]
-pub fn step(instance: &mut GameInstance) {
-    instance.step();
+pub fn create_instance() -> Box<CoreAndGame> {
+    let instance = CoreAndGame {
+        core: CoreInterfaceForGame {
+            logger_info,
+            ocm_load,
+            oam_set,
+        },
+        game: Game::new(),
+    };
+
+    Box::new(instance)
 }
 
-pub trait Game {
-    fn new(core: Core) -> Self;
-    fn step(&mut self);
+#[no_mangle]
+pub fn step(instance: &mut CoreAndGame) {
+    instance.game.step(&mut instance.core);
 }
 
-pub struct GameInstance {
-    core: Core,
+pub struct CoreAndGame {
+    core: CoreInterfaceForGame,
+    game: Game,
+}
+
+pub struct Game {
     frame_count: u64,
 }
 
-impl Game for GameInstance {
-    fn new(core: Core) -> Self {
-        GameInstance {
-            core,
+impl GameInterface for Game {
+    fn new() -> Self {
+        Self {
             frame_count: 0,
         }
     }
 
-    fn step(&mut self) {
-        let gpu = &mut self.core.gpu;
-        let objects = &mut gpu.objects;
-
+    fn step(&mut self, core: &mut dyn CoreInterface) {
         if self.frame_count == 0 {
-            self.core.logger.info("Initializing.");
+            core.log_info("Initializing.");
 
 
-            self.core.logger.info("Loading ROM data into object character table.");
-            let character_table_index: ObjectCharacterTableIndex = (0, 0).into();
-            let char_table = &mut gpu.char_table;
-            char_table.load(character_table_index, ROM_DATA.gfx().example().ptr(), ObjectSize::Size8x8);
+            core.log_info("Loading ROM data into object character table.");
+            let ocm_index = OcmTableIndex::new(0, 0);
+            core.ocm_load(ocm_index, ROM_DATA.gfx().example());
 
-            let mut entry = OamEntry::default();
-            entry.set_char_table_index(OcmTableIndex::new(0, 0));
+            let mut entry = OamTableEntry::default();
+            entry.set_char_table_index(ocm_index);
             let idx = 0.into();
-            objects.set(&idx, &entry);
+            core.oam_set(idx, entry);
         }
 
         self.frame_count += 1;
         let msg = format!("Frame #{}", &self.frame_count);
-        self.core.logger.info(msg.as_str());
-        // self.core.gpu.objects.set(0, ROM_DATA.gfx().example());
+        core.log_info(msg.as_str());
     }
 }

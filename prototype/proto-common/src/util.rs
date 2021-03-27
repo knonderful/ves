@@ -77,19 +77,19 @@ macro_rules! bit_struct {
             $(
                 $(#[$field_meta])*
                 #[inline(always)]
-                fn $field_name(&self) -> $field_type {
+                $field_vis fn $field_name(&self) -> $field_type {
                     ((self.value >> $field_shift) & $field_mask) as $field_type
                 }
 
                 paste::paste! {
                     #[inline(always)]
-                    fn [<$field_name _mask>]() -> $value_type {
+                    $field_vis fn [<$field_name _mask>]() -> $value_type {
                         ($field_mask as $value_type) << $field_shift
                     }
 
                     $(#[$field_meta])*
                     #[inline(always)]
-                    fn [<set_ $field_name>](&mut self, val: $field_type) {
+                    $field_vis fn [<set_ $field_name>](&mut self, val: $field_type) {
                         let masked_val = val & $field_mask;
                         // Make sure the provided value does not exceed the mask range.
                         assert_eq!(val, masked_val, "Provided value for {} should not exceed {}, but is {}.", stringify!([<set_ $field_name>]), $field_mask as $field_type, val);

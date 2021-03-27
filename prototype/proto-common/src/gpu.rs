@@ -1,4 +1,28 @@
 bit_struct!(
+    /// An index in the OAM table.
+    ///
+    /// The entry can be converted to an [u8] and sent from the game to the core.
+    ///
+    /// The internal format is as follows:
+    /// * Bits 0-4: Index value.
+    /// * Bits 5-7: Unused.
+    #[derive(Copy, Clone, Eq, PartialEq, Default)]
+    pub struct OamTableIndex {
+        value: u8
+    }
+
+    impl {
+        #[bit_struct_field(shift = 0, mask = 0b11111)]
+        fn value(&self) -> u8;
+    }
+
+    padding {
+        #[bit_struct_field(shift = 5, mask = 0b1111)]
+        fn unused(&self) -> u8;
+    }
+);
+
+bit_struct!(
     /// An entry in the OAM table.
     ///
     /// The entry can be converted to an [u32] and sent from the game to the core.
@@ -11,7 +35,7 @@ bit_struct!(
     /// * Bit 29: Horizontal flip flag.
     /// * Bit 30: Vertical flip flag.
     /// * Bit 31: Unused.
-    #[derive(Copy, Clone, Eq, PartialEq)]
+    #[derive(Copy, Clone, Eq, PartialEq, Default)]
     pub struct OamEntry {
         value: u32
     }

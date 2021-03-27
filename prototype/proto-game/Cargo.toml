@@ -11,4 +11,5 @@ crate-type = ["cdylib", "rlib"]
 default = ["wee_alloc"]
 
 [dependencies]
+proto-common = { path = "../proto-common" }
 wee_alloc = { version = "0.4.5", optional = true }

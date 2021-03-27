@@ -1,40 +1,13 @@
 use crate::game_api::RomData;
 
+use proto_common::gpu::OamEntry;
 use std::path::Path;
 use wasmtime::{Store, Linker, Module, Func, Caller, Extern, Trap, Memory};
 use anyhow::Result;
 use std::rc::Rc;
 use std::cell::{RefCell};
-use crate::gfx::{Position2D, Rgb888, Rectangle2D, Surface, Unit2D, Rgba8888, SliceBackedSurface, RectangleIterator, SliceBackedSurfaceMut, SurfaceValueSet, SurfaceValueGet};
+use crate::gfx::{Rgb888, Rectangle2D, Surface, Unit2D, Rgba8888, SliceBackedSurface, RectangleIterator, SliceBackedSurfaceMut, SurfaceValueSet, SurfaceValueGet};
 use std::ops::DerefMut;
-
-// TODO: Copied from proto-game. Needs unifying.
-#[derive(Copy, Clone)]
-pub struct ObjectCharacterTableIndex {
-    x: u8,
-    y: u8,
-}
-
-impl ObjectCharacterTableIndex {
-    pub fn new(x: u8, y: u8) -> Self {
-        Self { x, y }
-    }
-}
-
-#[derive(Copy, Clone)]
-pub struct SpriteObject {
-    char_table_index: ObjectCharacterTableIndex,
-    position: Position2D,
-}
-
-impl SpriteObject {
-    fn new(char_table_index: ObjectCharacterTableIndex, position: Position2D) -> Self {
-        Self {
-            char_table_index,
-            position,
-        }
-    }
-}
 
 /// The width of a character in pixels.
 const CHAR_WIDTH: Unit2D = 8;
@@ -65,8 +38,9 @@ impl ObjectCharacterTable {
         self.surface_buffer.as_surface_mut()
     }
 
-    pub fn sprite_rectangle(&self, sprite: &SpriteObject) -> Rectangle2D {
-        let origin = (sprite.char_table_index.x as Unit2D * CHAR_WIDTH, sprite.char_table_index.y as Unit2D * CHAR_HEIGHT).into();
+    pub fn sprite_rectangle(&self, sprite: &OamEntry) -> Rectangle2D {
+        let char_table_index = sprite.char_table_index();
+        let origin = (char_table_index.x() as Unit2D * CHAR_WIDTH, char_table_index.y() as Unit2D * CHAR_HEIGHT).into();
         // TODO: Support different sized sprites here
         Rectangle2D::new(origin, (CHAR_WIDTH, CHAR_HEIGHT).into())
     }
@@ -76,7 +50,7 @@ impl ObjectCharacterTable {
 struct GameState {
     obj_char_table: ObjectCharacterTable,
     /// The object attribute table.
-    obj_attr_table: [Option<SpriteObject>; OBJ_ATTR_MEM_SIZE],
+    obj_attr_table: [Option<OamEntry>; OBJ_ATTR_MEM_SIZE],
 }
 
 struct GameInternal {
@@ -142,10 +116,10 @@ impl Game {
 
         let game_int = game_internal.clone();
 
-        linker.func("obj_attr_mem", "set", move |index: u32, ocm_x: u32, ocm_y: u32| {
-            let char_mem_index = ObjectCharacterTableIndex::new(ocm_x as u8, ocm_y as u8);
+        linker.func("obj_attr_mem", "set", move |index: u32, oam_entry: u32| {
+            let oam_entry: OamEntry = oam_entry.into();
             let mut game_int = (*game_int).borrow_mut();
-            game_int.state.obj_attr_table[index as usize] = Some(SpriteObject::new(char_mem_index, Position2D::new(0, 0)));
+            game_int.state.obj_attr_table[index as usize] = Some(oam_entry);
         })?;
 
         let game_int = game_internal.clone();
@@ -230,7 +204,8 @@ impl Game {
                 let sprite_rect = obj_char_table.sprite_rectangle(&sprite);
                 let src_iter = RectangleIterator::new_with_rectangle(obj_char_surface.dimensions(), sprite_rect);
 
-                let dest_rect = Rectangle2D::new(sprite.position, sprite_rect.dimensions);
+                let (x, y) = sprite.position();
+                let dest_rect = Rectangle2D::new((x as _, y as _).into(), sprite_rect.dimensions);
                 let dest_iter = RectangleIterator::new_with_rectangle(framebuffer.dimensions(), dest_rect);
 
                 src_iter.zip(dest_iter).for_each(|(src_pos, dest_pos)| {

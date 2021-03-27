@@ -1,3 +1,5 @@
+use proto_common::gpu::{OamEntry, OamTableIndex};
+
 pub type RomDataPointer = *const u8;
 
 #[link(wasm_import_module = "logger")]
@@ -20,8 +22,13 @@ extern {
 
 #[link(wasm_import_module = "obj_attr_mem")]
 extern {
+    /// Set an OAM entry.
+    ///
+    /// # Parameters:
+    /// * `index`: An [OamTableIndex] as an `u8`.
+    /// * `oam_entry`: An [OamEntry] as an `u32`.
     #[link_name = "set"]
-    fn obj_attr_mem_set(index: u16, ocm_x: u8, ocm_y: u8);
+    fn obj_attr_mem_set(index: u8, oam_entry: u32);
 }
 
 #[allow(dead_code)]
@@ -124,7 +131,7 @@ impl Objects {
         Self {}
     }
 
-    pub fn set(&mut self, index: u16, oct_index: ObjectCharacterTableIndex) {
-        unsafe { obj_attr_mem_set(index, oct_index.x, oct_index.y) };
+    pub fn set(&mut self, index: &OamTableIndex, entry: &OamEntry) {
+        unsafe { obj_attr_mem_set(index.into(), entry.into()) };
     }
 }

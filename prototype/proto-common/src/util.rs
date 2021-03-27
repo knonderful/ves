@@ -117,6 +117,12 @@ macro_rules! bit_struct {
             }
         }
 
+        impl From<&$struct_name> for $value_type {
+            fn from(obj: &$struct_name) -> Self {
+                obj.value
+            }
+        }
+
         impl std::fmt::Debug for $struct_name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> core::fmt::Result {
                 f.debug_struct(stringify!($struct_name))

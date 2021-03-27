@@ -3,7 +3,7 @@ use std::path::Path;
 use wasmtime::{Store, Linker, Module, Func, Caller, Extern, Trap, Memory};
 use anyhow::Result;
 use std::rc::Rc;
-use std::cell::{RefCell};
+use std::cell::RefCell;
 use crate::gfx::{Rgb888, Rectangle2D, Surface, Unit2D, Rgba8888, SliceBackedSurface, RectangleIterator, SliceBackedSurfaceMut, SurfaceValueSet, SurfaceValueGet};
 use proto_common::mem::RomBlock;
 use proto_common::api::CoreInterface;

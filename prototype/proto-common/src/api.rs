@@ -7,15 +7,15 @@ pub trait CoreInterface {
     /// Load graphics data from the game ROM into the object character memory.
     ///
     /// # Parameters
-    /// * `index`: The [OcmTableIndex].
-    /// * `rom_block`: The [RomBlock].
+    /// * `index`: The [`OcmTableIndex`].
+    /// * `rom_block`: The [`RomBlock`].
     fn ocm_load(index: OcmTableIndex, rom_block: RomBlock);
 
     /// Set an OAM entry.
     ///
     /// # Parameters
-    /// * `index`: The [OamTableIndex].
-    /// * `oam_entry`: The [OamEntry].
+    /// * `index`: The [`OamTableIndex`].
+    /// * `oam_entry`: The [`OamEntry`].
     fn oam_set(index: OamTableIndex, entry: OamEntry);
 }
 

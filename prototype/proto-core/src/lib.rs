@@ -1,10 +1,10 @@
 mod game_api;
-mod game;
 mod core;
+mod libretro_core;
 #[macro_use]
 mod gfx;
 
 #[macro_use]
 extern crate libretro_backend;
 
-libretro_core!( core::ProtoCore );
+libretro_core!( libretro_core::LibretroProtoCore );

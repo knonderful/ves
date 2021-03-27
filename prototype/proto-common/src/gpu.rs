@@ -203,7 +203,7 @@ bit_struct!(
     /// The internal format is as follows:
     /// * Bits 0-3: X-position.
     /// * Bits 4-7: Y-position.
-    #[derive(Copy, Clone, Eq, PartialEq)]
+    #[derive(Copy, Clone, Eq, PartialEq, Default)]
     pub struct ObjectCharacterTableEntry {
         value: u8
     }
@@ -279,7 +279,7 @@ bit_struct!(
     /// The internal format is as follows:
     /// * Bits 0-3: Index.
     /// * Bits 4-7: Unused.
-    #[derive(Copy, Clone, Eq, PartialEq)]
+    #[derive(Copy, Clone, Eq, PartialEq, Default)]
     pub struct PaletteTableEntry {
         value: u8
     }
@@ -350,7 +350,7 @@ bit_struct!(
     /// The internal format is as follows:
     /// * Bits 0-3: Index.
     /// * Bits 4-7: Unused.
-    #[derive(Copy, Clone, Eq, PartialEq)]
+    #[derive(Copy, Clone, Eq, PartialEq, Default)]
     pub struct PaletteEntry {
         value: u8
     }
@@ -423,7 +423,7 @@ bit_struct!(
     /// * Bits 5-9: Green component.
     /// * Bits 10-14: Blue component.
     /// * Bit 14: Unused.
-    #[derive(Copy, Clone, Eq, PartialEq)]
+    #[derive(Copy, Clone, Eq, PartialEq, Default)]
     pub struct PaletteColor {
         value: u16
     }

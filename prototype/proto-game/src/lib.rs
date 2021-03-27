@@ -5,7 +5,7 @@ mod rom_data;
 
 use rom_data::*;
 use crate::core_api::{Core, ObjectSize, ObjectCharacterTableIndex};
-use proto_common::gpu::{OamEntry, ObjectCharacterTableEntry};
+use proto_common::gpu::{OamEntry, OcmTableIndex};
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -57,7 +57,7 @@ impl Game for GameInstance {
             char_table.load(character_table_index, ROM_DATA.gfx().example().ptr(), ObjectSize::Size8x8);
 
             let mut entry = OamEntry::default();
-            entry.set_char_table_index(ObjectCharacterTableEntry::new(0, 0));
+            entry.set_char_table_index(OcmTableIndex::new(0, 0));
             let idx = 0.into();
             objects.set(&idx, &entry);
         }

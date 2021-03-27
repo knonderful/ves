@@ -1,3 +1,5 @@
+mod gpu;
+
 use proto_common::gpu::{OamTableEntry, OcmTableIndex, OamTableIndex};
 use std::path::Path;
 use wasmtime::{Store, Linker, Module, Func, Caller, Extern, Trap, Memory};
@@ -7,49 +9,12 @@ use std::cell::RefCell;
 use crate::gfx::{Rgb888, Rectangle2D, Surface, Unit2D, Rgba8888, SliceBackedSurface, RectangleIterator, SliceBackedSurfaceMut, SurfaceValueSet, SurfaceValueGet};
 use proto_common::mem::RomBlock;
 use proto_common::api::CoreInterface;
-
-/// The width of a character in pixels.
-const CHAR_WIDTH: Unit2D = 8;
-/// The height of a character in pixels.
-const CHAR_HEIGHT: Unit2D = 8;
-/// The width of the character table in number of characters.
-const OBJ_CHAR_TABLE_WIDTH: Unit2D = 16;
-/// The height of the character table in number of characters.
-const OBJ_CHAR_TABLE_HEIGHT: Unit2D = 16;
-/// The size of the object attribute table in number of entries.
-const OBJ_ATTR_MEM_SIZE: usize = 32usize;
-
-// TODO: Replace FrameBufferPixel with another pixel type that only stores the NECESSARY data (basically the indices, not the RGBA)
-crate::linear_pixel_buffer!(ObjectCharacterSurfaceBuffer, Rgb888, OBJ_CHAR_TABLE_WIDTH, OBJ_CHAR_TABLE_HEIGHT);
-
-/// A character table.
-#[derive(Default)]
-struct ObjectCharacterTable {
-    surface_buffer: ObjectCharacterSurfaceBuffer,
-}
-
-impl ObjectCharacterTable {
-    pub fn surface(&self) -> SliceBackedSurface<Rgb888> {
-        self.surface_buffer.as_surface()
-    }
-
-    pub fn surface_mut(&mut self) -> SliceBackedSurfaceMut<Rgb888> {
-        self.surface_buffer.as_surface_mut()
-    }
-
-    pub fn obj_rectangle(&self, oam_entry: &OamTableEntry) -> Rectangle2D {
-        let char_table_index = oam_entry.char_table_index();
-        let origin = (char_table_index.x() as Unit2D * CHAR_WIDTH, char_table_index.y() as Unit2D * CHAR_HEIGHT).into();
-        // TODO: Support different sized sprites here
-        Rectangle2D::new(origin, (CHAR_WIDTH, CHAR_HEIGHT).into())
-    }
-}
+use crate::core::gpu::{OcmTable, OBJ_ATTR_MEM_SIZE};
 
 #[derive(Default)]
 struct CoreState {
-    obj_char_table: ObjectCharacterTable,
-    /// The object attribute table.
-    obj_attr_table: [Option<OamTableEntry>; OBJ_ATTR_MEM_SIZE],
+    ocm_table: OcmTable,
+    oam_table: [Option<OamTableEntry>; OBJ_ATTR_MEM_SIZE],
 }
 
 struct Core {
@@ -81,7 +46,7 @@ impl CoreInterface for Core {
         let record_slice = self.rom_data.slice(rom_block);
         let src_surf = SliceBackedSurface::<Rgb888>::new(record_slice, (8, 8).into());
 
-        let mut dest_surf = self.state.obj_char_table.surface_mut();
+        let mut dest_surf = self.state.ocm_table.surface_mut();
 
         let src_iter = RectangleIterator::new(src_surf.dimensions());
         let dest_rect = Rectangle2D::new((x, y).into(), src_surf.dimensions());
@@ -93,7 +58,7 @@ impl CoreInterface for Core {
     }
 
     fn oam_set(&mut self, index: OamTableIndex, entry: OamTableEntry) {
-        self.state.obj_attr_table[u8::from(index) as usize] = Some(entry);
+        self.state.oam_table[u8::from(index) as usize] = Some(entry);
     }
 }
 
@@ -210,13 +175,13 @@ impl CoreAndGame {
 
         let internal = self.core.borrow();
         let state = &internal.state;
-        let obj_char_table = &state.obj_char_table;
+        let obj_char_table = &state.ocm_table;
         let obj_char_surface = &obj_char_table.surface();
 
         // Use this color for transparency
         let transparent = (255, 0, 255).into();
 
-        for sprite_opt in state.obj_attr_table.iter() {
+        for sprite_opt in state.oam_table.iter() {
             if let Some(sprite) = sprite_opt {
                 let sprite_rect = obj_char_table.obj_rectangle(&sprite);
                 let src_iter = RectangleIterator::new_with_rectangle(obj_char_surface.dimensions(), sprite_rect);

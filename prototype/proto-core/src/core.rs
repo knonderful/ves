@@ -134,6 +134,11 @@ impl CoreAndGame {
         let wasm_file = std::fs::canonicalize(path)?;
         let rom_data = get_rom_data(&wasm_file)?;
 
+        let store = Store::default();
+        let module = Module::from_file(store.engine(), &wasm_file)?;
+
+        let mut linker = Linker::new(&store);
+
         // Use RefCell for internal mutability, since we need to create the import functions first
         // and only then we can create the CoreAndGame, since we need the exported functions for that.
         // Since the import functions only support Fn(...), we can not use a mutable reference in
@@ -141,11 +146,6 @@ impl CoreAndGame {
         // We could use a Mutex, but that would just introduce synchronization overhead that we
         // can avoid, since everything is running in one thread.
         let core = Rc::new(RefCell::new(Core::new(rom_data)));
-
-        let store = Store::default();
-        let module = Module::from_file(store.engine(), &wasm_file)?;
-
-        let mut linker = Linker::new(&store);
 
         {
             let core_clone = core.clone();

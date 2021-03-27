@@ -150,7 +150,6 @@ impl CoreAndGame {
         {
             let core_clone = core.clone();
             linker.func("oam", "set", move |index: u32, oam_entry: u32| {
-                // let mut core = (*core_clone).borrow_mut();
                 core_clone.borrow_mut()
                     .oam_set((index as u8).into(), oam_entry.into());
             })?;

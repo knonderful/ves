@@ -13,12 +13,12 @@ const OBJ_CHAR_TABLE_HEIGHT: Unit2D = 16;
 pub const OBJ_ATTR_MEM_SIZE: usize = 32usize;
 
 // TODO: Replace FrameBufferPixel with another pixel type that only stores the NECESSARY data (basically the indices, not the RGBA)
-crate::linear_pixel_buffer!(ObjectCharacterSurfaceBuffer, Rgb888, OBJ_CHAR_TABLE_WIDTH, OBJ_CHAR_TABLE_HEIGHT);
+crate::linear_pixel_buffer!(OcmSurfaceBuffer, Rgb888, OBJ_CHAR_TABLE_WIDTH, OBJ_CHAR_TABLE_HEIGHT);
 
 /// A character table.
 #[derive(Default)]
 pub struct OcmTable {
-    surface_buffer: ObjectCharacterSurfaceBuffer,
+    surface_buffer: OcmSurfaceBuffer,
 }
 
 impl OcmTable {

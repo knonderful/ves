@@ -9,12 +9,12 @@ use std::cell::RefCell;
 use crate::gfx::{Rgb888, Rectangle2D, Surface, Unit2D, Rgba8888, SliceBackedSurface, RectangleIterator, SliceBackedSurfaceMut, SurfaceValueSet, SurfaceValueGet};
 use proto_common::mem::RomBlock;
 use proto_common::api::CoreInterface;
-use crate::core::gpu::{OcmTable, OBJ_ATTR_MEM_SIZE};
+use crate::core::gpu::{OcmTable, OamTable};
 
 #[derive(Default)]
 struct CoreState {
     ocm_table: OcmTable,
-    oam_table: [Option<OamTableEntry>; OBJ_ATTR_MEM_SIZE],
+    oam_table: OamTable,
 }
 
 struct Core {
@@ -58,7 +58,7 @@ impl CoreInterface for Core {
     }
 
     fn oam_set(&mut self, index: OamTableIndex, entry: OamTableEntry) {
-        self.state.oam_table[u8::from(index) as usize] = Some(entry);
+        self.state.oam_table.set(index, entry);
     }
 }
 
@@ -173,42 +173,8 @@ impl CoreAndGame {
             framebuffer.set_value(pos, &bg_color);
         });
 
-        let internal = self.core.borrow();
-        let state = &internal.state;
-        let obj_char_table = &state.ocm_table;
-        let obj_char_surface = &obj_char_table.surface();
-
-        // Use this color for transparency
-        let transparent = (255, 0, 255).into();
-
-        for sprite_opt in state.oam_table.iter() {
-            if let Some(sprite) = sprite_opt {
-                let sprite_rect = obj_char_table.obj_rectangle(&sprite);
-                let src_iter = RectangleIterator::new_with_rectangle(obj_char_surface.dimensions(), sprite_rect);
-
-                let (x, y) = sprite.position();
-                let dest_rect = Rectangle2D::new((x as _, y as _).into(), sprite_rect.dimensions);
-                let dest_iter = RectangleIterator::new_with_rectangle(framebuffer.dimensions(), dest_rect);
-
-                src_iter.zip(dest_iter).for_each(|(src_pos, dest_pos)| {
-                    let src_value = obj_char_surface.get_value(src_pos);
-                    if src_value == transparent {
-                        return;
-                    }
-
-                    // TODO: Perform conversion with dedicated structs or something.
-                    //       Think about lossy vs non-lossy and how that should be reflected in the code.
-                    let dest_value = Rgba8888 {
-                        r: src_value.r,
-                        g: src_value.g,
-                        b: src_value.b,
-                        a: 255,
-                    };
-
-                    framebuffer.set_value(dest_pos, &dest_value);
-                });
-            }
-        }
+        let state = &self.core.borrow().state;
+        state.oam_table.render(&state.ocm_table, framebuffer);
     }
 }
 

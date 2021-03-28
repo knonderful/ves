@@ -6,7 +6,7 @@ use wasmtime::{Store, Linker, Module, Func, Caller, Extern, Trap, Memory};
 use anyhow::Result;
 use std::rc::Rc;
 use std::cell::RefCell;
-use crate::gfx::{Rgb888, Rectangle2D, Surface, Unit2D, Rgba8888, SliceBackedSurface, RectangleIterator, SliceBackedSurfaceMut, SurfaceValueSet, SurfaceValueGet};
+use crate::gfx::{Surface, Rgba8888, RectangleIterator, SliceBackedSurfaceMut, SurfaceValueSet};
 use proto_common::mem::RomBlock;
 use proto_common::api::CoreInterface;
 use crate::core::gpu::{OcmTable, OamTable};
@@ -37,24 +37,8 @@ impl CoreInterface for Core {
     }
 
     fn ocm_load(&mut self, index: OcmTableIndex, rom_block: RomBlock) {
-        let x = index.x() as Unit2D * 8;
-        let y = index.y() as Unit2D * 8;
-
-        let len = rom_block.len();
-        assert_eq!(len, 8 * 8 * 3); // 3 bytes per pixel
-
-        let record_slice = self.rom_data.slice(rom_block);
-        let src_surf = SliceBackedSurface::<Rgb888>::new(record_slice, (8, 8).into());
-
-        let mut dest_surf = self.state.ocm_table.surface_mut();
-
-        let src_iter = RectangleIterator::new(src_surf.dimensions());
-        let dest_rect = Rectangle2D::new((x, y).into(), src_surf.dimensions());
-        let dest_iter = RectangleIterator::new_with_rectangle(dest_surf.dimensions(), dest_rect);
-
-        src_iter.zip(dest_iter).for_each(|(src_pos, dest_pos)| {
-            dest_surf.set_value(dest_pos, &src_surf.get_value(src_pos));
-        });
+        let data = self.rom_data.slice(rom_block);
+        self.state.ocm_table.load(index, data);
     }
 
     fn oam_set(&mut self, index: OamTableIndex, entry: OamTableEntry) {

@@ -1,5 +1,5 @@
 use crate::gfx::{Unit2D, SliceBackedSurface, Rectangle2D, SliceBackedSurfaceMut, Rgb888, Rgba8888, RectangleIterator, Surface, SurfaceValueSet, SurfaceValueGet};
-use proto_common::gpu::{OamTableEntry, OamTableIndex};
+use proto_common::gpu::{OamTableEntry, OamTableIndex, OcmTableIndex};
 
 /// The width of a character in pixels.
 const CHAR_WIDTH: Unit2D = 8;
@@ -26,8 +26,24 @@ impl OcmTable {
         self.surface_buffer.as_surface()
     }
 
-    pub fn surface_mut(&mut self) -> SliceBackedSurfaceMut<Rgb888> {
-        self.surface_buffer.as_surface_mut()
+    pub fn load(&mut self, index: OcmTableIndex, data: &[u8]) {
+        let x = index.x() as Unit2D * CHAR_WIDTH;
+        let y = index.y() as Unit2D * CHAR_HEIGHT;
+
+        assert_eq!(data.len() as u32, CHAR_WIDTH * CHAR_HEIGHT * 3); // 3 bytes per pixel
+
+        // TODO: Support different sized sprites here
+        let src_surf = SliceBackedSurface::<Rgb888>::new(data, (CHAR_WIDTH, CHAR_HEIGHT).into());
+
+        let mut dest_surf = self.surface_buffer.as_surface_mut();
+
+        let src_iter = RectangleIterator::new(src_surf.dimensions());
+        let dest_rect = Rectangle2D::new((x, y).into(), src_surf.dimensions());
+        let dest_iter = RectangleIterator::new_with_rectangle(dest_surf.dimensions(), dest_rect);
+
+        src_iter.zip(dest_iter).for_each(|(src_pos, dest_pos)| {
+            dest_surf.set_value(dest_pos, &src_surf.get_value(src_pos));
+        });
     }
 
     pub fn obj_rectangle(&self, oam_entry: &OamTableEntry) -> Rectangle2D {

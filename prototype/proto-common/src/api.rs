@@ -3,17 +3,17 @@ use crate::mem::RomBlock;
 
 /// The interface that must be implemented by a core.
 pub trait CoreInterface {
-    /// Send an info message to the core.
+    /// Sends an info message to the core.
     fn log_info(&self, message: &str);
 
-    /// Load graphics data from the game ROM into the object character memory.
+    /// Loads graphics data from the game ROM into the object character memory.
     ///
     /// # Parameters
     /// * `index`: The [`OcmTableIndex`].
     /// * `rom_block`: The [`RomBlock`].
     fn ocm_load(&mut self, index: OcmTableIndex, rom_block: RomBlock);
 
-    /// Set an OAM entry.
+    /// Sets an OAM entry.
     ///
     /// # Parameters
     /// * `index`: The [`OamTableIndex`].
@@ -55,9 +55,9 @@ impl CoreInterface for CoreInterfaceForGame {
 
 /// The interface that must be implemented by a game.
 pub trait GameInterface {
-    /// Create a new instance.
+    /// Creates a new instance.
     fn new() -> Self;
 
-    /// Advance the game logic by one step.
+    /// Advances the game logic by one step.
     fn step(&mut self, core: &mut dyn CoreInterface);
 }

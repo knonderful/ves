@@ -22,10 +22,13 @@ pub struct OcmTable {
 }
 
 impl OcmTable {
-    pub fn surface(&self) -> SliceBackedSurface<Rgb888> {
-        self.surface_buffer.as_surface()
-    }
-
+    /// Loads graphics data into the table.
+    ///
+    /// This method checks the passed `data` slice for the expected length. An invalid length will result in a panic.
+    ///
+    /// # Parameters
+    /// * `index`: The [`OcmTableIndex`].
+    /// * `data`: The graphics data.
     pub fn load(&mut self, index: OcmTableIndex, data: &[u8]) {
         let x = index.x() as Unit2D * CHAR_WIDTH;
         let y = index.y() as Unit2D * CHAR_HEIGHT;
@@ -46,6 +49,15 @@ impl OcmTable {
         });
     }
 
+    /// Retrieves the [`Surface`].
+    pub fn surface(&self) -> SliceBackedSurface<Rgb888> {
+        self.surface_buffer.as_surface()
+    }
+
+    /// Retrieves the [`Rectangle2D`] for the provided [`OamTableEntry`] in the surface of this OCM instance.
+    ///
+    /// # Parameters
+    /// * `oam_entry`: The [`OamTableEntry`] that describes the object.
     pub fn obj_rectangle(&self, oam_entry: &OamTableEntry) -> Rectangle2D {
         let char_table_index = oam_entry.char_table_index();
         let origin = (char_table_index.x() as Unit2D * CHAR_WIDTH, char_table_index.y() as Unit2D * CHAR_HEIGHT).into();

@@ -1,0 +1,28 @@
+//! A module for geometric types for working with 2D artwork.
+
+/// The space identifier for the "artwork space". This is the space for working with graphical entities like surfaces, sprites, cels and
+/// animations.
+///
+/// The main reason for having space identifiers is to avoid (unintentionally) mixing up incompatible geometric spaces. For instance,
+/// positional data that describes a point in a sprite should not (directly) be used for geometric calculations in the "GUI window space" or
+/// the "screen space". Note that it is possible to translate between these spaces, but this should be handled explicitly. Having separate
+/// space identifiers avoids accidental errors in this area.
+pub struct ArtworkSpace;
+
+/// The unit for data in "artwork space".
+pub type ArtworkSpaceUnit = u32;
+
+/// A point in "artwork space".
+///
+/// See also [`ArtworkSpace`].
+pub type Point = euclid::Point2D<ArtworkSpaceUnit, ArtworkSpace>;
+
+/// A size in "artwork space".
+///
+/// See also [`ArtworkSpace`].
+pub type Size = euclid::Size2D<ArtworkSpaceUnit, ArtworkSpace>;
+
+/// A 2-dimensional rectangle in "artwork space".
+///
+/// See also [`ArtworkSpace`].
+pub type Rect = euclid::Rect<ArtworkSpaceUnit, ArtworkSpace>;

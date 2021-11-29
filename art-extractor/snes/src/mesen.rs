@@ -49,6 +49,13 @@ mod test_frame {
         assert_eq!(frame.obj_name_select_table, vec![30, 31, 32, 33, 34, 35, 36, 37, 38, 39]);
     }
 
+    fn hash_value(hashable: &impl std::hash::Hash) -> u64 {
+        use std::hash::Hasher;
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        hashable.hash(&mut hasher);
+        hasher.finish()
+    }
+
     /// Tests the JSON deserialization with real input. The input file was taken from an actual run of Yoshi's Island in Mesen-S.
     #[test]
     fn test_deserialize_real() {
@@ -63,5 +70,7 @@ mod test_frame {
         assert_eq!(frame.oam.len(), 0x220);
         assert_eq!(frame.obj_name_base_table.len(), 0x2000);
         assert_eq!(frame.obj_name_select_table.len(), 0x2000);
+        // A quick and dirty check that depends on internal implementations of slice and DefaultHasher, but it's better than just checking the length
+        assert_eq!(hash_value(&frame.obj_name_base_table.as_slice()), 12738903096569543258);
     }
 }

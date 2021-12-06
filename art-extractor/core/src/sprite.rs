@@ -21,7 +21,7 @@ pub type Color = rgb::RGB8;
 /// changes size on different platforms, resulting in serialized data being incompatible across platform boundaries.
 // Taking u16 here because the collections are not expected to be too big and it can always be safely converted to ´usize` (which is not the
 // case with `u32`).
-type Index = u16;
+pub type Index = u16;
 
 /// An index into a [`Palette`].
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
@@ -36,11 +36,23 @@ impl PaletteIndex {
         Self(index)
     }
 
-    fn as_index(&self) -> Index {
+    /// Retrieves the underlying value.
+    pub fn value(&self) -> Index {
+        self.as_index()
+    }
+
+    /// Sets the underlying value.
+    pub fn set_value(&mut self, value: Index) {
+        self.0 = value;
+    }
+
+    /// Retrieves the value as an [`Index`].
+    pub fn as_index(&self) -> Index {
         self.0
     }
 
-    fn as_usize(&self) -> usize {
+    /// Retrieves the value as a `usize`.
+    pub fn as_usize(&self) -> usize {
         self.0.into()
     }
 }
@@ -106,6 +118,14 @@ impl<C> Palette<C> {
             // Unwrap is OK here because we never add anything other than a PaletteIndex to the Vec
             .map(|(index, color)| (PaletteIndex::new(index.try_into().unwrap()), color))
     }
+
+    /// Gets a mutable iterator over all slots.
+    pub fn iter_mut(&mut self) -> impl Iterator<Item=(PaletteIndex, &mut C)> + '_ {
+        self.colors.iter_mut()
+            .enumerate()
+            // Unwrap is OK here because we never add anything other than a PaletteIndex to the Vec
+            .map(|(index, color)| (PaletteIndex::new(index.try_into().unwrap()), color))
+    }
 }
 
 /// An indexed graphical surface. Indexed, in this context, refers to the data being references to [`Palette`] indices rather than actual
@@ -113,6 +133,22 @@ impl<C> Palette<C> {
 pub struct IndexedSurface {
     data: Vec<PaletteIndex>,
     size: Size,
+}
+
+impl IndexedSurface {
+    /// Creates a new instance.
+    ///
+    /// # Parameters
+    /// * `size`: The dimensions of the surface.
+    pub fn new(size: Size) -> Self {
+        let capacity = (size.width * size.height).try_into().unwrap();
+        let mut data = Vec::with_capacity(capacity);
+        data.resize(capacity, PaletteIndex::new(0));
+        Self {
+            data,
+            size,
+        }
+    }
 }
 
 impl Surface for IndexedSurface {

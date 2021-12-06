@@ -426,14 +426,14 @@ function grabSpriteData()
 
   -- Dump the VRAM tables that OBJ NAME BASE points to
   frame_record.obj_name_base_table = {};
-  local obj_data_address_offset = state_ppu.oamBaseAddress;
+  local obj_data_address_offset = state_ppu.oamBaseAddress * 2; -- multiply by two because this address is in WORDs
   for i = 0, 0x1FFF do
     frame_record.obj_name_base_table[i + 1] = emu.read(obj_data_address_offset + i, emu.memType.vram);
   end
 
   -- Dump the VRAM tables that OBJ NAME SELECT points to
   frame_record.obj_name_select_table = {};
-  local obj_data_address_2_offset = obj_data_address_offset + state_ppu.oamAddressOffset;
+  local obj_data_address_2_offset = obj_data_address_offset + state_ppu.oamAddressOffset * 2; -- multiply by two because this address is in WORDs
   for i = 0, 0x1FFF do
     frame_record.obj_name_select_table[i + 1] = emu.read(obj_data_address_2_offset + i, emu.memType.vram);
   end

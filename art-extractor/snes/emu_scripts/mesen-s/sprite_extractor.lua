@@ -414,7 +414,7 @@ function grabSpriteData()
 
   -- Dump the CGRAM
   frame_record.cgram = {};
-  for i = 0, 0xFF do
+  for i = 0, 0x1FF do
     frame_record.cgram[i + 1] = emu.read(i, emu.memType.cgram);
   end
 

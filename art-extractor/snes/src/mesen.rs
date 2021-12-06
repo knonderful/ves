@@ -12,22 +12,20 @@
 #[derive(serde::Deserialize)]
 pub struct Frame {
     /// The frame number. This can be useful for autmatically determining animation timings, movement speeds etc.
-    frame_nr: u64,
+    pub frame_nr: u64,
     /// The entire CGRAM table (see page A-17 of book1). This should be 0x100 bytes.
     /// Note that only the latter half of the CGRAM is used for objects (from 0x80), but we copy the entire table to avoid confusion.
-    cgram: Vec<u8>,
+    pub cgram: Vec<u8>,
     /// The entire OAM table (see page A-3 of book1). This should be 0x220 bytes.
-    oam: Vec<u8>,
+    pub oam: Vec<u8>,
     /// `OBJ NAME BASE` table from VRAM (see page A-1 and A-2 of book1). This should be 0x2000 bytes.
-    obj_name_base_table: Vec<u8>,
+    pub obj_name_base_table: Vec<u8>,
     /// `OBJ NAME SELECT` table from VRAM (see page A-1 and A-2 of book1). This should be 0x2000 bytes.
-    obj_name_select_table: Vec<u8>,
+    pub obj_name_select_table: Vec<u8>,
 }
 
 #[cfg(test)]
 mod test_frame {
-    use std::fs::File;
-    use std::path::PathBuf;
     use super::Frame;
 
     /// Tests the JSON deserialization with synthetic input.
@@ -59,10 +57,10 @@ mod test_frame {
     /// Tests the JSON deserialization with real input. The input file was taken from an actual run of Yoshi's Island in Mesen-S.
     #[test]
     fn test_deserialize_real() {
-        let mut file_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut file_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         file_path.push("resources/test/frame_117042.json");
 
-        let file = File::open(file_path.as_path()).unwrap();
+        let file = std::fs::File::open(file_path.as_path()).unwrap();
         let frame: Frame = serde_json::from_reader(file).unwrap();
         assert_eq!(frame.frame_nr, 117042);
         // Not going to verify the content, just the lengths

@@ -66,21 +66,24 @@ mod test_color {
     }
 }
 
+/// The number of bytes for a color in SNES data.
+const BYTES_PER_COLOR: usize = 2;
+/// The number of colors in an OBJ palette.
+const OBJ_PALETTE_NR_COLORS: usize = 16;
+/// The number of bytes in an OBJ palette (input SNES data).
+const OBJ_PALETTE_SIZE: usize = BYTES_PER_COLOR * OBJ_PALETTE_NR_COLORS;
+
 /// Implementation of [`FromSnesData`] for [`Palette<Color>`].
 ///
 /// The input data is a slice of color entries. Each entry takes 2 bytes. Refer to section A-17 in the SNES developer manual for more
 /// information.
 impl FromSnesData<&[u8]> for Palette<Color> {
     fn from_snes_data(data: &[u8]) -> Result<Self, DataImportError> {
-        // A palette contains 16 colors...
-        const EXPECTED_COLORS: u8 = 16;
-        // ... and takes 2 bytes per color.
-        const EXPECTED_DATA_LEN: u8 = EXPECTED_COLORS * 2;
-        if data.len() != usize::from(EXPECTED_DATA_LEN) {
-            return Err(DataImportError::InvalidData(format!("Invalid data length. Expected {} but got {}.", EXPECTED_DATA_LEN, data.len())));
+        if data.len() != OBJ_PALETTE_SIZE {
+            return Err(DataImportError::InvalidData(format!("Invalid data length. Expected {} but got {}.", OBJ_PALETTE_SIZE, data.len())));
         }
 
-        let mut palette = Palette::new_filled(EXPECTED_COLORS.into(), Color::new(0, 0, 0));
+        let mut palette = Palette::new_filled(OBJ_PALETTE_NR_COLORS, Color::new(0, 0, 0));
         let mut data_iter = data.iter();
         for (_, color) in palette.iter_mut() {
             // The unwraps are OK here because we checked the size of the slice at the beginning of the function
@@ -110,6 +113,47 @@ mod test_palette {
     }
 }
 
+const OBJ_PALETTE_COUNT: usize = 8;
+
+pub struct ObjPalettes {
+    palettes: Vec<Palette<Color>>,
+}
+
+impl ObjPalettes {
+    fn new(palettes: Vec<Palette<Color>>) -> Self {
+        Self { palettes }
+    }
+
+    pub fn palettes(&self) -> &[Palette<Color>] {
+        &self.palettes[..]
+    }
+}
+
+impl FromSnesData<&[u8]> for ObjPalettes {
+    fn from_snes_data(data: &[u8]) -> Result<Self, DataImportError> {
+        const EXPECTED_DATA_LEN: usize = OBJ_PALETTE_SIZE * OBJ_PALETTE_COUNT;
+        if data.len() != EXPECTED_DATA_LEN {
+            return Err(DataImportError::InvalidData(format!("Invalid data length. Expected {} but got {}.", EXPECTED_DATA_LEN, data.len())));
+        }
+
+        let mut palettes: Vec<Palette<Color>> = Vec::with_capacity(OBJ_PALETTE_COUNT);
+        for input in data.chunks(OBJ_PALETTE_SIZE) {
+            palettes.push(Palette::from_snes_data(input)?);
+        }
+
+        Ok(ObjPalettes::new(palettes))
+    }
+}
+
+#[cfg(test)]
+mod test_obj_palettes {
+    #[test]
+    fn fail() {
+        // TODO: Parse a bunch of palettes... how do we verify?
+        // assert_eq!(1, 2);
+    }
+}
+
 /// An `OBJ NAME` table. There are two in the scope of the SNES: `OBJ NAME BASE` and `OBJ NAME SELECT`.
 pub struct ObjNameTable {
     surface: IndexedSurface,
@@ -136,7 +180,7 @@ impl ObjNameTable {
         let mut data_iter = data.iter();
         // TODO: This is a hack to get around euclid's definition of Box2D and Rect, which *include* the border in the shape.
         //       To really fix this we should wrap our `geom` types and not expose the `euclid` stuff directly.
-        let view_size = Size::new(Self::TILE_WIDTH - 1, Self::TILE_HEIGHT - 1);
+        let view_size = Size::new(Self::TILE_WIDTH, Self::TILE_HEIGHT);
         // Vertical tile iteration
         for y in 0..Self::TILES_Y {
             // Horizontal tile iteration
@@ -152,11 +196,15 @@ impl ObjNameTable {
                         let plane2 = *data_iter.next().unwrap();
 
                         let surface_row_data = surface.row_data_mut(&row);
+                        // println!("ROW WIDTH: {}", surface_row_data.len()); THE ROW IS NOT THE RIGHT WIDTH... WE NEED TO FIX THE RECT SHIT
                         Self::apply_planes_to_row(surface_row_data, plane_pair * 2, plane1, plane2)
                     }
                 }
             }
         }
+
+        // We should have read all data by now. Anything else is a programming error.
+        assert!(data_iter.next().is_none());
 
         Ok(surface)
     }
@@ -189,7 +237,11 @@ impl FromSnesData<&[u8]> for ObjNameTable {
 
 #[cfg(test)]
 mod test_obj_name_table {
-    use art_extractor_core::sprite::PaletteIndex;
+    use art_extractor_core::geom::{Point, Rect, Size};
+    use art_extractor_core::sprite::{Color, IndexedSurface, Palette, PaletteIndex};
+    use art_extractor_core::surface::Surface;
+    use bmp::Pixel;
+    use crate::extract::ObjPalettes;
     use crate::mesen::Frame;
     use super::{FromSnesData, ObjNameTable};
 
@@ -218,18 +270,33 @@ mod test_obj_name_table {
         assert_eq!(&expected, &actual);
     }
 
+    fn create_bitmap(surface: &IndexedSurface, palette: &Palette<Color>) -> bmp::Image {
+        let mut img = bmp::Image::new(surface.size().width, surface.size().height);
+        let view = surface.view(Rect::new(Point::new(0, 0), Size::new(surface.size().width - 1, surface.size().height - 1)));
+        for (y, row) in view.row_iter().enumerate() {
+            for (x, pixel) in surface.row_data(&row).iter().enumerate() {
+                let color = palette.get(*pixel).unwrap();
+                img.set_pixel(x.try_into().unwrap(), y.try_into().unwrap(),
+                              Pixel::new(color.r, color.g, color.b));
+            }
+        }
+        img
+    }
+
     #[test]
     fn test_from_snes_data() {
         let mut file_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        file_path.push("resources/test/frame_117042.json");
+        file_path.push("resources/test/frame_189993.json");
 
         let file = std::fs::File::open(file_path.as_path()).unwrap();
         let frame: Frame = serde_json::from_reader(file).unwrap();
 
         let obj_name_table = ObjNameTable::from_snes_data(frame.obj_name_base_table.as_slice()).unwrap();
+        let palettes = ObjPalettes::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
 
-        // TODO: Implement some method for writing a surface to a file, such that we can visually inspect it.
-        // TODO: Create some kind of checksum over the data and assert_eq that for this test.
-        // TODO: ^ Or rather: write to a BMP (or something else lossless) and check that in and then compare the data from the test to that image.
+        let img = create_bitmap(&obj_name_table.surface, &palettes.palettes()[5]);
+        img.save(format!("{}/out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap();
+
+        // TODO: Check in the BMP and compare with generated result.
     }
 }

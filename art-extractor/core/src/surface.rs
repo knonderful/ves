@@ -128,7 +128,7 @@ pub struct SurfaceRowIter {
 impl SurfaceRowIter {
     fn new(surface_width: ArtworkSpaceUnit, area: &Rect) -> Self {
         let surface_width = surface_width.into_usize();
-        let start_offset = surface_width * area.origin.y.into_usize() + area.origin.x.into_usize();
+        let start_offset = surface_width * area.min_y().into_usize() + area.origin.x.into_usize();
         let end_offset = start_offset + surface_width * (area.height().into_usize() - 1);
 
         Self {
@@ -157,7 +157,7 @@ impl Iterator for SurfaceRowIter {
 
 #[cfg(test)]
 mod test_surface_row_iter {
-    use crate::geom::{ArtworkSpaceUnit, Point, Rect, Size};
+    use crate::geom::ArtworkSpaceUnit;
     use super::{SurfaceRow, SurfaceRowIter, IntoUsize};
 
     #[test]
@@ -168,9 +168,9 @@ mod test_surface_row_iter {
         const AREA_WIDTH: ArtworkSpaceUnit = 16;
         const AREA_HEIGHT: ArtworkSpaceUnit = 8;
         let mut iter = SurfaceRowIter::new(SURFACE_WIDTH,
-                                           &Rect::new(Point::new(AREA_X, AREA_Y), Size::new(AREA_WIDTH, AREA_HEIGHT)));
+                                           &((AREA_X, AREA_Y), AREA_WIDTH, AREA_HEIGHT).into());
         let mut offset = SURFACE_WIDTH.into_usize() * AREA_Y.into_usize() + AREA_X.into_usize();
-        for _ in 0..8 {
+        for _ in 0..AREA_HEIGHT {
             assert_eq!(Some(SurfaceRow::new(offset..offset + AREA_WIDTH.into_usize())), iter.next());
             offset += SURFACE_WIDTH.into_usize();
         }

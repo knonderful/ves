@@ -58,17 +58,17 @@ mod test_frame {
     #[test]
     fn test_deserialize_real() {
         let mut file_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        file_path.push("resources/test/frame_189986.json");
+        file_path.push("resources/test/frame_189993.json");
 
         let file = std::fs::File::open(file_path.as_path()).unwrap();
         let frame: Frame = serde_json::from_reader(file).unwrap();
-        assert_eq!(frame.frame_nr, 189986);
+        assert_eq!(frame.frame_nr, 189993);
         // Not going to verify the content, just the lengths
         assert_eq!(frame.cgram.len(), 0x200);
         assert_eq!(frame.oam.len(), 0x220);
         assert_eq!(frame.obj_name_base_table.len(), 0x2000);
         assert_eq!(frame.obj_name_select_table.len(), 0x2000);
         // A quick and dirty check that depends on internal implementations of slice and DefaultHasher, but it's better than just checking the length
-        assert_eq!(hash_value(&frame.obj_name_base_table.as_slice()), 13723269747676702705);
+        assert_eq!(hash_value(&frame.obj_name_base_table.as_slice()), 8424232902694905505);
     }
 }

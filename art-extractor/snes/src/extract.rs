@@ -285,18 +285,22 @@ mod test_obj_name_table {
 
     #[test]
     fn test_from_snes_data() {
-        let mut file_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        file_path.push("resources/test/frame_189993.json");
+        let mut json_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        json_path.push("resources/test/frame_189993.json");
 
-        let file = std::fs::File::open(file_path.as_path()).unwrap();
+        let file = std::fs::File::open(json_path.as_path()).unwrap();
         let frame: Frame = serde_json::from_reader(file).unwrap();
 
         let obj_name_table = ObjNameTable::from_snes_data(frame.obj_name_base_table.as_slice()).unwrap();
         let palettes = ObjPalettes::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
 
-        let img = create_bitmap(&obj_name_table.surface, &palettes.palettes()[5]);
-        img.save(format!("{}/out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap();
+        let actual = create_bitmap(&obj_name_table.surface, &palettes.palettes()[5]);
+        // actual.save(format!("{}/out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap();
 
-        // TODO: Check in the BMP and compare with generated result.
+        let mut expected_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        expected_path.push("resources/test/expected_obj_table.bmp");
+        let expected = bmp::open(expected_path).unwrap();
+
+        assert_eq!(expected, actual);
     }
 }

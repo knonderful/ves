@@ -178,8 +178,6 @@ impl ObjNameTable {
         let mut surface = IndexedSurface::new(Size::new(Self::TILES_X * Self::TILE_WIDTH, Self::TILES_Y * Self::TILE_HEIGHT));
 
         let mut data_iter = data.iter();
-        // TODO: This is a hack to get around euclid's definition of Box2D and Rect, which *include* the border in the shape.
-        //       To really fix this we should wrap our `geom` types and not expose the `euclid` stuff directly.
         let view_size = Size::new(Self::TILE_WIDTH, Self::TILE_HEIGHT);
         // Vertical tile iteration
         for y in 0..Self::TILES_Y {

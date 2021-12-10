@@ -194,7 +194,6 @@ impl ObjNameTable {
                         let plane2 = *data_iter.next().unwrap();
 
                         let surface_row_data = surface.row_data_mut(&row);
-                        // println!("ROW WIDTH: {}", surface_row_data.len()); THE ROW IS NOT THE RIGHT WIDTH... WE NEED TO FIX THE RECT SHIT
                         Self::apply_planes_to_row(surface_row_data, plane_pair * 2, plane1, plane2)
                     }
                 }

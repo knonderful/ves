@@ -169,6 +169,13 @@ impl ObjNameTable {
     /// The height of a tile in pixels.
     const TILE_HEIGHT: ArtworkSpaceUnit = 8;
 
+    /// Creates an [`IndexedSurface`] from 4bpp interleaved CHR data.
+    ///
+    /// # Parameters
+    /// * `data`: A slice of 0x2000 bytes containing the CHR data.
+    ///
+    /// # Panics
+    /// If the provided slice is not exactly 0x2000 bytes in size.
     fn read_interleaved_chr(data: &[u8]) -> Result<IndexedSurface, DataImportError> {
         const EXPECTED_LEN: usize = 0x2000;
         if data.len() != EXPECTED_LEN {

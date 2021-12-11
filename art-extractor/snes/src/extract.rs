@@ -528,6 +528,31 @@ impl FromSnesData<(u8, u8, u8, u8, u8)> for ObjData {
     }
 }
 
+#[cfg(test)]
+mod test_obj_data {
+    use art_extractor_core::geom::Point;
+    use crate::extract::{FromSnesData, ObjData, ObjNameTableIndex};
+
+    #[test]
+    fn test_from_snes_data() {
+        let obj = ObjData::from_snes_data((0b01011101, 0b10100101, 0b01100101, 0b01101111, 0b11100011)).unwrap();
+        assert_eq!(ObjNameTableIndex::for_select(93), obj.name);
+        assert_eq!(2, obj.color);
+        assert_eq!(false, obj.h_flip);
+        assert_eq!(true, obj.v_flip);
+        assert_eq!(true, obj.size_large);
+        assert_eq!(Point::new(101, 367), obj.position);
+
+        let obj = ObjData::from_snes_data((0b01000101, 0b01111110, 0b01110100, 0b01101000, 0b11000100)).unwrap();
+        assert_eq!(ObjNameTableIndex::for_base(69), obj.name);
+        assert_eq!(7, obj.color);
+        assert_eq!(true, obj.h_flip);
+        assert_eq!(false, obj.v_flip);
+        assert_eq!(false, obj.size_large);
+        assert_eq!(Point::new(116, 104), obj.position);
+    }
+}
+
 /// The OAM table as described on page A-3 of the SNES Developer Manual.
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct OamTable {

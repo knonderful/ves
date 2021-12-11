@@ -458,3 +458,123 @@ mod test_obj_size_select {
         }
     }
 }
+
+/// An index into [`ObjNameTable`].
+///
+/// This basically corresponds to the `NAME` part of the `OBJECT DATA` of page A-3 of the SNES Developer Manual.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+struct ObjNameTableIndex {
+    /// A flag that specifies whether this is an entry in the `OBJ NAME BASE` table. If `false`, this is an entry in the `OBJ NAME SELECT`
+    /// table.
+    is_base: bool,
+    /// The index into the specified table.
+    index: u8,
+}
+
+impl FromSnesData<u16> for ObjNameTableIndex {
+    fn from_snes_data(data: u16) -> Result<Self, DataImportError> {
+        let is_base = (0x100 & data) == 0;
+        let index = (0xFF & data) as u8;
+        Ok(Self { is_base, index })
+    }
+}
+
+/// The `OBJECT DATA` as described on page A-3 of the SNES Developer Manual.
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ObjData {
+    /// The `NAME` or `CHARACTER CODE NUMBER` field. This is an index into [`ObjNameTable`].
+    name: ObjNameTableIndex,
+    /// The `COLOR PALETTE SELECT` field. This is the index into [`ObjPalettes`].
+    color: u8,
+    /// The `H` component of the `H/V FLIP` field. Horizontal flip flag.
+    h_flip: bool,
+    /// The `V` component of the `H/V FLIP` field. Vertical flip flag.
+    v_flip: bool,
+    /// The combination of the `OBJ H-POSITION` and `OBJ V-POSITION` fields. Position on the screen.
+    position: Point,
+    /// The "Size Large/Small" field. The value is `true` if the size is "large", otherwise `false`.
+    size_large: bool,
+}
+
+impl FromSnesData<(u8, u8, u8, u8, u8)> for ObjData {
+    fn from_snes_data((low1, low2, low3, low4, high): (u8, u8, u8, u8, u8)) -> Result<Self, DataImportError> {
+        let mut low2 = low2;
+
+        let name = ((low2 & 0b1) as u16) << 8 | (low1 as u16);
+        let name = ObjNameTableIndex::from_snes_data(name).unwrap();
+
+        low2 >>= 1;
+        let color = low2 & 0b111;
+        low2 >>= 5; // NOTE: Skipping OBJ PRIORITY
+        let h_flip = low2 & 0b1 != 0;
+        let v_flip = low2 & 0b10 != 0;
+
+        let pos_x = ArtworkSpaceUnit::from(low3);
+        let pos_y = ArtworkSpaceUnit::from(high & 0b1) << 8 | ArtworkSpaceUnit::from(low4);
+        let position = (pos_x, pos_y).into();
+        let size_large = high & 0b10 != 0;
+
+        Ok(Self { name, color, h_flip, v_flip, position, size_large })
+    }
+}
+
+/// The OAM table as described on page A-3 of the SNES Developer Manual.
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct OamTable {
+    /// The objects. There are 128 entries.
+    objects: Vec<ObjData>,
+}
+
+impl FromSnesData<&[u8]> for OamTable {
+    fn from_snes_data(data: &[u8]) -> Result<Self, DataImportError> {
+        const EXPECTED_SIZE: usize = 0x220;
+        if data.len() != EXPECTED_SIZE {
+            return Err(DataImportError::InvalidData(format!("Invalid data length. Expected {} but got {}.", EXPECTED_SIZE, data.len())));
+        }
+
+        let mut low_iter = data[0x00..0x200].iter();
+        let mut high_iter = data[0x200..0x220].iter();
+        let mut high = 0u8;
+
+        let mut objects = Vec::with_capacity(0x80);
+        for i in 0..0x80 {
+            let low1 = *low_iter.next().unwrap();
+            let low2 = *low_iter.next().unwrap();
+            let low3 = *low_iter.next().unwrap();
+            let low4 = *low_iter.next().unwrap();
+
+            // Every OBJ uses 2 bits in a "high table" byte. That means we need to grab a new byte every 4 OBJs.
+            if i % 4 == 0 {
+                high = *high_iter.next().unwrap();
+            } else {
+                high >>= 2;
+            }
+
+            objects.push(ObjData::from_snes_data((low1, low2, low3, low4, high))?)
+        }
+
+        // We should have read all data by now. Anything else is a programming error.
+        assert!(low_iter.next().is_none());
+        assert!(high_iter.next().is_none());
+
+        Ok(OamTable { objects })
+    }
+}
+
+#[cfg(test)]
+mod test_oam_table {
+    use crate::extract::{FromSnesData, OamTable};
+    use crate::mesen::Frame;
+
+    #[test]
+    fn test_from_snes_data() {
+        let mut json_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        json_path.push("resources/test/frame_199250.json");
+
+        let file = std::fs::File::open(json_path.as_path()).unwrap();
+        let frame: Frame = serde_json::from_reader(file).unwrap();
+
+        // Currently we only test that the unwrap doesn't fail, which means we at least read the right amount of data.
+        OamTable::from_snes_data(frame.oam.as_slice()).unwrap();
+    }
+}

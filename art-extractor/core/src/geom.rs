@@ -9,7 +9,7 @@ pub mod generic;
 /// positional data that describes a point in a sprite should not (directly) be used for geometric calculations in the "GUI window space" or
 /// the "screen space". Note that it is possible to translate between these spaces, but this should be handled explicitly. Having separate
 /// space identifiers avoids accidental errors in this area.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct ArtworkSpace;
 
 /// The unit for data in "artwork space".

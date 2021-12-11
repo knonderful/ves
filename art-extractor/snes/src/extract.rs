@@ -3,7 +3,7 @@ use art_extractor_core::sprite::{Color, Index, IndexedSurface, Palette, PaletteI
 use art_extractor_core::surface::Surface;
 
 /// A data import error.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DataImportError {
     /// Invalid input data. The provided string contains a more detailed description of the problem.
     InvalidData(String),
@@ -311,6 +311,7 @@ mod test_obj_name_table {
 }
 
 /// An OBJ size.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ObjSize {
     /// Small OBJ size: 8x8 pixels.
     Small,
@@ -342,6 +343,7 @@ impl ObjSize {
 /// An `OBJ SIZE SELECT`.
 ///
 /// Refer to Chapter 27 of the SNES Developer Manual for more information.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ObjSizeSelect {
     /// Small: [`ObjSize::Small`], Medium: [`ObjSize::Medium`].
     SM,

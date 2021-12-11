@@ -463,6 +463,7 @@ function grabSpriteData()
   local state_ppu = emu.getState().ppu;
 
   frame_record.frame_nr = state_ppu.frameCount;
+  frame_record.obj_size_select = state_ppu.oamMode;
 
   -- Dump the CGRAM
   frame_record.cgram = {};

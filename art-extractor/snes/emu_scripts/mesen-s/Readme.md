@@ -44,7 +44,7 @@ in the script itself. For sprite extraction (which is the only thing that is sup
       Manual.)
 * A copy of the OBJ NAME SELECT data.
     * This table contains the second half of the graphics referenced by the OAM entries.
-* (TODO: See the "TODO" section below.)
+* The value of OBJ SIZE SELECT from PPU register 0x2100. (See Chapter 27 in the SNES Developer Manual.)
 
 All this data is written in a JSON file (one per frame). Older versions of the script attempted to collect all the data and write it when
 the recording is stopped or the script is terminated, which quickly resulted in emulator crashes (probably due to out-of-memory issues). The
@@ -53,15 +53,6 @@ data can be read with the `Frame` struct in the `mesen` Rust module inside this 
 The `sprite_extracto.lua` script has only ever been tested with a Yoshi's Island ROM, but should theoretically also work with other games.
 At the same time, it is likely that the script will have to be more intelligent and extract more state information from the emulator to work
 correctly in all cases.
-
-### TODO
-
-The current version of `sprite_extracto.lua` does not extract the OBJ SIZE SELECT information (see Chapter 24 in the SNES Developer Manual)
-from the emulator. Instead, it presumes that the mode is `0`, which means that "small" OBJs are 8x8 pixels and "large" OBJs are 16x16 pixels
-(which seems to be the only mode used in Yoshi's Island). This needs to be extracted and added to the output JSON. Unfortunately, it is not
-clear which field from `emu.getState().ppu` provides this information, but the only sensible option would be the `oamMode`, since that is
-the only property that "could" be the one that we need (based on the naming) and it also contains the expected value in the sample (namely
-`0`). It probably makes sense to have a look at the C++ source code to confirm this somehow.
 
 ## Mesen-S LUA support
 
@@ -243,3 +234,14 @@ return
 	},
 }
 ```
+
+#### Relevant values
+
+* `ppu.frameCount`: The current frame number.
+* `ppu.oamBaseAddress`: The address of the OBJ NAME BASE table in VRAM. Note that this address is in WORDs, so the value must be multiplied
+  by 2 to get the actual offset in VRAM.
+* `ppu.oamAddressOffset`: The offset of the OBJ NAME SELECT table in VRAM, relative to OBJ NAME BASE. Note that this offset is in WORDs, so
+  the value must be multiplied by 2 to get the actual offset in VRAM.
+* `ppu.oamMode`: The OBJ SIZE SELECT from PPU register 0x2100. See Chapter 27 in the SNES Developer Manual.
+  * The name is not very descriptive, but it seems to be the one we need, looking at
+    [the source code](https://github.com/NovaSquirrel/Mesen-SX/blob/master/UI/Debugger/PpuViewer/frmRegisterViewer.cs#L499). 

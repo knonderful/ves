@@ -290,7 +290,7 @@ mod test_obj_name_table {
     #[test]
     fn test_from_snes_data() {
         let mut json_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        json_path.push("resources/test/frame_189993.json");
+        json_path.push("resources/test/frame_199250.json");
 
         let file = std::fs::File::open(json_path.as_path()).unwrap();
         let frame: Frame = serde_json::from_reader(file).unwrap();
@@ -299,7 +299,8 @@ mod test_obj_name_table {
         let palettes = ObjPalettes::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
 
         let actual = create_bitmap(&obj_name_table.surface, &palettes.palettes()[5]);
-        // actual.save(format!("{}/out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap();
+        // actual.save(format!("{}/target/out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR JUST LOOKING
+        // actual.save(format!("{}/resources/test/expected_obj_table.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR UPDATING
 
         let mut expected_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         expected_path.push("resources/test/expected_obj_table.bmp");

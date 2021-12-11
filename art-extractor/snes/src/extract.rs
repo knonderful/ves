@@ -471,6 +471,16 @@ struct ObjNameTableIndex {
     index: u8,
 }
 
+impl ObjNameTableIndex {
+    fn for_base(index: u8) -> Self {
+        Self { is_base: true, index }
+    }
+
+    fn for_select(index: u8) -> Self {
+        Self { is_base: false, index }
+    }
+}
+
 impl FromSnesData<u16> for ObjNameTableIndex {
     fn from_snes_data(data: u16) -> Result<Self, DataImportError> {
         let is_base = (0x100 & data) == 0;

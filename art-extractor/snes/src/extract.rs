@@ -309,3 +309,87 @@ mod test_obj_name_table {
         assert_eq!(expected, actual);
     }
 }
+
+/// An OBJ size.
+pub enum ObjSize {
+    /// Small OBJ size: 8x8 pixels.
+    Small,
+    /// Medium OBJ size: 16x16 pixels.
+    Medium,
+    /// Large OBJ size: 32x32 pixels.
+    Large,
+    /// Extra large OBJ size: 64x64 pixels.
+    ExtraLarge,
+}
+
+impl ObjSize {
+    /// Retrieves the [`Size`].
+    pub fn size(&self) -> Size {
+        let pixel_size = self.pixel_size();
+        Size::new(pixel_size, pixel_size)
+    }
+
+    fn pixel_size(&self) -> ArtworkSpaceUnit {
+        match self {
+            ObjSize::Small => 8,
+            ObjSize::Medium => 16,
+            ObjSize::Large => 32,
+            ObjSize::ExtraLarge => 64,
+        }
+    }
+}
+
+/// An `OBJ SIZE SELECT`.
+///
+/// Refer to Chapter 27 of the SNES Developer Manual for more information.
+pub enum ObjSizeSelect {
+    /// Small: [`ObjSize::Small`], Medium: [`ObjSize::Medium`].
+    SM,
+    /// Small: [`ObjSize::Small`], Medium: [`ObjSize::Large`].
+    SL,
+    /// Small: [`ObjSize::Small`], Medium: [`ObjSize::ExtraLarge`].
+    SXL,
+    /// Small: [`ObjSize::Medium`], Medium: [`ObjSize::Large`].
+    ML,
+    /// Small: [`ObjSize::Medium`], Medium: [`ObjSize::ExtraLarge`].
+    MXL,
+    /// Small: [`ObjSize::Large`], Medium: [`ObjSize::ExtraLarge`].
+    LXL,
+}
+
+impl FromSnesData<u8> for ObjSizeSelect {
+    fn from_snes_data(data: u8) -> Result<Self, DataImportError> {
+        use ObjSizeSelect::*;
+        match data {
+            0 => Ok(SM),
+            1 => Ok(SL),
+            2 => Ok(SXL),
+            3 => Ok(ML),
+            4 => Ok(MXL),
+            5 => Ok(LXL),
+            _ => Err(DataImportError::InvalidData(format!("Unexpected OBJ SIZE SELECT value: {}.", data)))
+        }
+    }
+}
+
+impl ObjSizeSelect {
+    /// Retrieves the "small" variant.
+    pub fn small(&self) -> ObjSize {
+        use ObjSizeSelect::*;
+        match self {
+            SM | SL | SXL => ObjSize::Small,
+            ML | MXL => ObjSize::Medium,
+            LXL => ObjSize::Large,
+        }
+    }
+
+    /// Retrieves the "large" variant.
+    pub fn large(&self) -> ObjSize {
+        use ObjSizeSelect::*;
+        match self {
+            SM => ObjSize::Medium,
+            ML | SL => ObjSize::Large,
+            SXL | MXL | LXL => ObjSize::ExtraLarge,
+        }
+    }
+}

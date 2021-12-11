@@ -154,7 +154,9 @@ mod test_obj_palettes {
     }
 }
 
-/// An `OBJ NAME` table. There are two in the scope of the SNES: `OBJ NAME BASE` and `OBJ NAME SELECT`.
+/// An `OBJ NAME` table. This table contains all the graphics data for objects. In VRAM the data is stored in two separate tables:
+/// `OBJ NAME BASE` and `OBJ NAME SELECT`. The SNES treats the concatenation of the two as one table for looking up sprite data. See
+/// sections A-1 through A-4 in the SNES Developer Manual for more information.
 pub struct ObjNameTable {
     surface: IndexedSurface,
 }
@@ -172,26 +174,37 @@ impl ObjNameTable {
     /// Creates an [`IndexedSurface`] from 4bpp interleaved CHR data.
     ///
     /// # Parameters
-    /// * `data`: A slice of 0x2000 bytes containing the CHR data.
+    /// * `obj_name_base`: A slice of 0x2000 bytes containing the CHR data for `OBJ NAME BASE`.
+    /// * `obj_name_select`: A slice of 0x2000 bytes containing the CHR data for `OBJ NAME SELECT`.
     ///
     /// # Panics
     /// If the provided slice is not exactly 0x2000 bytes in size.
-    fn read_interleaved_chr(data: &[u8]) -> Result<IndexedSurface, DataImportError> {
+    fn read_interleaved_chr(obj_name_base: &[u8], obj_name_select: &[u8]) -> Result<IndexedSurface, DataImportError> {
         const EXPECTED_LEN: usize = 0x2000;
-        if data.len() != EXPECTED_LEN {
-            return Err(DataImportError::InvalidData(format!("Expected data length {}, but found {}", EXPECTED_LEN, data.len())));
+        if obj_name_base.len() != EXPECTED_LEN {
+            return Err(DataImportError::InvalidData(format!("Expected OBJ NAME BASE length {}, but found {}", EXPECTED_LEN, obj_name_base.len())));
+        }
+        if obj_name_select.len() != EXPECTED_LEN {
+            return Err(DataImportError::InvalidData(format!("Expected OBJ NAME SELECT length {}, but found {}", EXPECTED_LEN, obj_name_select.len())));
         }
 
-        let mut surface = IndexedSurface::new(Size::new(Self::TILES_X * Self::TILE_WIDTH, Self::TILES_Y * Self::TILE_HEIGHT));
+        let mut surface = IndexedSurface::new(Size::new(Self::TILES_X * Self::TILE_WIDTH, Self::TILES_Y * Self::TILE_HEIGHT * 2));
 
-        let mut data_iter = data.iter();
+        Self::read_name_table_into_surface(&mut surface, obj_name_base, 0);
+        Self::read_name_table_into_surface(&mut surface, obj_name_select, Self::TILES_Y);
+
+        Ok(surface)
+    }
+
+    fn read_name_table_into_surface(surface: &mut IndexedSurface, obj_name_data: &[u8], y_offset: ArtworkSpaceUnit) {
+        let mut data_iter = obj_name_data.iter();
         let view_size = Size::new(Self::TILE_WIDTH, Self::TILE_HEIGHT);
         // Vertical tile iteration
         for y in 0..Self::TILES_Y {
             // Horizontal tile iteration
             for x in 0..Self::TILES_X {
                 // Get a view of the current tile into the surface
-                let view = surface.view(Rect::new(Point::new(x * Self::TILE_WIDTH, y * Self::TILE_HEIGHT), view_size));
+                let view = surface.view(Rect::new(Point::new(x * Self::TILE_WIDTH, (y + y_offset) * Self::TILE_HEIGHT), view_size));
 
                 // We have to read 2 planes at a time and we have 4 planes in total (4bpp), so we need 2 iterations
                 for plane_pair in 0..2 {
@@ -209,8 +222,6 @@ impl ObjNameTable {
 
         // We should have read all data by now. Anything else is a programming error.
         assert!(data_iter.next().is_none());
-
-        Ok(surface)
     }
 
     /// Applies row data from the SNES interleaved CHR format to the provided buffer.
@@ -233,9 +244,9 @@ impl ObjNameTable {
     }
 }
 
-impl FromSnesData<&[u8]> for ObjNameTable {
-    fn from_snes_data(data: &[u8]) -> Result<Self, DataImportError> {
-        Ok(Self { surface: Self::read_interleaved_chr(data)? })
+impl FromSnesData<(&[u8], &[u8])> for ObjNameTable {
+    fn from_snes_data(data: (&[u8], &[u8])) -> Result<Self, DataImportError> {
+        Ok(Self { surface: Self::read_interleaved_chr(data.0, data.1)? })
     }
 }
 
@@ -295,7 +306,7 @@ mod test_obj_name_table {
         let file = std::fs::File::open(json_path.as_path()).unwrap();
         let frame: Frame = serde_json::from_reader(file).unwrap();
 
-        let obj_name_table = ObjNameTable::from_snes_data(frame.obj_name_base_table.as_slice()).unwrap();
+        let obj_name_table = ObjNameTable::from_snes_data((frame.obj_name_base_table.as_slice(), frame.obj_name_select_table.as_slice())).unwrap();
         let palettes = ObjPalettes::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
 
         let actual = create_bitmap(&obj_name_table.surface, &palettes.palettes()[5]);

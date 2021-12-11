@@ -340,6 +340,20 @@ impl ObjSize {
     }
 }
 
+#[cfg(test)]
+mod test_obj_size {
+    use art_extractor_core::geom::Size;
+    use super::ObjSize;
+
+    #[test]
+    fn test_size() {
+        assert_eq!(Size::new(8, 8), ObjSize::Small.size());
+        assert_eq!(Size::new(16, 16), ObjSize::Medium.size());
+        assert_eq!(Size::new(32, 32), ObjSize::Large.size());
+        assert_eq!(Size::new(64, 64), ObjSize::ExtraLarge.size());
+    }
+}
+
 /// An `OBJ SIZE SELECT`.
 ///
 /// Refer to Chapter 27 of the SNES Developer Manual for more information.
@@ -392,6 +406,44 @@ impl ObjSizeSelect {
             SM => ObjSize::Medium,
             ML | SL => ObjSize::Large,
             SXL | MXL | LXL => ObjSize::ExtraLarge,
+        }
+    }
+}
+
+#[cfg(test)]
+mod test_obj_size_select {
+    use crate::extract::{DataImportError, FromSnesData, ObjSize, ObjSizeSelect};
+
+    #[test]
+    fn test_small() {
+        assert_eq!(ObjSizeSelect::SM.small(), ObjSize::Small);
+        assert_eq!(ObjSizeSelect::SL.small(), ObjSize::Small);
+        assert_eq!(ObjSizeSelect::SXL.small(), ObjSize::Small);
+        assert_eq!(ObjSizeSelect::ML.small(), ObjSize::Medium);
+        assert_eq!(ObjSizeSelect::MXL.small(), ObjSize::Medium);
+        assert_eq!(ObjSizeSelect::LXL.small(), ObjSize::Large);
+    }
+
+    #[test]
+    fn test_large() {
+        assert_eq!(ObjSizeSelect::SM.large(), ObjSize::Medium);
+        assert_eq!(ObjSizeSelect::SL.large(), ObjSize::Large);
+        assert_eq!(ObjSizeSelect::SXL.large(), ObjSize::ExtraLarge);
+        assert_eq!(ObjSizeSelect::ML.large(), ObjSize::Large);
+        assert_eq!(ObjSizeSelect::MXL.large(), ObjSize::ExtraLarge);
+        assert_eq!(ObjSizeSelect::LXL.large(), ObjSize::ExtraLarge);
+    }
+
+    #[test]
+    fn test_from_snes_data() {
+        assert_eq!(Ok(ObjSizeSelect::SM), ObjSizeSelect::from_snes_data(0));
+        assert_eq!(Ok(ObjSizeSelect::SL), ObjSizeSelect::from_snes_data(1));
+        assert_eq!(Ok(ObjSizeSelect::SXL), ObjSizeSelect::from_snes_data(2));
+        assert_eq!(Ok(ObjSizeSelect::ML), ObjSizeSelect::from_snes_data(3));
+        assert_eq!(Ok(ObjSizeSelect::MXL), ObjSizeSelect::from_snes_data(4));
+        assert_eq!(Ok(ObjSizeSelect::LXL), ObjSizeSelect::from_snes_data(5));
+        for i in 6..=255 {
+            assert_eq!(Err(DataImportError::InvalidData(format!("Unexpected OBJ SIZE SELECT value: {}.", i))), ObjSizeSelect::from_snes_data(i));
         }
     }
 }

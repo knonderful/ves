@@ -1,6 +1,7 @@
 //! A module for working with 2-dimensional surfaces.
 
 use std::ops::Range;
+use generator::done;
 use crate::geom::{ArtworkSpaceUnit, Point, Rect, Size};
 
 /// Local trait for extending `ArtworkSpaceUnit` with `into_usize()`.
@@ -210,6 +211,71 @@ mod test_surface_row_iter {
             offset += SURFACE_WIDTH.into_usize();
         }
         assert_eq!(None, iter.next());
+        assert_eq!(None, iter.next());
+    }
+}
+
+pub fn pixel_iterator(rect: Rect, hflip: bool, vflip: bool) -> impl Iterator<Item=Point> {
+    macro_rules! create_iterator {
+        ($x_method:expr, $y_method:expr) => {
+            generator::Gn::new_scoped_local(move |mut scope| {
+                for y in $y_method {
+                    for x in $x_method {
+                        scope.yield_(Point::new(x, y));
+                    }
+                }
+                done!();
+            })
+        }
+    }
+
+    match (hflip, vflip) {
+        (false, false) => create_iterator!(rect.range_x(), rect.range_y()),
+        (true, false) => create_iterator!(rect.range_x().rev(), rect.range_y()),
+        (false, true) => create_iterator!(rect.range_x(), rect.range_y().rev()),
+        (true, true) => create_iterator!(rect.range_x().rev(), rect.range_y().rev()),
+    }
+}
+
+#[cfg(test)]
+mod test_module_functions {
+    use crate::geom::generic::Point;
+    use crate::surface::pixel_iterator;
+
+    #[test]
+    fn test_pixel_iterator() {
+        let rect = ((8, 16), 4, 10).into();
+
+        let mut iter = pixel_iterator(rect, false, false);
+        for y in rect.range_y() {
+            for x in rect.range_x() {
+                assert_eq!(Point::new(x, y), iter.next().unwrap());
+            }
+        }
+        assert_eq!(None, iter.next());
+
+        let mut iter = pixel_iterator(rect, true, false);
+        for y in rect.range_y() {
+            for x in rect.range_x().rev() {
+                assert_eq!(Point::new(x, y), iter.next().unwrap());
+            }
+        }
+        assert_eq!(None, iter.next());
+
+        let mut iter = pixel_iterator(rect, false, true);
+        for y in rect.range_y().rev() {
+            for x in rect.range_x() {
+                assert_eq!(Point::new(x, y), iter.next().unwrap());
+            }
+        }
+        assert_eq!(None, iter.next());
+
+        let mut iter = pixel_iterator(rect, true, true);
+        for y in rect.range_y().rev() {
+            for x in rect.range_x().rev() {
+                assert_eq!(Point::new(x, y), iter.next().unwrap());
+            }
+        }
         assert_eq!(None, iter.next());
     }
 }

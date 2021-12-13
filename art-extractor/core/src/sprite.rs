@@ -11,7 +11,7 @@
 //! global cache of some sort.
 
 use crate::geom::{Point, Rect, Size};
-use crate::surface::{Surface, SurfaceView};
+use crate::surface::{IntoUsize, Surface, SurfaceView};
 use serde::{Deserialize, Serialize};
 
 /// A color value.
@@ -128,22 +128,23 @@ impl<C> Palette<C> {
     }
 }
 
-/// An indexed graphical surface. Indexed, in this context, refers to the data being references to [`Palette`] indices rather than actual
-/// color data.
-pub struct IndexedSurface {
-    data: Vec<PaletteIndex>,
+pub struct GenericSurface<T> {
+    data: Vec<T>,
     size: Size,
 }
 
-impl IndexedSurface {
+impl<T> GenericSurface<T> where
+    T: Clone
+{
     /// Creates a new instance.
     ///
     /// # Parameters
     /// * `size`: The dimensions of the surface.
-    pub fn new(size: Size) -> Self {
+    /// * `fill_value`: The value with which the surface should initially be filled.
+    pub fn new(size: Size, fill_value: T) -> Self {
         let capacity = (size.width * size.height).try_into().unwrap();
         let mut data = Vec::with_capacity(capacity);
-        data.resize(capacity, PaletteIndex::new(0));
+        data.resize(capacity, fill_value.clone());
         Self {
             data,
             size,
@@ -151,25 +152,46 @@ impl IndexedSurface {
     }
 }
 
-impl Surface for IndexedSurface {
-    type DataType = PaletteIndex;
+impl<T: Copy> Surface for GenericSurface<T> {
+    type DataType = T;
 
+    #[inline(always)]
     fn size(&self) -> Size {
         self.size
     }
 
+    #[inline(always)]
     fn view(&self, area: Rect) -> SurfaceView {
         SurfaceView::new(self, area)
     }
 
+    #[inline(always)]
     fn data(&self) -> &[Self::DataType] {
         &self.data
     }
 
+    #[inline(always)]
     fn data_mut(&mut self) -> &mut [Self::DataType] {
         &mut self.data
     }
+
+    #[inline(always)]
+    fn index(&self, point: Point) -> Option<usize> {
+        if point.x >= self.size.width ||
+            point.y >= self.size.height {
+            return None;
+        }
+
+        Some(self.size.width.into_usize() * point.y.into_usize() + point.x.into_usize())
+    }
 }
+
+/// An indexed graphical surface. Indexed, in this context, refers to the data being references to [`Palette`] indices rather than actual
+/// color data.
+pub type IndexedSurface = GenericSurface<PaletteIndex>;
+
+/// An direct-color graphical surface.
+pub type DirectSurface = GenericSurface<Color>;
 
 /// A tile. This is the smallest graphical element.
 pub struct Tile {

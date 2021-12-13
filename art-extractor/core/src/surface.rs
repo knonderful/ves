@@ -1,10 +1,10 @@
 //! A module for working with 2-dimensional surfaces.
 
 use std::ops::Range;
-use crate::geom::{ArtworkSpaceUnit, Rect, Size};
+use crate::geom::{ArtworkSpaceUnit, Point, Rect, Size};
 
 /// Local trait for extending `ArtworkSpaceUnit` with `into_usize()`.
-trait IntoUsize {
+pub(crate) trait IntoUsize {
     fn into_usize(self) -> usize;
 }
 
@@ -30,6 +30,15 @@ pub trait Surface {
     /// Retrieves a mutable slice of the raw data.
     fn data_mut(&mut self) -> &mut [Self::DataType];
 
+    /// Retrieves the index into the data for the provided position.
+    ///
+    /// # Parameters
+    /// * `position`: The position.
+    ///
+    /// # Returns
+    /// The index or `None` if the provided position is outside of the [`Surface`].
+    fn index(&self, position: Point) -> Option<usize>;
+
     /// Retrieves row data.
     fn row_data(&self, row: &SurfaceRow) -> &[Self::DataType] {
         let indices = row.indices();
@@ -40,6 +49,32 @@ pub trait Surface {
     fn row_data_mut(&mut self, row: &SurfaceRow) -> &mut [Self::DataType] {
         let indices = row.indices();
         &mut self.data_mut()[indices.start..indices.end]
+    }
+
+    /// Retrieves a reference to the pixel at the provided position.
+    ///
+    /// # Parameters
+    /// * `position`: The position.
+    ///
+    /// # Returns
+    /// The reference or `None` if the provided position is outside of the [`Surface`].
+    #[inline(always)]
+    fn pixel(&self, position: Point) -> Option<&Self::DataType> {
+        self.index(position)
+            .map(|index| &self.data()[index])
+    }
+
+    /// Retrieves a mutable reference to the pixel at the provided position.
+    ///
+    /// # Parameters
+    /// * `position`: The position.
+    ///
+    /// # Returns
+    /// The reference or `None` if the provided position is outside of the [`Surface`].
+    #[inline(always)]
+    fn pixel_mut(&mut self, position: Point) -> Option<&mut Self::DataType> {
+        self.index(position)
+            .map(|index| &mut self.data_mut()[index])
     }
 }
 

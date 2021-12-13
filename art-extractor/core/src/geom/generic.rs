@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
+use std::ops::RangeInclusive;
 
 /// A point in 2D space.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -122,6 +123,16 @@ impl<T, U> Rect<T, U> where
     #[inline(always)]
     pub fn max_y(&self) -> T {
         self.origin.y + self.size.height - T::from(1u8)
+    }
+
+    #[inline(always)]
+    pub fn range_x(&self) -> RangeInclusive<T> {
+        self.min_x()..=self.max_x()
+    }
+
+    #[inline(always)]
+    pub fn range_y(&self) -> RangeInclusive<T> {
+        self.min_y()..=self.max_y()
     }
 }
 

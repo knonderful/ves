@@ -480,7 +480,6 @@ mod test_surface_iter {
         }
     }
 
-
     /// Test with a copy of the entire source surface using both horizontal and vertical flipping.
     #[test]
     fn test_full_copy_hflip_vflip() {

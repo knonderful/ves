@@ -188,7 +188,7 @@ impl ObjNameTable {
             return Err(DataImportError::InvalidData(format!("Expected OBJ NAME SELECT length {}, but found {}", EXPECTED_LEN, obj_name_select.len())));
         }
 
-        let mut surface = IndexedSurface::new(Size::new(Self::TILES_X * Self::TILE_WIDTH, Self::TILES_Y * Self::TILE_HEIGHT * 2));
+        let mut surface = IndexedSurface::new(Size::new(Self::TILES_X * Self::TILE_WIDTH, Self::TILES_Y * Self::TILE_HEIGHT * 2), PaletteIndex::new(0));
 
         Self::read_name_table_into_surface(&mut surface, obj_name_base, 0);
         Self::read_name_table_into_surface(&mut surface, obj_name_select, Self::TILES_Y);

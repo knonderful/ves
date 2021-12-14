@@ -278,4 +278,93 @@ mod test_module_functions {
         }
         assert_eq!(None, iter.next());
     }
+pub struct PixelIter<X, Y> {
+    x_iter: X,
+    y_iter: Y,
+    current_x_iter: X,
+    current_y: ArtworkSpaceUnit,
+}
+
+impl<X, Y> PixelIter<X, Y> where
+    X: Iterator<Item=ArtworkSpaceUnit> + Clone,
+    Y: Iterator<Item=ArtworkSpaceUnit>,
+{
+    pub fn new(x_iter: X, mut y_iter: Y) -> Self {
+        let current_x_iter = x_iter.clone();
+        let current_y = y_iter.next().expect("");
+        Self { x_iter, y_iter, current_x_iter, current_y }
+    }
+
+    #[inline(always)]
+    fn do_next(&mut self) -> Option<Point> {
+        match self.current_x_iter.next() {
+            Some(x) => Some(Point::new(x, self.current_y)),
+            None => {
+                match self.y_iter.next() {
+                    None => None,
+                    Some(y) => {
+                        self.current_y = y;
+                        self.current_x_iter = self.x_iter.clone();
+                        self.do_next()
+                    }
+                }
+            },
+        }
+    }
+}
+
+impl<X, Y> Iterator for PixelIter<X, Y> where
+    X: Iterator<Item=ArtworkSpaceUnit> + Clone,
+    Y: Iterator<Item=ArtworkSpaceUnit>,
+{
+    type Item = Point;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.do_next()
+    }
+}
+
+#[cfg(test)]
+mod test_pixel_iter {
+    use crate::surface::PixelIter;
+    use crate::geom::Rect;
+    use crate::geom::{Point, Size};
+
+    #[test]
+    fn test_pixel_iter() {
+        let rect = Rect::new((8, 16).into(), Size::new(4, 10));
+
+        let mut iter = PixelIter::new(rect.range_x(), rect.range_y());
+        for y in rect.range_y() {
+            for x in rect.range_x() {
+                assert_eq!(Point::new(x, y), iter.next().unwrap());
+            }
+        }
+        assert_eq!(None, iter.next());
+
+        let mut iter = PixelIter::new(rect.range_x().rev(), rect.range_y());
+        for y in rect.range_y() {
+            for x in rect.range_x().rev() {
+                assert_eq!(Point::new(x, y), iter.next().unwrap());
+            }
+        }
+        assert_eq!(None, iter.next());
+
+        let mut iter = PixelIter::new(rect.range_x(), rect.range_y().rev());
+        for y in rect.range_y().rev() {
+            for x in rect.range_x() {
+                assert_eq!(Point::new(x, y), iter.next().unwrap());
+            }
+        }
+        assert_eq!(None, iter.next());
+
+        let mut iter = PixelIter::new(rect.range_x().rev(), rect.range_y().rev());
+        for y in rect.range_y().rev() {
+            for x in rect.range_x().rev() {
+                assert_eq!(Point::new(x, y), iter.next().unwrap());
+            }
+        }
+        assert_eq!(None, iter.next());
+    }
+
 }

@@ -525,7 +525,6 @@ mod test_surface_iter {
             assert_eq!(&EXPECTED, dest.data());
         }
 
-
         // H-flip on dest and v-flip on src
         {
             let src = create_source();

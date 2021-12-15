@@ -269,7 +269,7 @@ pub struct SurfaceIter<X, Y> where
     X: SurfaceAxisIterFactory,
     Y: SurfaceAxisIterFactory,
 {
-    pitch: usize,
+    width: usize,
     x_min: usize,
     x_max: usize,
     x_iter: X::IterType,
@@ -282,24 +282,24 @@ impl<X, Y> SurfaceIter<X, Y> where
     Y: SurfaceAxisIterFactory,
 {
     pub fn new(size_surf: Size, rect_view: Rect) -> Self {
-        let pitch = size_surf.width.into_usize();
+        let width = size_surf.width.into_usize();
         let x_min = rect_view.min_x().into_usize();
         let x_max = rect_view.max_x().into_usize();
         let x_iter = X::new_iter(x_min, x_max);
         let mut y_iter = Y::new_iter(rect_view.min_y().into_usize(), rect_view.max_y().into_usize());
-        let row_offset = y_iter.next().expect("Expected at least one item in Y-iterator.") * pitch;
-        Self { pitch, x_min, x_max, x_iter, y_iter, row_offset }
+        let row_offset = y_iter.next().expect("Expected at least one item in Y-iterator.") * width;
+        Self { width, x_min, x_max, x_iter, y_iter, row_offset }
     }
 
     #[inline(always)]
     fn do_next(&mut self) -> Option<usize> {
         match self.x_iter.next() {
-            Some(x) => Some(self.row_offset + (x % self.pitch)),
+            Some(x) => Some(self.row_offset + (x % self.width)),
             None => {
                 match self.y_iter.next() {
                     None => None,
                     Some(y) => {
-                        self.row_offset = y * self.pitch;
+                        self.row_offset = y * self.width;
                         self.x_iter = X::new_iter(self.x_min, self.x_max);
                         self.do_next()
                     }

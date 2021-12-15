@@ -543,6 +543,89 @@ mod test_surface_iter {
         }
     }
 
+    #[test]
+    fn test_partial_no_wrap() {
+        // No flipping
+        {
+            const EXPECTED: [u8; 12 * 8] = data![
+                0 0 0 0 0 0 0 0 0 0 0 0
+                0 0 0 0 0 0 0 0 0 0 0 0
+                0 0 0 0 0 0 0 0 0 0 0 0
+                0 0 0 0 0 0 2 3 2 2 0 0
+                0 0 0 0 0 0 2 2 3 3 0 0
+                0 0 0 0 0 0 0 0 3 3 0 0
+                0 0 0 0 0 0 0 1 1 4 0 0
+                0 0 0 0 0 0 0 0 0 0 0 0
+            ];
+            let src = create_source();
+            let mut dest = Surfy::new(src.size(), 0);
+            let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into());
+            let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
+            copy_data(&src, &mut dest, src_iter, dest_iter);
+            assert_eq!(&EXPECTED, dest.data());
+        }
+
+        // H-flip
+        {
+            const EXPECTED: [u8; 12 * 8] = data![
+                0 0 0 0 0 0 0 0 0 0 0 0
+                0 0 0 0 0 0 0 0 0 0 0 0
+                0 0 0 0 0 0 0 0 0 0 0 0
+                0 0 0 0 0 0 2 2 3 2 0 0
+                0 0 0 0 0 0 3 3 2 2 0 0
+                0 0 0 0 0 0 3 3 0 0 0 0
+                0 0 0 0 0 0 4 1 1 0 0 0
+                0 0 0 0 0 0 0 0 0 0 0 0
+            ];
+            let src = create_source();
+            let mut dest = Surfy::new(src.size(), 0);
+            let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into(), @hflip);
+            let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
+            copy_data(&src, &mut dest, src_iter, dest_iter);
+            assert_eq!(&EXPECTED, dest.data());
+        }
+
+        // V-flip
+        {
+            const EXPECTED: [u8; 12 * 8] = data![
+                0 0 0 0 0 0 0 0 0 0 0 0
+                0 0 0 0 0 0 0 0 0 0 0 0
+                0 0 0 0 0 0 0 0 0 0 0 0
+                0 0 0 0 0 0 0 1 1 4 0 0
+                0 0 0 0 0 0 0 0 3 3 0 0
+                0 0 0 0 0 0 2 2 3 3 0 0
+                0 0 0 0 0 0 2 3 2 2 0 0
+                0 0 0 0 0 0 0 0 0 0 0 0
+            ];
+            let src = create_source();
+            let mut dest = Surfy::new(src.size(), 0);
+            let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into(), @vflip);
+            let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
+            copy_data(&src, &mut dest, src_iter, dest_iter);
+            assert_eq!(&EXPECTED, dest.data());
+        }
+
+        // H-flip and v-flip
+        {
+            const EXPECTED: [u8; 12 * 8] = data![
+                0 0 0 0 0 0 0 0 0 0 0 0
+                0 0 0 0 0 0 0 0 0 0 0 0
+                0 0 0 0 0 0 0 0 0 0 0 0
+                0 0 0 0 0 0 4 1 1 0 0 0
+                0 0 0 0 0 0 3 3 0 0 0 0
+                0 0 0 0 0 0 3 3 2 2 0 0
+                0 0 0 0 0 0 2 2 3 2 0 0
+                0 0 0 0 0 0 0 0 0 0 0 0
+            ];
+            let src = create_source();
+            let mut dest = Surfy::new(src.size(), 0);
+            let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into(), @hflip, @vflip);
+            let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
+            copy_data(&src, &mut dest, src_iter, dest_iter);
+            assert_eq!(&EXPECTED, dest.data());
+        }
+    }
+
     // TODO: Tests:
     // * Entire surface copy.
     // * View inside surface.

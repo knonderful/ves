@@ -545,6 +545,7 @@ mod test_surface_iter {
         }
     }
 
+    /// Test with a copy of a partial surface with no wrapping.
     #[test]
     fn test_partial_no_wrap() {
         // No flipping

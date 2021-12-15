@@ -376,7 +376,7 @@ mod test_surface_iter {
 
     /// Test with a copy of the entire source surface.
     #[test]
-    fn test_full_copy() {
+    fn test_full_copy_no_flip() {
         // No flipping
         {
             let src = create_source();

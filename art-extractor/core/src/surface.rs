@@ -226,10 +226,10 @@ pub trait SurfaceAxisIterFactory {
     fn new_iter(min: usize, max: usize) -> Self::IterType;
 }
 
-/// A type that reflects ascending order.
+/// A type that represents ascending order.
 pub struct Ascending;
 
-/// A type that reflects descending order.
+/// A type that represents descending order.
 pub struct Descending;
 
 impl SurfaceAxisIterFactory for Ascending {

@@ -214,17 +214,25 @@ mod test_surface_row_iter {
     }
 }
 
-pub trait AxisIterFactory {
+/// An [`Iterator`] for index offsets of a [`Surface`] axis (x or y).
+pub trait SurfaceAxisIterFactory {
     type IterType: Iterator<Item=usize>;
 
+    /// Creates a new [`Iterator`].
+    ///
+    /// # Parameters
+    /// * `min`: The minimal value (inclusive).
+    /// * `min`: The maximal value (inclusive).
     fn new_iter(min: usize, max: usize) -> Self::IterType;
 }
 
-pub struct ForwardIteration;
+/// A type that reflects ascending order.
+pub struct Ascending;
 
-pub struct ReverseIteration;
+/// A type that reflects descending order.
+pub struct Descending;
 
-impl AxisIterFactory for ForwardIteration {
+impl SurfaceAxisIterFactory for Ascending {
     type IterType = RangeInclusive<usize>;
 
     fn new_iter(min: usize, max: usize) -> Self::IterType {
@@ -232,11 +240,11 @@ impl AxisIterFactory for ForwardIteration {
     }
 }
 
-impl AxisIterFactory for ReverseIteration {
+impl SurfaceAxisIterFactory for Descending {
     type IterType = std::iter::Rev<RangeInclusive<usize>>;
 
     fn new_iter(min: usize, max: usize) -> Self::IterType {
-        ForwardIteration::new_iter(min, max).rev()
+        Ascending::new_iter(min, max).rev()
     }
 }
 
@@ -244,22 +252,22 @@ impl AxisIterFactory for ReverseIteration {
 #[macro_export]
 macro_rules! surface_iter {
     ($size:expr, $rect:expr, @hflip, @vflip) => {
-        $crate::surface::SurfaceIter::<$crate::surface::ReverseIteration, $crate::surface::ReverseIteration>::new($size, $rect)
+        $crate::surface::SurfaceIter::<$crate::surface::Descending, $crate::surface::Descending>::new($size, $rect)
     };
     ($size:expr, $rect:expr, @hflip) => {
-        $crate::surface::SurfaceIter::<$crate::surface::ReverseIteration, $crate::surface::ForwardIteration>::new($size, $rect)
+        $crate::surface::SurfaceIter::<$crate::surface::Descending, $crate::surface::Ascending>::new($size, $rect)
     };
     ($size:expr, $rect:expr, @vflip) => {
-        $crate::surface::SurfaceIter::<$crate::surface::ForwardIteration, $crate::surface::ReverseIteration>::new($size, $rect)
+        $crate::surface::SurfaceIter::<$crate::surface::Ascending, $crate::surface::Descending>::new($size, $rect)
     };
     ($size:expr, $rect:expr) => {
-        $crate::surface::SurfaceIter::<$crate::surface::ForwardIteration, $crate::surface::ForwardIteration>::new($size, $rect)
+        $crate::surface::SurfaceIter::<$crate::surface::Ascending, $crate::surface::Ascending>::new($size, $rect)
     };
 }
 
 pub struct SurfaceIter<X, Y> where
-    X: AxisIterFactory,
-    Y: AxisIterFactory,
+    X: SurfaceAxisIterFactory,
+    Y: SurfaceAxisIterFactory,
 {
     pitch: usize,
     x_min: usize,
@@ -270,8 +278,8 @@ pub struct SurfaceIter<X, Y> where
 }
 
 impl<X, Y> SurfaceIter<X, Y> where
-    X: AxisIterFactory,
-    Y: AxisIterFactory,
+    X: SurfaceAxisIterFactory,
+    Y: SurfaceAxisIterFactory,
 {
     pub fn new(size_surf: Size, rect_view: Rect) -> Self {
         let pitch = size_surf.width.into_usize();
@@ -302,8 +310,8 @@ impl<X, Y> SurfaceIter<X, Y> where
 }
 
 impl<X, Y> Iterator for SurfaceIter<X, Y> where
-    X: AxisIterFactory,
-    Y: AxisIterFactory,
+    X: SurfaceAxisIterFactory,
+    Y: SurfaceAxisIterFactory,
 {
     type Item = usize;
 

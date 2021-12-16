@@ -868,13 +868,40 @@ mod test_surface_iter {
 /// * `a_surf_size`: The size of the first surface.
 /// * `a_select_rect`: The selection rectangle in the first surface.
 /// * `b_surf_size`: The size of the second surface.
-/// * `b_select_origin`: The point of origin of the selection rectangle in the second surface.
+/// * `b_select_origin`: The point of origin of the selection rectangle in the second surface. The selection rectangle will have the size of
+///                      `a_select_rect`.
 /// * `hflip`: A flag indicating that the iteration order on the horizontal axis should be inversed.
 /// * `vflip`: A flag indicating that the iteration order on the vertical axis should be inversed.
 /// * `func`: The function to call for every index.
 ///
 /// # Returns
 /// `Err` of a selection entirely exceeds a surface bound, otherwise `Ok`.
+///
+/// # Example
+///
+/// ```
+/// use art_extractor_core::surface::surface_iterate_2;
+/// use art_extractor_core::geom::{Size, Rect, Point};
+///
+/// let mut exp_iter: std::slice::Iter<(usize, usize)> = [
+///     (22, 8080), (23, 8081), (24, 8082), (25, 8083), (32, 8180), (33, 8181), (34, 8182), (35, 8183),
+///     (42, 8280), (43, 8281), (44, 8282), (45, 8283), (52, 8380), (53, 8381), (54, 8382), (55, 8383),
+/// ].iter();
+///
+/// surface_iterate_2(
+///     Size::new(10, 10), // a_surf_size
+///     Rect::new(Point::new(2, 2), Size::new(4, 4)), // a_select_rect
+///     Size::new(100, 100), // b_surf_size
+///     Point::new(80, 80), // b_select_origin
+///     false, // hflip
+///     false, // vflip
+///     |idx_a, idx_b| { // func
+///         let (exp_a, exp_b) = exp_iter.next().unwrap();
+///         assert_eq!(*exp_a, idx_a);
+///         assert_eq!(*exp_b, idx_b);
+///     },
+/// ).unwrap();
+/// ```
 pub fn surface_iterate_2<F>(a_surf_size: Size, a_select_rect: Rect, b_surf_size: Size, b_select_origin: Point, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
     F: FnMut(usize, usize)
 {
@@ -1039,8 +1066,8 @@ mod test_fn_surface_iterate_2 {
 
         surface_iterate_2(src_size, src_rect, dest_size, dest_point, hflip, vflip,
                           |src_idx, dest_idx| {
-                            dest[dest_idx] = src[src_idx];
-                        },
+                              dest[dest_idx] = src[src_idx];
+                          },
         ).unwrap();
     }
 
@@ -1216,6 +1243,7 @@ mod test_fn_surface_iterate_2 {
             assert_eq!(&EXPECTED, dest.data());
         }
     }
+
     /// Test with a copy of a partial surface with horizontal wrapping.
     #[test]
     fn test_partial_h_wrap() {
@@ -1262,8 +1290,8 @@ mod test_fn_surface_iterate_2 {
 
             assert_eq!(&EXPECTED, dest.data());
         }
-
     }
+
     /// Test with a copy of a partial surface with vertical wrapping.
     #[test]
     fn test_partial_v_wrap() {
@@ -1311,6 +1339,7 @@ mod test_fn_surface_iterate_2 {
             assert_eq!(&EXPECTED, dest.data());
         }
     }
+
     /// Test with a copy of a partial surface with both horizontal and vertical wrapping.
     #[test]
     fn test_partial_hv_wrap() {

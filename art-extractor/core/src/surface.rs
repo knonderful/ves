@@ -861,13 +861,4 @@ mod test_surface_iter {
         }
     }
 
-    // TODO: Tests:
-    // * Entire surface copy.
-    // * View inside surface.
-    // * View that extends over X.
-    // * View that extends over Y.
-    // * View that extends over X and Y.
-    // * For all the above: all iteration types.
-    // * View that is too big in X, Y and both. (view > surface in some dimension)
-    // TIP: Use a simple format like 10x5, that is easy to write expected values in... use simple surface format like u8 or something
 }

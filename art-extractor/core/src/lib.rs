@@ -35,7 +35,7 @@ macro_rules! sized_surface {
             type DataType = $data_type;
 
             #[inline(always)]
-            fn size(&self) -> Size {
+            fn size(&self) -> $crate::geom::Size {
                 $crate::geom::Size::new($width, $height)
             }
 

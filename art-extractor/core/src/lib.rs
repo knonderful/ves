@@ -4,6 +4,15 @@ pub mod geom;
 pub mod surface;
 pub mod sprite;
 
+/// Macro for creating [`surface::Surface`] implementations that do no require any allocation.
+///
+/// # Parameters
+/// * `vis`: Output type visibility.
+/// * `name`: Output type name.
+/// * `data_type`: Data type of an element in the surface. This must implement [`surface::IntoUsize`].
+/// * `width`: Width of the surface in pixels.
+/// * `height`: Height of the surface in pixels.
+/// * `default_value`: Default element value.
 #[macro_export]
 macro_rules! sized_surface {
     ($vis:vis $name:ident, $data_type:ty, $width:expr, $height:expr, $default_value:expr) => {
@@ -46,8 +55,6 @@ macro_rules! sized_surface {
 
             #[inline(always)]
             fn offset(&self, value: Self::Input) -> Option<usize> {
-
-
                 if value.x >= $width || value.y >= $height {
                     None
                 } else {

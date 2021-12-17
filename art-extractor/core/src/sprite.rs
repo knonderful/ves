@@ -128,12 +128,13 @@ impl<C> Palette<C> {
     }
 }
 
-pub struct GenericSurface<T> {
+/// A generic [`Surface`] with allocated data.
+pub struct AllocatedSurface<T> {
     data: Vec<T>,
     size: Size,
 }
 
-impl<T> GenericSurface<T> where
+impl<T> AllocatedSurface<T> where
     T: Clone
 {
     /// Creates a new instance.
@@ -152,7 +153,7 @@ impl<T> GenericSurface<T> where
     }
 }
 
-impl<T: Copy> Surface for GenericSurface<T> {
+impl<T: Copy> Surface for AllocatedSurface<T> {
     type DataType = T;
 
     #[inline(always)]
@@ -188,10 +189,10 @@ impl<T: Copy> Surface for GenericSurface<T> {
 
 /// An indexed graphical surface. Indexed, in this context, refers to the data being references to [`Palette`] indices rather than actual
 /// color data.
-pub type IndexedSurface = GenericSurface<PaletteIndex>;
+pub type IndexedSurface = AllocatedSurface<PaletteIndex>;
 
 /// An direct-color graphical surface.
-pub type DirectSurface = GenericSurface<Color>;
+pub type DirectSurface = AllocatedSurface<Color>;
 
 /// A tile. This is the smallest graphical element.
 pub struct Tile {

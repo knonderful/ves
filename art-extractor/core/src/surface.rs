@@ -407,10 +407,10 @@ impl<X, Y> Iterator for SurfaceIter<X, Y> where
 #[cfg(test)]
 mod test_surface_iter {
     use crate::geom::{Rect, Size};
-    use crate::sprite::GenericSurface;
+    use crate::sprite::AllocatedSurface;
     use crate::surface::Surface;
 
-    type Surfy = GenericSurface<u8>;
+    type Surfy = AllocatedSurface<u8>;
 
     macro_rules! data {
         ($($elt:expr)*) => {
@@ -1000,11 +1000,11 @@ pub fn surface_iterate_2<F>(a_surf_size: Size, a_select_rect: Rect, b_surf_size:
 #[cfg(test)]
 mod test_fn_surface_iterate_2 {
     use crate::geom::{Point, Rect, Size};
-    use crate::sprite::GenericSurface;
+    use crate::sprite::AllocatedSurface;
     use super::Surface;
     use super::surface_iterate_2;
 
-    type Surfy = GenericSurface<u8>;
+    type Surfy = AllocatedSurface<u8>;
 
     macro_rules! data {
         ($($elt:expr)*) => {

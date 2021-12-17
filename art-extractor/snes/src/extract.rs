@@ -1,6 +1,6 @@
-use art_extractor_core::geom::{ArtworkSpaceUnit, Point, Rect, Size};
-use art_extractor_core::sprite::{Color, Index, IndexedSurface, Palette, PaletteIndex};
-use art_extractor_core::surface::Surface;
+use art_extractor_core::geom::{ArtworkSpaceUnit, Point, Size};
+use art_extractor_core::sprite::{Color, Index, Palette, PaletteIndex};
+use art_extractor_core::surface::{IntoUsize, Surface};
 
 /// A data import error.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -154,11 +154,13 @@ mod test_obj_palettes {
     }
 }
 
+art_extractor_core::sized_surface!(pub ObjNameTableSurface, PaletteIndex, 128, 256, PaletteIndex::new(0));
+
 /// An `OBJ NAME` table. This table contains all the graphics data for objects. In VRAM the data is stored in two separate tables:
 /// `OBJ NAME BASE` and `OBJ NAME SELECT`. The SNES treats the concatenation of the two as one table for looking up sprite data. See
 /// sections A-1 through A-4 in the SNES Developer Manual for more information.
 pub struct ObjNameTable {
-    surface: IndexedSurface,
+    surface: ObjNameTableSurface,
 }
 
 impl ObjNameTable {
@@ -179,7 +181,7 @@ impl ObjNameTable {
     ///
     /// # Panics
     /// If the provided slice is not exactly 0x2000 bytes in size.
-    fn read_interleaved_chr(obj_name_base: &[u8], obj_name_select: &[u8]) -> Result<IndexedSurface, DataImportError> {
+    fn read_interleaved_chr(obj_name_base: &[u8], obj_name_select: &[u8]) -> Result<ObjNameTableSurface, DataImportError> {
         const EXPECTED_LEN: usize = 0x2000;
         if obj_name_base.len() != EXPECTED_LEN {
             return Err(DataImportError::InvalidData(format!("Expected OBJ NAME BASE length {}, but found {}", EXPECTED_LEN, obj_name_base.len())));
@@ -188,7 +190,7 @@ impl ObjNameTable {
             return Err(DataImportError::InvalidData(format!("Expected OBJ NAME SELECT length {}, but found {}", EXPECTED_LEN, obj_name_select.len())));
         }
 
-        let mut surface = IndexedSurface::new(Size::new(Self::TILES_X * Self::TILE_WIDTH, Self::TILES_Y * Self::TILE_HEIGHT * 2), PaletteIndex::new(0));
+        let mut surface = ObjNameTableSurface::new();
 
         Self::read_name_table_into_surface(&mut surface, obj_name_base, 0);
         Self::read_name_table_into_surface(&mut surface, obj_name_select, Self::TILES_Y);
@@ -196,24 +198,23 @@ impl ObjNameTable {
         Ok(surface)
     }
 
-    fn read_name_table_into_surface(surface: &mut IndexedSurface, obj_name_data: &[u8], y_offset: ArtworkSpaceUnit) {
+    fn read_name_table_into_surface(surface: &mut ObjNameTableSurface, obj_name_data: &[u8], y_offset: ArtworkSpaceUnit) {
+        use art_extractor_core::surface::Offset;
+
         let mut data_iter = obj_name_data.iter();
-        let view_size = Size::new(Self::TILE_WIDTH, Self::TILE_HEIGHT);
+
         // Vertical tile iteration
-        for y in 0..Self::TILES_Y {
+        for tile_y in 0..Self::TILES_Y {
             // Horizontal tile iteration
-            for x in 0..Self::TILES_X {
-                // Get a view of the current tile into the surface
-                let view = surface.view(Rect::new(Point::new(x * Self::TILE_WIDTH, (y + y_offset) * Self::TILE_HEIGHT), view_size));
+            for tile_x in 0..Self::TILES_X {
 
                 // We have to read 2 planes at a time and we have 4 planes in total (4bpp), so we need 2 iterations
                 for plane_pair in 0..2 {
-                    for row in view.row_iter() {
-                        // Read the 2 planes for this row
+                    for pixel_y in 0..Self::TILE_HEIGHT {
                         let plane1 = *data_iter.next().unwrap();
                         let plane2 = *data_iter.next().unwrap();
-
-                        let surface_row_data = surface.row_data_mut(&row);
+                        let offset = surface.offset((tile_x * Self::TILE_WIDTH, (y_offset + tile_y) * Self::TILE_HEIGHT + pixel_y).into()).unwrap();
+                        let surface_row_data = &mut surface.data_mut()[offset..offset + Self::TILE_WIDTH.into_usize()];
                         Self::apply_planes_to_row(surface_row_data, plane_pair * 2, plane1, plane2)
                     }
                 }
@@ -252,9 +253,8 @@ impl FromSnesData<(&[u8], &[u8])> for ObjNameTable {
 
 #[cfg(test)]
 mod test_obj_name_table {
-    use art_extractor_core::geom::{Point, Rect, Size};
-    use art_extractor_core::sprite::{Color, IndexedSurface, Palette, PaletteIndex};
-    use art_extractor_core::surface::Surface;
+    use art_extractor_core::sprite::{Color, Palette, PaletteIndex};
+    use art_extractor_core::surface::{Surface, surface_iterate};
     use bmp::Pixel;
     use crate::extract::ObjPalettes;
     use crate::mesen::Frame;
@@ -285,16 +285,27 @@ mod test_obj_name_table {
         assert_eq!(&expected, &actual);
     }
 
-    fn create_bitmap(surface: &IndexedSurface, palette: &Palette<Color>) -> bmp::Image {
+    fn create_bitmap(surface: &super::ObjNameTableSurface, palette: &Palette<Color>) -> bmp::Image {
         let mut img = bmp::Image::new(surface.size().width, surface.size().height);
-        let view = surface.view(Rect::new(Point::new(0, 0), Size::new(surface.size().width - 1, surface.size().height - 1)));
-        for (y, row) in view.row_iter().enumerate() {
-            for (x, pixel) in surface.row_data(&row).iter().enumerate() {
-                let color = palette.get(*pixel).unwrap();
-                img.set_pixel(x.try_into().unwrap(), y.try_into().unwrap(),
-                              Pixel::new(color.r, color.g, color.b));
-            }
-        }
+
+        let rect = surface.size().as_rect();
+        let mut pos_iter = (0..rect.height())
+            .flat_map(|y| {
+                std::iter::repeat(y)
+                    .zip(0..rect.width())
+            })
+            .map(|(y, x)| (u32::from(x), u32::from(y)));
+
+        let transparent = Color::new(255, 0, 255);
+        surface_iterate(surface.size(), rect, false, false, |index| {
+            let pixel = surface.data[index];
+            let (x, y) = pos_iter.next().unwrap();
+            let color = match pixel.value() {
+                0 => &transparent,
+                _ => palette.get(pixel).unwrap(),
+            };
+            img.set_pixel(x, y, Pixel::new(color.r, color.g, color.b));
+        }).unwrap();
         img
     }
 

@@ -1,10 +1,10 @@
 //! A module for working with 2-dimensional surfaces.
 
-use std::ops::{Range, RangeInclusive};
+use std::ops::RangeInclusive;
 use crate::geom::{ArtworkSpaceUnit, Point, Rect, Size};
 
 /// Local trait for extending `ArtworkSpaceUnit` with `into_usize()`.
-pub(crate) trait IntoUsize {
+pub trait IntoUsize {
     fn into_usize(self) -> usize;
 }
 
@@ -21,197 +21,20 @@ pub trait Surface {
     /// The size.
     fn size(&self) -> Size;
 
-    /// Retrieves a view of the surface.
-    fn view(&self, area: Rect) -> SurfaceView;
-
     /// Retrieves a slice of the raw data.
     fn data(&self) -> &[Self::DataType];
 
     /// Retrieves a mutable slice of the raw data.
     fn data_mut(&mut self) -> &mut [Self::DataType];
-
-    /// Retrieves the index into the data for the provided position.
-    ///
-    /// # Parameters
-    /// * `position`: The position.
-    ///
-    /// # Returns
-    /// The index or `None` if the provided position is outside of the [`Surface`].
-    fn index(&self, position: Point) -> Option<usize>;
-
-    /// Retrieves row data.
-    fn row_data(&self, row: &SurfaceRow) -> &[Self::DataType] {
-        let indices = row.indices();
-        &self.data()[indices.start..indices.end]
-    }
-
-    /// Retrieves mutable row data.
-    fn row_data_mut(&mut self, row: &SurfaceRow) -> &mut [Self::DataType] {
-        let indices = row.indices();
-        &mut self.data_mut()[indices.start..indices.end]
-    }
-
-    /// Retrieves a reference to the pixel at the provided position.
-    ///
-    /// # Parameters
-    /// * `position`: The position.
-    ///
-    /// # Returns
-    /// The reference or `None` if the provided position is outside of the [`Surface`].
-    #[inline(always)]
-    fn pixel(&self, position: Point) -> Option<&Self::DataType> {
-        self.index(position)
-            .map(|index| &self.data()[index])
-    }
-
-    /// Retrieves a mutable reference to the pixel at the provided position.
-    ///
-    /// # Parameters
-    /// * `position`: The position.
-    ///
-    /// # Returns
-    /// The reference or `None` if the provided position is outside of the [`Surface`].
-    #[inline(always)]
-    fn pixel_mut(&mut self, position: Point) -> Option<&mut Self::DataType> {
-        self.index(position)
-            .map(|index| &mut self.data_mut()[index])
-    }
 }
 
-/// A row inside a [`Surface`].
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct SurfaceRow {
-    indices: Range<usize>,
-}
+/// A trait that allows for the retrieval of an offset for a certain value. This is useful for things like [`Surface`] implementations where
+/// a coordinate can be translated to the offset in the raw data.
+pub trait Offset {
+    type Input;
 
-impl SurfaceRow {
-    fn new(indices: Range<usize>) -> Self {
-        Self { indices }
-    }
-
-    pub fn indices(&self) -> &Range<usize> {
-        &self.indices
-    }
-}
-
-/// A view into an [`Surface`].
-///
-/// A view does not contain a reference to the [`Surface`] from which it originates. This is a conscious design choice to keep lifetime and
-/// implementation complexity to a minimum. The result is that it is up to the user to apply the [`SurfaceView`] to the correct [`Surface`]
-/// when working with the underlying data. For instance, the following code is valid in the eyes of the compiler, although it is _logically_
-/// incorrect.
-///
-/// ```
-/// use art_extractor_core::surface::Surface;
-/// use art_extractor_core::geom::{Point, Rect, Size};
-///
-/// fn get_data_from_surf1<'a, 'b>(
-///         surf1: &'a impl Surface<DataType=u8>,
-///         surf2: &'b impl Surface<DataType=u8>) -> &'b [u8] {
-///     let view = surf1.view(Rect::new(Point::new(16, 32), Size::new(16, 16)));
-///     surf2.row_data(&view.row_iter().next().unwrap())
-/// }
-/// ```
-///
-/// A view never exceeds the area of the original surface.
-pub struct SurfaceView {
-    surface_width: ArtworkSpaceUnit,
-    area: Rect,
-}
-
-impl SurfaceView {
-    /// Creates a new [`SurfaceView`].
-    ///
-    /// # Parameters
-    /// * `surface`: The surface.
-    /// * `area`: The area inside the surface for which to create a view.
-    ///
-    /// # Panics
-    /// This function panics if `area` exceeds the surface.
-    pub(crate) fn new(surface: &impl Surface, area: Rect) -> Self {
-        let size = surface.size();
-        if area.max_x() >= size.width || area.max_y() >= size.height {
-            panic!("Area {:?} exceeds surface with dimensions {:?}.", area, size);
-        }
-        Self {
-            surface_width: size.width,
-            area,
-        }
-    }
-
-    /// Creates a [`SurfaceRowIter`].
-    pub fn row_iter(&self) -> SurfaceRowIter {
-        SurfaceRowIter::new(self.surface_width, &self.area)
-    }
-}
-
-/// An iterator for [`SurfaceRow`]s.
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct SurfaceRowIter {
-    /// The width of the original surface. This is a `usize` instead of a `ArtworkSpaceUnit` because that's what we're calculating with.
-    surface_width: usize,
-    /// The width of an output row (normally the width of the view).
-    row_width: usize,
-    /// The start offset in the surface data.
-    start_offset: usize,
-    /// The end offset in the surface data.
-    end_offset: usize,
-    /// The current offset.
-    offset: usize,
-}
-
-impl SurfaceRowIter {
-    fn new(surface_width: ArtworkSpaceUnit, area: &Rect) -> Self {
-        let surface_width = surface_width.into_usize();
-        let start_offset = surface_width * area.min_y().into_usize() + area.origin.x.into_usize();
-        let end_offset = start_offset + surface_width * (area.height().into_usize() - 1);
-
-        Self {
-            surface_width,
-            row_width: area.width().into_usize(),
-            start_offset,
-            end_offset,
-            offset: start_offset,
-        }
-    }
-}
-
-impl Iterator for SurfaceRowIter {
-    type Item = SurfaceRow;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.offset > self.end_offset {
-            return None;
-        }
-
-        let range = self.offset..self.offset + self.row_width;
-        self.offset += self.surface_width;
-        Some(SurfaceRow::new(range))
-    }
-}
-
-#[cfg(test)]
-mod test_surface_row_iter {
-    use crate::geom::ArtworkSpaceUnit;
-    use super::{SurfaceRow, SurfaceRowIter, IntoUsize};
-
-    #[test]
-    fn iteration() {
-        const SURFACE_WIDTH: ArtworkSpaceUnit = 256;
-        const AREA_X: ArtworkSpaceUnit = 24;
-        const AREA_Y: ArtworkSpaceUnit = 32;
-        const AREA_WIDTH: ArtworkSpaceUnit = 16;
-        const AREA_HEIGHT: ArtworkSpaceUnit = 8;
-        let mut iter = SurfaceRowIter::new(SURFACE_WIDTH,
-                                           &((AREA_X, AREA_Y), AREA_WIDTH, AREA_HEIGHT).into());
-        let mut offset = SURFACE_WIDTH.into_usize() * AREA_Y.into_usize() + AREA_X.into_usize();
-        for _ in 0..AREA_HEIGHT {
-            assert_eq!(Some(SurfaceRow::new(offset..offset + AREA_WIDTH.into_usize())), iter.next());
-            offset += SURFACE_WIDTH.into_usize();
-        }
-        assert_eq!(None, iter.next());
-        assert_eq!(None, iter.next());
-    }
+    /// Returns the offset for the provided value.
+    fn offset(&self, value: Self::Input) -> Option<usize>;
 }
 
 /// An [`Iterator`] factory for index offsets of a [`Surface`] axis (x or y).
@@ -407,10 +230,9 @@ impl<X, Y> Iterator for SurfaceIter<X, Y> where
 #[cfg(test)]
 mod test_surface_iter {
     use crate::geom::{Rect, Size};
-    use crate::sprite::AllocatedSurface;
     use crate::surface::Surface;
 
-    type Surfy = AllocatedSurface<u8>;
+    crate::sized_surface!(Surfy, u8, 12, 8, 0);
 
     macro_rules! data {
         ($($elt:expr)*) => {
@@ -467,7 +289,7 @@ mod test_surface_iter {
     }
 
     fn create_source() -> Surfy {
-        let mut src = Surfy::new(Size::new(12, 8), 0);
+        let mut src = Surfy::new();
         assert_eq!(&EMPTY_DATA, src.data());
 
         src.data_mut().copy_from_slice(&SOURCE_DATA);
@@ -481,7 +303,7 @@ mod test_surface_iter {
         // No flipping
         {
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()));
             let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()));
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -491,7 +313,7 @@ mod test_surface_iter {
         // H-flip on both
         {
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @hflip);
             let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @hflip);
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -501,7 +323,7 @@ mod test_surface_iter {
         // V-flip on both
         {
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @vflip);
             let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @vflip);
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -511,7 +333,7 @@ mod test_surface_iter {
         // H-flip and v-flip on both
         {
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @hflip, @vflip);
             let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @hflip, @vflip);
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -536,7 +358,7 @@ mod test_surface_iter {
         // H-flip on src
         {
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @hflip);
             let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()));
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -546,7 +368,7 @@ mod test_surface_iter {
         // H-flip on dest
         {
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()));
             let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @hflip);
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -571,7 +393,7 @@ mod test_surface_iter {
         // V-flip on src
         {
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @vflip);
             let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()));
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -581,7 +403,7 @@ mod test_surface_iter {
         // V-flip on dest
         {
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()));
             let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @vflip);
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -606,7 +428,7 @@ mod test_surface_iter {
         // H-flip and v-flip on src
         {
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @hflip, @vflip);
             let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()));
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -616,7 +438,7 @@ mod test_surface_iter {
         // H-flip and v-flip on dest
         {
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()));
             let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @hflip, @vflip);
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -626,7 +448,7 @@ mod test_surface_iter {
         // H-flip on src and v-flip on dest
         {
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @hflip);
             let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @vflip);
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -636,7 +458,7 @@ mod test_surface_iter {
         // H-flip on dest and v-flip on src
         {
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @vflip);
             let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @hflip);
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -660,7 +482,7 @@ mod test_surface_iter {
                 0 0 0 0 0 0 0 0 0 0 0 0
             ];
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into());
             let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -680,7 +502,7 @@ mod test_surface_iter {
                 0 0 0 0 0 0 0 0 0 0 0 0
             ];
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into(), @hflip);
             let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -700,7 +522,7 @@ mod test_surface_iter {
                 0 0 0 0 0 0 0 0 0 0 0 0
             ];
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into(), @vflip);
             let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -720,7 +542,7 @@ mod test_surface_iter {
                 0 0 0 0 0 0 0 0 0 0 0 0
             ];
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into(), @hflip, @vflip);
             let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -744,7 +566,7 @@ mod test_surface_iter {
                 0 0 0 0 0 0 0 0 0 0 0 0
             ];
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), ((10, 4), 4, 4).into());
             let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -764,7 +586,7 @@ mod test_surface_iter {
                 0 0 0 0 0 0 0 0 0 0 0 0
             ];
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into());
             let dest_iter = surface_iter!(dest.size(), ((10, 3), 4, 4).into());
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -788,7 +610,7 @@ mod test_surface_iter {
                 0 0 0 0 0 0 0 0 0 0 0 0
             ];
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), ((1, 6), 4, 4).into());
             let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -808,7 +630,7 @@ mod test_surface_iter {
                 0 0 0 0 0 0 2 2 3 3 0 0
             ];
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into());
             let dest_iter = surface_iter!(dest.size(), ((6, 6), 4, 4).into());
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -833,7 +655,7 @@ mod test_surface_iter {
                 0 0 0 0 0 0 0 0 0 0 0 0
             ];
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), ((10, 6), 4, 4).into());
             let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
             copy_data(&src, &mut dest, src_iter, dest_iter);
@@ -853,11 +675,131 @@ mod test_surface_iter {
                 3 3 0 0 0 0 0 0 0 0 2 2
             ];
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into());
             let dest_iter = surface_iter!(dest.size(), ((10, 6), 4, 4).into());
             copy_data(&src, &mut dest, src_iter, dest_iter);
             assert_eq!(&EXPECTED, dest.data());
+        }
+    }
+}
+
+/// Iterates over the indices for a selection in a pair of [`Surface`]s and passes the indices to the provided function.
+///
+/// # Parameters
+/// * `a_surf_size`: The size of the first surface.
+/// * `a_select_rect`: The selection rectangle in the first surface.
+/// * `b_surf_size`: The size of the second surface.
+/// * `b_select_origin`: The point of origin of the selection rectangle in the second surface. The selection rectangle will have the size of
+///                      `a_select_rect`.
+/// * `hflip`: A flag indicating that the iteration order on the horizontal axis should be inversed.
+/// * `vflip`: A flag indicating that the iteration order on the vertical axis should be inversed.
+/// * `func`: The function to call for every index.
+///
+/// # Returns
+/// `Err` of a selection entirely exceeds a surface bound, otherwise `Ok`.
+///
+/// # Example
+///
+/// ```
+/// use art_extractor_core::surface::surface_iterate_2;
+/// use art_extractor_core::geom::{Size, Rect, Point};
+///
+/// let mut exp_iter: std::slice::Iter<(usize, usize)> = [
+///     (22, 8080), (23, 8081), (24, 8082), (25, 8083), (32, 8180), (33, 8181), (34, 8182), (35, 8183),
+///     (42, 8280), (43, 8281), (44, 8282), (45, 8283), (52, 8380), (53, 8381), (54, 8382), (55, 8383),
+/// ].iter();
+///
+/// surface_iterate_2(
+///     Size::new(10, 10), // a_surf_size
+///     Rect::new(Point::new(2, 2), Size::new(4, 4)), // a_select_rect
+///     Size::new(100, 100), // b_surf_size
+///     Point::new(80, 80), // b_select_origin
+///     false, // hflip
+///     false, // vflip
+///     |idx_a, idx_b| { // func
+///         let (exp_a, exp_b) = exp_iter.next().unwrap();
+///         assert_eq!(*exp_a, idx_a);
+///         assert_eq!(*exp_b, idx_b);
+///     },
+/// ).unwrap();
+/// ```
+pub fn surface_iterate<F>(surf_size: Size, select_rect: Rect, hflip: bool, vflip: bool, func: F) -> Result<(), String> where
+    F: FnMut(usize)
+{
+    let x_wrap = select_rect.max_x() >= surf_size.width;
+    let y_wrap = select_rect.max_y() >= surf_size.height;
+
+    macro_rules! process {
+        ($x_type:ty, $y_type:ty) => {
+            SurfaceIter::<$x_type, $y_type>::new(surf_size, select_rect)?
+                .for_each(func);
+        };
+    }
+
+    // The following decision table avoids unnecessary wrapping calculations. We could use the `*Wrap` implementations everywhere, which
+    // would also work, but is likely to be more expensive. Compare:
+    // * Doing a modulo operation for every pixel (X-axis) and additionally for every row (Y-axis).
+    // * Going through several `if`s that is required for the following table.
+    //
+    // NB: This table is generated by `test_module_fns::generate_surface_iterate_table()`.
+    match (hflip, vflip, x_wrap, y_wrap) {
+        (false, false, false, false) => { process!(Ascending, Ascending); }
+        (false, false, false, true) => { process!(Ascending, AscendingWrap); }
+        (false, false, true, false) => { process!(AscendingWrap, Ascending); }
+        (false, false, true, true) => { process!(AscendingWrap, AscendingWrap); }
+        (false, true, false, false) => { process!(Ascending, Descending); }
+        (false, true, false, true) => { process!(Ascending, DescendingWrap); }
+        (false, true, true, false) => { process!(AscendingWrap, Descending); }
+        (false, true, true, true) => { process!(AscendingWrap, DescendingWrap); }
+        (true, false, false, false) => { process!(Descending, Ascending); }
+        (true, false, false, true) => { process!(Descending, AscendingWrap); }
+        (true, false, true, false) => { process!(DescendingWrap, Ascending); }
+        (true, false, true, true) => { process!(DescendingWrap, AscendingWrap); }
+        (true, true, false, false) => { process!(Descending, Descending); }
+        (true, true, false, true) => { process!(Descending, DescendingWrap); }
+        (true, true, true, false) => { process!(DescendingWrap, Descending); }
+        (true, true, true, true) => { process!(DescendingWrap, DescendingWrap); }
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod test_fn_surface_iterate {
+    /// Function to generate decision table for `surface_iterate()`.
+    // #[test]
+    fn generate_surface_iterate_table() {
+        const BOOLS: [bool; 2] = [false, true];
+
+        fn direction(flip: bool) -> &'static str {
+            if flip {
+                "Descending"
+            } else {
+                "Ascending"
+            }
+        }
+
+        fn wrapping(wrap: bool) -> &'static str {
+            if wrap {
+                "Wrap"
+            } else {
+                ""
+            }
+        }
+
+        for hflip in BOOLS {
+            for vflip in BOOLS {
+                for x_wrap in BOOLS {
+                    for y_wrap in BOOLS {
+                        println!("({}, {}, {}, {}) => {{ process!({}{}, {}{}); }}",
+                                 hflip, vflip, x_wrap, y_wrap,
+                                 direction(hflip), wrapping(x_wrap),
+                                 direction(vflip), wrapping(y_wrap),
+                        );
+                    }
+                }
+            }
         }
     }
 }
@@ -926,7 +868,7 @@ pub fn surface_iterate_2<F>(a_surf_size: Size, a_select_rect: Rect, b_surf_size:
     // * Doing a modulo operation for every pixel (X-axis) and additionally for every row (Y-axis).
     // * Going through several `if`s that is required for the following table.
     //
-    // NB: This table is generated by `test_module_fns::generate_surface_iterate_table()`.
+    // NB: This table is generated by `test_module_fns::generate_surface_iterate_2_table()`.
     match (hflip, vflip, src_x_wrap, src_y_wrap, dest_x_wrap, dest_y_wrap) {
         (false, false, false, false, false, false) => { process!(Ascending, Ascending, Ascending, Ascending); }
         (false, false, false, false, false, true) => { process!(Ascending, Ascending, Ascending, AscendingWrap); }
@@ -1000,11 +942,10 @@ pub fn surface_iterate_2<F>(a_surf_size: Size, a_select_rect: Rect, b_surf_size:
 #[cfg(test)]
 mod test_fn_surface_iterate_2 {
     use crate::geom::{Point, Rect, Size};
-    use crate::sprite::AllocatedSurface;
     use super::Surface;
     use super::surface_iterate_2;
 
-    type Surfy = AllocatedSurface<u8>;
+    crate::sized_surface!(Surfy, u8, 12, 8, 0);
 
     macro_rules! data {
         ($($elt:expr)*) => {
@@ -1034,7 +975,7 @@ mod test_fn_surface_iterate_2 {
     ];
 
     fn create_source() -> Surfy {
-        let mut src = Surfy::new(Size::new(12, 8), 0);
+        let mut src = Surfy::new();
         assert_eq!(&EMPTY_DATA, src.data());
 
         src.data_mut().copy_from_slice(&SOURCE_DATA);
@@ -1075,7 +1016,7 @@ mod test_fn_surface_iterate_2 {
     #[test]
     fn test_full_copy_no_flip() {
         let src = create_source();
-        let mut dest = Surfy::new(src.size(), 0);
+        let mut dest = Surfy::new();
         let src_spec = source_spec!(Rect::new((0, 0).into(), src.size()));
         let dest_point = (0, 0).into();
         copy_data(&src, &mut dest, src_spec, dest_point);
@@ -1098,7 +1039,7 @@ mod test_fn_surface_iterate_2 {
         ];
 
         let src = create_source();
-        let mut dest = Surfy::new(src.size(), 0);
+        let mut dest = Surfy::new();
         let src_spec = source_spec!(Rect::new((0, 0).into(), src.size()), @hflip);
         let dest_point = (0, 0).into();
         copy_data(&src, &mut dest, src_spec, dest_point);
@@ -1121,7 +1062,7 @@ mod test_fn_surface_iterate_2 {
         ];
 
         let src = create_source();
-        let mut dest = Surfy::new(src.size(), 0);
+        let mut dest = Surfy::new();
         let src_spec = source_spec!(Rect::new((0, 0).into(), src.size()), @vflip);
         let dest_point = (0, 0).into();
         copy_data(&src, &mut dest, src_spec, dest_point);
@@ -1144,7 +1085,7 @@ mod test_fn_surface_iterate_2 {
         ];
 
         let src = create_source();
-        let mut dest = Surfy::new(src.size(), 0);
+        let mut dest = Surfy::new();
         let src_spec = source_spec!(Rect::new((0, 0).into(), src.size()), @hflip, @vflip);
         let dest_point = (0, 0).into();
         copy_data(&src, &mut dest, src_spec, dest_point);
@@ -1169,7 +1110,7 @@ mod test_fn_surface_iterate_2 {
             ];
 
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_spec = source_spec!(Rect::from(((1, 4), 4, 4)));
             let dest_point = (6, 3).into();
             copy_data(&src, &mut dest, src_spec, dest_point);
@@ -1191,7 +1132,7 @@ mod test_fn_surface_iterate_2 {
             ];
 
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_spec = source_spec!(Rect::from(((1, 4), 4, 4)), @hflip);
             let dest_point = (6, 3).into();
             copy_data(&src, &mut dest, src_spec, dest_point);
@@ -1213,7 +1154,7 @@ mod test_fn_surface_iterate_2 {
             ];
 
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_spec = source_spec!(Rect::from(((1, 4), 4, 4)), @vflip);
             let dest_point = (6, 3).into();
             copy_data(&src, &mut dest, src_spec, dest_point);
@@ -1235,7 +1176,7 @@ mod test_fn_surface_iterate_2 {
             ];
 
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_spec = source_spec!(Rect::from(((1, 4), 4, 4)), @hflip, @vflip);
             let dest_point = (6, 3).into();
             copy_data(&src, &mut dest, src_spec, dest_point);
@@ -1261,7 +1202,7 @@ mod test_fn_surface_iterate_2 {
             ];
 
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_spec = source_spec!(Rect::from(((10, 4), 4, 4)));
             let dest_point = (6, 3).into();
             copy_data(&src, &mut dest, src_spec, dest_point);
@@ -1283,7 +1224,7 @@ mod test_fn_surface_iterate_2 {
             ];
 
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_spec = source_spec!(Rect::from(((1, 4), 4, 4)));
             let dest_point = (10, 3).into();
             copy_data(&src, &mut dest, src_spec, dest_point);
@@ -1309,7 +1250,7 @@ mod test_fn_surface_iterate_2 {
             ];
 
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_spec = source_spec!(Rect::from(((1, 6), 4, 4)));
             let dest_point = (6, 3).into();
             copy_data(&src, &mut dest, src_spec, dest_point);
@@ -1331,7 +1272,7 @@ mod test_fn_surface_iterate_2 {
             ];
 
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_spec = source_spec!(Rect::from(((1, 4), 4, 4)));
             let dest_point = (6, 6).into();
             copy_data(&src, &mut dest, src_spec, dest_point);
@@ -1357,7 +1298,7 @@ mod test_fn_surface_iterate_2 {
             ];
 
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_spec = source_spec!(Rect::from(((10, 6), 4, 4)));
             let dest_point = (6, 3).into();
             copy_data(&src, &mut dest, src_spec, dest_point);
@@ -1379,7 +1320,7 @@ mod test_fn_surface_iterate_2 {
             ];
 
             let src = create_source();
-            let mut dest = Surfy::new(src.size(), 0);
+            let mut dest = Surfy::new();
             let src_spec = source_spec!(Rect::from(((1, 4), 4, 4)));
             let dest_point = (10, 6).into();
             copy_data(&src, &mut dest, src_spec, dest_point);
@@ -1388,9 +1329,9 @@ mod test_fn_surface_iterate_2 {
         }
     }
 
-    /// Function to generate decision table for `surface_iterate()`.
+    /// Function to generate decision table for `surface_iterate_2()`.
     //#[test]
-    fn generate_surface_iterate_table() {
+    fn generate_surface_iterate_2_table() {
         const BOOLS: [bool; 2] = [false, true];
 
         fn direction(flip: bool) -> &'static str {
@@ -1411,16 +1352,16 @@ mod test_fn_surface_iterate_2 {
 
         for hflip in BOOLS {
             for vflip in BOOLS {
-                for src_x_wrap in BOOLS {
-                    for src_y_wrap in BOOLS {
-                        for dest_x_wrap in BOOLS {
-                            for dest_y_wrap in BOOLS {
+                for a_x_wrap in BOOLS {
+                    for a_y_wrap in BOOLS {
+                        for b_x_wrap in BOOLS {
+                            for b_y_wrap in BOOLS {
                                 println!("({}, {}, {}, {}, {}, {}) => {{ process!({}{}, {}{}, {}{}, {}{}); }}",
-                                         hflip, vflip, src_x_wrap, src_y_wrap, dest_x_wrap, dest_y_wrap,
-                                         direction(hflip), wrapping(src_x_wrap),
-                                         direction(vflip), wrapping(src_y_wrap),
-                                         direction(false), wrapping(dest_x_wrap),
-                                         direction(false), wrapping(dest_y_wrap),
+                                         hflip, vflip, a_x_wrap, a_y_wrap, b_x_wrap, b_y_wrap,
+                                         direction(hflip), wrapping(a_x_wrap),
+                                         direction(vflip), wrapping(a_y_wrap),
+                                         direction(false), wrapping(b_x_wrap),
+                                         direction(false), wrapping(b_y_wrap),
                                 );
                             }
                         }

@@ -2,6 +2,12 @@ use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::ops::RangeInclusive;
 
+/// Returns the value zero (0) for a type.
+pub trait Zero {
+    /// Returns the value zero.
+    fn zero() -> Self;
+}
+
 /// A point in 2D space.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Point<T, U> {
@@ -60,6 +66,30 @@ impl<T, U> Size<T, U> {
         }
     }
 }
+
+impl<T, U> Size<T, U> where
+    T: Zero + Clone,
+    U: Clone,
+{
+    /// Creates a new instance.
+    ///
+    /// # Parameters
+    /// * `width`: The width.
+    /// * `height`: The height.
+    #[inline(always)]
+    pub fn as_rect(&self) -> Rect<T, U> {
+        Rect::new((T::zero(), T::zero()).into(), self.clone())
+    }
+}
+
+/*
+
+    #[inline(always)]
+    pub fn as_rect(&self) -> Rect<T, U> {
+        Rect::new((0,0).into(), *self)
+    }
+
+ */
 
 /// A rectangle in 2D space.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

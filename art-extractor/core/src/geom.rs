@@ -15,6 +15,12 @@ pub struct ArtworkSpace;
 /// The unit for data in "artwork space".
 pub type ArtworkSpaceUnit = u32;
 
+impl generic::Zero for ArtworkSpaceUnit {
+    fn zero() -> Self {
+        0
+    }
+}
+
 /// A point in "artwork space".
 ///
 /// See also [`ArtworkSpace`].

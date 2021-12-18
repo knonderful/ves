@@ -245,10 +245,40 @@ impl FromSnesData<(&[u8], &[u8])> for ObjNameTable {
 }
 
 #[cfg(test)]
-mod test_obj_name_table {
-    use art_extractor_core::sprite::{Color, Palette, PaletteIndex};
-    use art_extractor_core::surface::{Surface, surface_iterate};
+pub(crate) mod test_util {
+    use art_extractor_core::sprite::{Color, Palette};
     use bmp::Pixel;
+    use art_extractor_core::surface::{Surface, surface_iterate};
+
+    pub fn create_bitmap(surface: &super::ObjNameTableSurface, palette: &Palette<Color>) -> bmp::Image {
+        let mut img = bmp::Image::new(surface.size().width, surface.size().height);
+
+        let rect = surface.size().as_rect();
+        let mut pos_iter = (0..rect.height())
+            .flat_map(|y| {
+                std::iter::repeat(y)
+                    .zip(0..rect.width())
+            })
+            .map(|(y, x)| (u32::from(x), u32::from(y)));
+
+        let transparent = Color::new(255, 0, 255);
+        surface_iterate(surface.size(), rect, false, false, |index| {
+            let pixel = surface.data[index];
+            let (x, y) = pos_iter.next().unwrap();
+            let color = match pixel.value() {
+                0 => &transparent,
+                _ => palette.get(pixel).unwrap(),
+            };
+            img.set_pixel(x, y, Pixel::new(color.r, color.g, color.b));
+        }).unwrap();
+        img
+    }
+
+}
+
+#[cfg(test)]
+mod test_obj_name_table {
+    use art_extractor_core::sprite::PaletteIndex;
     use crate::extract::ObjPalettes;
     use crate::mesen::Frame;
     use super::{FromSnesData, ObjNameTable};
@@ -278,30 +308,6 @@ mod test_obj_name_table {
         assert_eq!(&expected, &actual);
     }
 
-    fn create_bitmap(surface: &super::ObjNameTableSurface, palette: &Palette<Color>) -> bmp::Image {
-        let mut img = bmp::Image::new(surface.size().width, surface.size().height);
-
-        let rect = surface.size().as_rect();
-        let mut pos_iter = (0..rect.height())
-            .flat_map(|y| {
-                std::iter::repeat(y)
-                    .zip(0..rect.width())
-            })
-            .map(|(y, x)| (u32::from(x), u32::from(y)));
-
-        let transparent = Color::new(255, 0, 255);
-        surface_iterate(surface.size(), rect, false, false, |index| {
-            let pixel = surface.data[index];
-            let (x, y) = pos_iter.next().unwrap();
-            let color = match pixel.value() {
-                0 => &transparent,
-                _ => palette.get(pixel).unwrap(),
-            };
-            img.set_pixel(x, y, Pixel::new(color.r, color.g, color.b));
-        }).unwrap();
-        img
-    }
-
     #[test]
     fn test_from_snes_data() {
         let mut json_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -313,7 +319,7 @@ mod test_obj_name_table {
         let obj_name_table = ObjNameTable::from_snes_data((frame.obj_name_base_table.as_slice(), frame.obj_name_select_table.as_slice())).unwrap();
         let palettes = ObjPalettes::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
 
-        let actual = create_bitmap(&obj_name_table.surface, &palettes.palettes()[5]);
+        let actual = super::test_util::create_bitmap(&obj_name_table.surface, &palettes.palettes()[5]);
         // actual.save(format!("{}/target/out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR JUST LOOKING
         // actual.save(format!("{}/resources/test/expected_obj_table.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR UPDATING
 

@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use art_extractor_core::geom::{ArtworkSpaceUnit, Point, Size};
+use art_extractor_core::geom::Rect;
 use art_extractor_core::sprite::{Color, Index, Palette, PaletteIndex};
 use art_extractor_core::surface::{IntoUsize, Surface};
 
@@ -235,6 +236,26 @@ impl ObjNameTable {
             plane1 >>= 1;
             plane2 >>= 1;
         }
+    }
+
+    /// Retrieves the [`Surface`].
+    pub fn surface(&self) -> &ObjNameTableSurface {
+        &self.surface
+    }
+
+    /// Retrieves the [`Rect`] into the [`Surface`] for the provided [`ObjNameTableIndex`] and [`ObjSize`].
+    fn rect_for(&self, index: ObjNameTableIndex, size: ObjSize) -> Rect {
+        let y_offset = if index.is_base {
+            0
+        } else {
+            Self::TILES_Y
+        };
+
+        let idx = ArtworkSpaceUnit::from(index.index);
+        let y = idx / Self::TILES_X;
+        let x = idx % Self::TILES_X;
+
+        Rect::new((x * Self::TILE_WIDTH, (y_offset + y) * Self::TILE_HEIGHT).into(), Size::new_square(size.pixel_size()))
     }
 }
 
@@ -610,6 +631,13 @@ impl FromSnesData<&[u8]> for OamTable {
     }
 }
 
+impl OamTable {
+    /// Retrieves the [`ObjData`] entries.
+    pub fn objects(&self) -> &[ObjData] {
+        self.objects.as_slice()
+    }
+}
+
 #[cfg(test)]
 mod test_oam_table {
     use crate::extract::{FromSnesData, OamTable};
@@ -625,5 +653,74 @@ mod test_oam_table {
 
         // Currently we only test that the unwrap doesn't fail, which means we at least read the right amount of data.
         OamTable::from_snes_data(frame.oam.as_slice()).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod test_combination {
+    use crate::extract::{FromSnesData, OamTable, ObjNameTable, ObjPalettes, ObjSizeSelect};
+    use crate::mesen::Frame;
+    use art_extractor_core::sprite::Color;
+    use art_extractor_core::surface::Surface;
+    use bmp::Pixel;
+
+    art_extractor_core::sized_surface!(pub ScreenSurface, Color, 512, 256, Color::new(255, 0, 255));
+
+    #[test]
+    fn test_render_frame() {
+        let mut json_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        json_path.push("resources/test/frame_199250.json");
+
+        let file = std::fs::File::open(json_path.as_path()).unwrap();
+        let frame: Frame = serde_json::from_reader(file).unwrap();
+
+        let obj_size_select = ObjSizeSelect::from_snes_data(frame.obj_size_select).unwrap();
+        let oam = OamTable::from_snes_data(frame.oam.as_slice()).unwrap();
+        let palettes = ObjPalettes::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
+        let name_table = ObjNameTable::from_snes_data((frame.obj_name_base_table.as_slice(), frame.obj_name_select_table.as_slice())).unwrap();
+        let src_size = name_table.surface().size();
+        let src_data = name_table.surface().data();
+
+        // Render everything to our special screen surface.
+        let mut screen_surface = ScreenSurface::new();
+        let screen_size = screen_surface.size();
+        let screen_data = screen_surface.data_mut();
+
+        // Reverse-iterate because the first objects should be rendered on top
+        for obj in oam.objects().iter().rev() {
+            let obj_size = if obj.size_large {
+                obj_size_select.large()
+            } else {
+                obj_size_select.small()
+            };
+            let src_rect = name_table.rect_for(obj.obj_name_table_index, obj_size);
+            let palette = &palettes.palettes()[usize::from(obj.palette)];
+
+            art_extractor_core::surface::surface_iterate_2(
+                src_size, src_rect, screen_size, obj.position, obj.h_flip, obj.v_flip, |src_idx, dest_idx| {
+                    let index = src_data[src_idx];
+                    if index.value() == 0 {
+                        return;
+                    }
+                    let color = palette.get(index).unwrap();
+                    screen_data[dest_idx] = *color;
+                },
+            ).unwrap();
+        }
+
+        // Write BMP
+        let actual = super::test_util::create_bitmap(screen_size, |index, pos, img| {
+            let color = screen_data[index];
+            img.set_pixel(pos.x, pos.y, Pixel::new(color.r, color.g, color.b));
+        });
+
+        // actual.save(format!("{}/target/test_render_frame_out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR JUST LOOKING
+        // actual.save(format!("{}/resources/test/expected_render_frame.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR UPDATING
+
+        let mut expected_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        expected_path.push("resources/test/expected_render_frame.bmp");
+        let expected = bmp::open(expected_path).unwrap();
+
+        assert_eq!(expected, actual);
     }
 }

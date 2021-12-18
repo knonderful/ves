@@ -246,11 +246,11 @@ impl FromSnesData<(&[u8], &[u8])> for ObjNameTable {
 
 #[cfg(test)]
 pub(crate) mod test_util {
-    use art_extractor_core::sprite::{Color, Palette};
+    use art_extractor_core::sprite::{Color, Palette, PaletteIndex};
     use bmp::Pixel;
     use art_extractor_core::surface::{Surface, surface_iterate};
 
-    pub fn create_bitmap(surface: &super::ObjNameTableSurface, palette: &Palette<Color>) -> bmp::Image {
+    pub fn create_bitmap(surface: &impl Surface<DataType=PaletteIndex>, palette: &Palette<Color>) -> bmp::Image {
         let mut img = bmp::Image::new(surface.size().width, surface.size().height);
 
         let rect = surface.size().as_rect();
@@ -263,7 +263,7 @@ pub(crate) mod test_util {
 
         let transparent = Color::new(255, 0, 255);
         surface_iterate(surface.size(), rect, false, false, |index| {
-            let pixel = surface.data[index];
+            let pixel = surface.data()[index];
             let (x, y) = pos_iter.next().unwrap();
             let color = match pixel.value() {
                 0 => &transparent,

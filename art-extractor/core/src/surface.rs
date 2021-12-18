@@ -229,7 +229,7 @@ impl<X, Y> Iterator for SurfaceIter<X, Y> where
 
 #[cfg(test)]
 mod test_surface_iter {
-    use crate::geom::{Rect, Size};
+    use crate::geom::Rect;
     use crate::surface::Surface;
 
     crate::sized_surface!(Surfy, u8, 12, 8, 0);
@@ -941,7 +941,7 @@ pub fn surface_iterate_2<F>(a_surf_size: Size, a_select_rect: Rect, b_surf_size:
 
 #[cfg(test)]
 mod test_fn_surface_iterate_2 {
-    use crate::geom::{Point, Rect, Size};
+    use crate::geom::{Point, Rect};
     use super::Surface;
     use super::surface_iterate_2;
 

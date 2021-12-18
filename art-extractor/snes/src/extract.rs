@@ -145,15 +145,6 @@ impl FromSnesData<&[u8]> for ObjPalettes {
     }
 }
 
-#[cfg(test)]
-mod test_obj_palettes {
-    #[test]
-    fn fail() {
-        // TODO: Parse a bunch of palettes... how do we verify?
-        // assert_eq!(1, 2);
-    }
-}
-
 art_extractor_core::sized_surface!(pub ObjNameTableSurface, PaletteIndex, 128, 256, PaletteIndex::new(0));
 
 /// An `OBJ NAME` table. This table contains all the graphics data for objects. In VRAM the data is stored in two separate tables:

@@ -245,7 +245,7 @@ impl FromSnesData<(&[u8], &[u8])> for ObjNameTable {
 }
 
 #[cfg(test)]
-pub(crate) mod test_util {
+pub(super) mod test_util {
     use art_extractor_core::sprite::{Color, Palette, PaletteIndex};
     use bmp::Pixel;
     use art_extractor_core::surface::{Surface, surface_iterate};

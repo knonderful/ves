@@ -522,19 +522,19 @@ struct ObjData {
 
 impl FromSnesData<(u8, u8, u8, u8, u8)> for ObjData {
     fn from_snes_data((low1, low2, low3, low4, high): (u8, u8, u8, u8, u8)) -> Result<Self, DataImportError> {
-        let mut low2 = low2;
+        let mut low4 = low4;
 
-        let name = ((low2 & 0b1) as u16) << 8 | (low1 as u16);
+        let name = ((low4 & 0b1) as u16) << 8 | (low3 as u16);
         let name = ObjNameTableIndex::from_snes_data(name).unwrap();
 
-        low2 >>= 1;
-        let color = low2 & 0b111;
-        low2 >>= 5; // NOTE: Skipping OBJ PRIORITY
-        let h_flip = low2 & 0b1 != 0;
-        let v_flip = low2 & 0b10 != 0;
+        low4 >>= 1;
+        let color = low4 & 0b111;
+        low4 >>= 5; // NOTE: Skipping OBJ PRIORITY
+        let h_flip = low4 & 0b1 != 0;
+        let v_flip = low4 & 0b10 != 0;
 
-        let pos_x = ArtworkSpaceUnit::from(low3);
-        let pos_y = ArtworkSpaceUnit::from(high & 0b1) << 8 | ArtworkSpaceUnit::from(low4);
+        let pos_x = ArtworkSpaceUnit::from(low1);
+        let pos_y = ArtworkSpaceUnit::from(high & 0b1) << 8 | ArtworkSpaceUnit::from(low2);
         let position = (pos_x, pos_y).into();
         let size_large = high & 0b10 != 0;
 
@@ -549,7 +549,7 @@ mod test_obj_data {
 
     #[test]
     fn test_from_snes_data() {
-        let obj = ObjData::from_snes_data((0b01011101, 0b10100101, 0b01100101, 0b01101111, 0b11100011)).unwrap();
+        let obj = ObjData::from_snes_data((0b01100101, 0b01101111, 0b01011101, 0b10100101, 0b11100011)).unwrap();
         assert_eq!(ObjNameTableIndex::for_select(93), obj.name);
         assert_eq!(2, obj.color);
         assert_eq!(false, obj.h_flip);
@@ -557,7 +557,7 @@ mod test_obj_data {
         assert_eq!(true, obj.size_large);
         assert_eq!(Point::new(101, 367), obj.position);
 
-        let obj = ObjData::from_snes_data((0b01000101, 0b01111110, 0b01110100, 0b01101000, 0b11000100)).unwrap();
+        let obj = ObjData::from_snes_data((0b01110100, 0b01101000, 0b01000101, 0b01111110, 0b11000100)).unwrap();
         assert_eq!(ObjNameTableIndex::for_base(69), obj.name);
         assert_eq!(7, obj.color);
         assert_eq!(true, obj.h_flip);

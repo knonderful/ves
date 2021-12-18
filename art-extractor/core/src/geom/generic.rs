@@ -68,6 +68,19 @@ impl<T, U> Size<T, U> {
 }
 
 impl<T, U> Size<T, U> where
+    T: Copy,
+{
+    /// Creates a new instance of a square.
+    ///
+    /// # Parameters
+    /// * `side`: The length of a side in pixels.
+    #[inline(always)]
+    pub fn new_square(side: T) -> Self {
+        Self::new(side, side)
+    }
+}
+
+impl<T, U> Size<T, U> where
     T: Zero + Clone,
     U: Clone,
 {

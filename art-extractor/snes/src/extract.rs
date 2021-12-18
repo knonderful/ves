@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use art_extractor_core::geom::{ArtworkSpaceUnit, Point, Size};
 use art_extractor_core::sprite::{Color, Index, Palette, PaletteIndex};
 use art_extractor_core::surface::{IntoUsize, Surface};

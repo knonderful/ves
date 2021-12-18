@@ -159,7 +159,7 @@ pub struct ObjNameTable {
 impl ObjNameTable {
     /// The number of 8x8 tiles on the X-axis.
     const TILES_X: ArtworkSpaceUnit = 0x10;
-    /// The number of 8x8 tiles on the Y-axis.
+    /// The number of 8x8 tiles on the Y-axis for a sub-name table (`OBJ NAME BASE` or `OBJ NAME SELECT`).
     const TILES_Y: ArtworkSpaceUnit = 0x10;
     /// The width of a tile in pixels.
     const TILE_WIDTH: ArtworkSpaceUnit = 8;
@@ -507,9 +507,9 @@ impl FromSnesData<u16> for ObjNameTableIndex {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct ObjData {
     /// The `NAME` or `CHARACTER CODE NUMBER` field. This is an index into [`ObjNameTable`].
-    name: ObjNameTableIndex,
+    obj_name_table_index: ObjNameTableIndex,
     /// The `COLOR PALETTE SELECT` field. This is the index into [`ObjPalettes`].
-    color: u8,
+    palette: u8,
     /// The `H` component of the `H/V FLIP` field. Horizontal flip flag.
     h_flip: bool,
     /// The `V` component of the `H/V FLIP` field. Vertical flip flag.
@@ -538,7 +538,7 @@ impl FromSnesData<(u8, u8, u8, u8, u8)> for ObjData {
         let position = (pos_x, pos_y).into();
         let size_large = high & 0b10 != 0;
 
-        Ok(Self { name, color, h_flip, v_flip, position, size_large })
+        Ok(Self { obj_name_table_index: name, palette: color, h_flip, v_flip, position, size_large })
     }
 }
 
@@ -550,16 +550,16 @@ mod test_obj_data {
     #[test]
     fn test_from_snes_data() {
         let obj = ObjData::from_snes_data((0b01100101, 0b01101111, 0b01011101, 0b10100101, 0b11100011)).unwrap();
-        assert_eq!(ObjNameTableIndex::for_select(93), obj.name);
-        assert_eq!(2, obj.color);
+        assert_eq!(ObjNameTableIndex::for_select(93), obj.obj_name_table_index);
+        assert_eq!(2, obj.palette);
         assert_eq!(false, obj.h_flip);
         assert_eq!(true, obj.v_flip);
         assert_eq!(true, obj.size_large);
         assert_eq!(Point::new(101, 367), obj.position);
 
         let obj = ObjData::from_snes_data((0b01110100, 0b01101000, 0b01000101, 0b01111110, 0b11000100)).unwrap();
-        assert_eq!(ObjNameTableIndex::for_base(69), obj.name);
-        assert_eq!(7, obj.color);
+        assert_eq!(ObjNameTableIndex::for_base(69), obj.obj_name_table_index);
+        assert_eq!(7, obj.palette);
         assert_eq!(true, obj.h_flip);
         assert_eq!(false, obj.v_flip);
         assert_eq!(false, obj.size_large);

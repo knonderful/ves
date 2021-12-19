@@ -1,18 +1,7 @@
 //! A module for working with 2-dimensional surfaces.
 
 use std::ops::RangeInclusive;
-use crate::geom::{ArtworkSpaceUnit, Point, Rect, Size};
-
-/// Local trait for extending `ArtworkSpaceUnit` with `into_usize()`.
-pub trait IntoUsize {
-    fn into_usize(self) -> usize;
-}
-
-impl IntoUsize for ArtworkSpaceUnit {
-    fn into_usize(self) -> usize {
-        self.try_into().unwrap()
-    }
-}
+use crate::geom::{Point, Rect, Size};
 
 /// A 2-dimensional surface.
 pub trait Surface {
@@ -182,6 +171,8 @@ impl<X, Y> SurfaceIter<X, Y> where
     Y: SurfaceAxisIterFactory,
 {
     pub fn new(size_surf: Size, rect_view: Rect) -> Result<Self, String> {
+        use crate::IntoUsize;
+
         let width = size_surf.width.into_usize();
         let height = size_surf.height.into_usize();
         let x_min = rect_view.min_x().into_usize();

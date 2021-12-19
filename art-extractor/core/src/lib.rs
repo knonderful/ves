@@ -4,12 +4,17 @@ pub mod geom;
 pub mod surface;
 pub mod sprite;
 
+/// Trait for converting a value to `usize`.
+pub trait IntoUsize {
+    fn into_usize(self) -> usize;
+}
+
 /// Macro for creating [`surface::Surface`] implementations that do no require any allocation.
 ///
 /// # Parameters
 /// * `vis`: Output type visibility.
 /// * `name`: Output type name.
-/// * `data_type`: Data type of an element in the surface. This must implement [`surface::IntoUsize`].
+/// * `data_type`: Data type of an element in the surface. This must implement [`IntoUsize`].
 /// * `width`: Width of the surface in pixels.
 /// * `height`: Height of the surface in pixels.
 /// * `default_value`: Default element value.
@@ -58,7 +63,7 @@ macro_rules! sized_surface {
                 if value.x >= $width || value.y >= $height {
                     None
                 } else {
-                    Some($crate::surface::IntoUsize::into_usize(value.y * $width + value.x))
+                    Some($crate::IntoUsize::into_usize(value.y * $width + value.x))
                 }
             }
         }

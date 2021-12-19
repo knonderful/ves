@@ -3,7 +3,8 @@
 use art_extractor_core::geom::{ArtworkSpaceUnit, Point, Size};
 use art_extractor_core::geom::Rect;
 use art_extractor_core::sprite::{Color, Index, Palette, PaletteIndex};
-use art_extractor_core::surface::{IntoUsize, Surface};
+use art_extractor_core::IntoUsize;
+use art_extractor_core::surface::Surface;
 
 /// A data import error.
 #[derive(Clone, Debug, Eq, PartialEq)]

@@ -15,6 +15,12 @@ pub struct ArtworkSpace;
 /// The unit for data in "artwork space".
 pub type ArtworkSpaceUnit = u32;
 
+impl crate::IntoUsize for ArtworkSpaceUnit {
+    fn into_usize(self) -> usize {
+        self.try_into().unwrap()
+    }
+}
+
 impl generic::Zero for ArtworkSpaceUnit {
     fn zero() -> Self {
         0

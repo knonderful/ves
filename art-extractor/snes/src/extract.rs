@@ -7,7 +7,7 @@ use art_extractor_core::surface::{IntoUsize, Surface};
 
 /// A data import error.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum DataImportError {
+enum DataImportError {
     /// Invalid input data. The provided string contains a more detailed description of the problem.
     InvalidData(String),
 }
@@ -15,7 +15,7 @@ pub enum DataImportError {
 /// A trait for constructing objects from (raw) SNES data.
 ///
 /// Generally the raw data for the SNES is little-endian.
-pub trait FromSnesData<T> where Self: Sized {
+trait FromSnesData<T> where Self: Sized {
     /// Creates an instance from the provided buffer.
     ///
     /// # Parameters
@@ -118,7 +118,7 @@ mod test_palette {
 
 const OBJ_PALETTE_COUNT: usize = 8;
 
-pub struct ObjPalettes {
+struct ObjPalettes {
     palettes: Vec<Palette<Color>>,
 }
 
@@ -127,7 +127,7 @@ impl ObjPalettes {
         Self { palettes }
     }
 
-    pub fn palettes(&self) -> &[Palette<Color>] {
+    fn palettes(&self) -> &[Palette<Color>] {
         &self.palettes[..]
     }
 }
@@ -148,12 +148,12 @@ impl FromSnesData<&[u8]> for ObjPalettes {
     }
 }
 
-art_extractor_core::sized_surface!(pub ObjNameTableSurface, PaletteIndex, 128, 256, PaletteIndex::new(0));
+art_extractor_core::sized_surface!(ObjNameTableSurface, PaletteIndex, 128, 256, PaletteIndex::new(0));
 
 /// An `OBJ NAME` table. This table contains all the graphics data for objects. In VRAM the data is stored in two separate tables:
 /// `OBJ NAME BASE` and `OBJ NAME SELECT`. The SNES treats the concatenation of the two as one table for looking up sprite data. See
 /// sections A-1 through A-4 in the SNES Developer Manual for more information.
-pub struct ObjNameTable {
+struct ObjNameTable {
     surface: ObjNameTableSurface,
 }
 
@@ -239,7 +239,7 @@ impl ObjNameTable {
     }
 
     /// Retrieves the [`Surface`].
-    pub fn surface(&self) -> &ObjNameTableSurface {
+    fn surface(&self) -> &ObjNameTableSurface {
         &self.surface
     }
 
@@ -358,7 +358,7 @@ mod test_obj_name_table {
 
 /// An OBJ size.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ObjSize {
+enum ObjSize {
     /// Small OBJ size: 8x8 pixels.
     Small,
     /// Medium OBJ size: 16x16 pixels.
@@ -371,7 +371,7 @@ pub enum ObjSize {
 
 impl ObjSize {
     /// Retrieves the [`Size`].
-    pub fn size(&self) -> Size {
+    fn size(&self) -> Size {
         let pixel_size = self.pixel_size();
         Size::new(pixel_size, pixel_size)
     }
@@ -404,7 +404,7 @@ mod test_obj_size {
 ///
 /// Refer to Chapter 27 of the SNES Developer Manual for more information.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ObjSizeSelect {
+enum ObjSizeSelect {
     /// Small: [`ObjSize::Small`], Medium: [`ObjSize::Medium`].
     SM,
     /// Small: [`ObjSize::Small`], Medium: [`ObjSize::Large`].
@@ -436,7 +436,7 @@ impl FromSnesData<u8> for ObjSizeSelect {
 
 impl ObjSizeSelect {
     /// Retrieves the "small" variant.
-    pub fn small(&self) -> ObjSize {
+    fn small(&self) -> ObjSize {
         use ObjSizeSelect::*;
         match self {
             SM | SL | SXL => ObjSize::Small,
@@ -446,7 +446,7 @@ impl ObjSizeSelect {
     }
 
     /// Retrieves the "large" variant.
-    pub fn large(&self) -> ObjSize {
+    fn large(&self) -> ObjSize {
         use ObjSizeSelect::*;
         match self {
             SM => ObjSize::Medium,
@@ -633,7 +633,7 @@ impl FromSnesData<&[u8]> for OamTable {
 
 impl OamTable {
     /// Retrieves the [`ObjData`] entries.
-    pub fn objects(&self) -> &[ObjData] {
+    fn objects(&self) -> &[ObjData] {
         self.objects.as_slice()
     }
 }
@@ -664,7 +664,7 @@ mod test_combination {
     use art_extractor_core::surface::Surface;
     use bmp::Pixel;
 
-    art_extractor_core::sized_surface!(pub ScreenSurface, Color, 512, 256, Color::new(255, 0, 255));
+    art_extractor_core::sized_surface!(ScreenSurface, Color, 512, 256, Color::new(255, 0, 255));
 
     #[test]
     fn test_render_frame() {

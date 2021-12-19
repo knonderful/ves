@@ -1,0 +1,9 @@
+[workspace]
+
+members = [
+    "art-extractor/core",
+    "art-extractor/snes",
+    "prototype/proto-common",
+    "prototype/proto-core",
+    "prototype/proto-game",
+]

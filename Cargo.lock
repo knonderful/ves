@@ -48,7 +48,6 @@ dependencies = [
  "rgb",
  "serde",
  "ves-geom",
- "ves-geom-artwork",
 ]
 
 [[package]]
@@ -60,7 +59,6 @@ dependencies = [
  "serde",
  "serde_json",
  "ves-geom",
- "ves-geom-artwork",
 ]
 
 [[package]]
@@ -982,13 +980,6 @@ checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
 [[package]]
 name = "ves-geom"
 version = "0.1.0"
-
-[[package]]
-name = "ves-geom-artwork"
-version = "0.1.0"
-dependencies = [
- "ves-geom",
-]
 
 [[package]]
 name = "wasi"

@@ -2,6 +2,7 @@
 
 pub mod surface;
 pub mod sprite;
+pub mod geom_art;
 
 /// Macro for creating [`surface::Surface`] implementations that do no require any allocation.
 ///
@@ -34,8 +35,8 @@ macro_rules! sized_surface {
             type DataType = $data_type;
 
             #[inline(always)]
-            fn size(&self) -> ves_geom_artwork::Size {
-                ves_geom_artwork::Size::new_raw($width, $height)
+            fn size(&self) -> $crate::geom_art::Size {
+                $crate::geom_art::Size::new_raw($width, $height)
             }
 
             #[inline(always)]
@@ -50,7 +51,7 @@ macro_rules! sized_surface {
         }
 
         impl $crate::surface::Offset for $name {
-            type Input = ves_geom_artwork::Point;
+            type Input = $crate::geom_art::Point;
 
             #[inline(always)]
             fn offset(&self, value: Self::Input) -> Option<usize> {

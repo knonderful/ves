@@ -10,7 +10,7 @@
 //! objects are referred to by index. The original object can only be retrieved via a lookup into a collection, which will usually be a
 //! global cache of some sort.
 
-use ves_geom_artwork::Point;
+use crate::geom_art::Point;
 use serde::{Deserialize, Serialize};
 
 /// A color value.

@@ -7,4 +7,3 @@ edition = "2021"
 rgb = ">=0.8, <1"
 serde = { version = ">=1, <2", features = ["derive"] }
 ves-geom = { path = "../../geom" }
-ves-geom-artwork = { path = "../../geom-artwork" }

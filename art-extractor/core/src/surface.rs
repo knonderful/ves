@@ -1,7 +1,7 @@
 //! A module for working with 2-dimensional surfaces.
 
 use std::ops::RangeInclusive;
-use ves_geom_artwork::{Point, Rect, Size};
+use crate::geom_art::{Point, Rect, Size};
 
 /// A 2-dimensional surface.
 pub trait Surface {
@@ -218,7 +218,7 @@ impl<X, Y> Iterator for SurfaceIter<X, Y> where
 
 #[cfg(test)]
 mod test_surface_iter {
-    use ves_geom_artwork::Rect;
+    use crate::geom_art::Rect;
     use crate::surface::Surface;
 
     crate::sized_surface!(Surfy, u8, 12, 8, 0);
@@ -692,7 +692,7 @@ mod test_surface_iter {
 ///
 /// ```
 /// use art_extractor_core::surface::surface_iterate_2;
-/// use ves_geom_artwork::{Size, Rect, Point};
+/// use art_extractor_core::geom_art::{Size, Rect, Point};
 ///
 /// let mut exp_iter: std::slice::Iter<(usize, usize)> = [
 ///     (22, 8080), (23, 8081), (24, 8082), (25, 8083), (32, 8180), (33, 8181), (34, 8182), (35, 8183),
@@ -812,7 +812,7 @@ mod test_fn_surface_iterate {
 ///
 /// ```
 /// use art_extractor_core::surface::surface_iterate_2;
-/// use ves_geom_artwork::{Size, Rect, Point};
+/// use art_extractor_core::geom_art::{Size, Rect, Point};
 ///
 /// let mut exp_iter: std::slice::Iter<(usize, usize)> = [
 ///     (22, 8080), (23, 8081), (24, 8082), (25, 8083), (32, 8180), (33, 8181), (34, 8182), (35, 8183),
@@ -930,7 +930,7 @@ pub fn surface_iterate_2<F>(a_surf_size: Size, a_select_rect: Rect, b_surf_size:
 
 #[cfg(test)]
 mod test_fn_surface_iterate_2 {
-    use ves_geom_artwork::{Point, Rect};
+    use crate::geom_art::{Point, Rect};
     use super::Surface;
     use super::surface_iterate_2;
 

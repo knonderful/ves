@@ -1,3 +1,5 @@
+//! Module containing geometrical types for "artwork space".
+
 ves_geom::space_unit!(ArtworkSpaceUnit, u32);
 
 impl Into<usize> for ArtworkSpaceUnit {

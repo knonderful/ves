@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use ves_geom_artwork::{ArtworkSpaceUnit, Point, Rect, Size};
+use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
 use art_extractor_core::sprite::{Color, Index, Palette, PaletteIndex};
 use art_extractor_core::surface::Surface;
 
@@ -270,7 +270,7 @@ impl FromSnesData<(&[u8], &[u8])> for ObjNameTable {
 
 #[cfg(test)]
 pub(super) mod test_util {
-    use ves_geom_artwork::{Point, Size};
+    use art_extractor_core::geom_art::{Point, Size};
     use art_extractor_core::surface::surface_iterate;
 
     pub fn create_bitmap(size: Size, mut func: impl FnMut(usize, Point, &mut bmp::Image)) -> bmp::Image {
@@ -399,7 +399,7 @@ impl ObjSize {
 
 #[cfg(test)]
 mod test_obj_size {
-    use ves_geom_artwork::Size;
+    use art_extractor_core::geom_art::Size;
     use super::ObjSize;
 
     #[test]
@@ -576,7 +576,7 @@ impl FromSnesData<(u8, u8, u8, u8, u8)> for ObjData {
 
 #[cfg(test)]
 mod test_obj_data {
-    use ves_geom_artwork::Point;
+    use art_extractor_core::geom_art::Point;
     use crate::extract::{FromSnesData, ObjData, ObjNameTableIndex};
 
     #[test]

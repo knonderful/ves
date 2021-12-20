@@ -4,7 +4,6 @@ members = [
     "art-extractor/core",
     "art-extractor/snes",
     "geom",
-    "geom-artwork",
     "prototype/proto-common",
     "prototype/proto-core",
     "prototype/proto-game",

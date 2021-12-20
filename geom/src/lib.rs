@@ -224,8 +224,8 @@ impl<T> From<((T::RawValue, T::RawValue), T::RawValue, T::RawValue)> for Rect<T>
 /// * `raw_type`: The [`SpaceUnit::RawValue`] type.
 #[macro_export]
 macro_rules! space_unit {
-    ($name:ident, $raw_type:ty) => {
-        /// See [`$crate::SpaceUnit`].
+    ($(#[doc = $doc:expr])* $name:ident, $raw_type:ty) => {
+        $(#[doc = $doc])*
         #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
         pub struct $name($raw_type);
 

@@ -171,16 +171,14 @@ impl<X, Y> SurfaceIter<X, Y> where
     Y: SurfaceAxisIterFactory,
 {
     pub fn new(size_surf: Size, rect_view: Rect) -> Result<Self, String> {
-        use ves_geom::IntoUsize;
-
-        let width = size_surf.width.into_usize();
-        let height = size_surf.height.into_usize();
-        let x_min = rect_view.min_x().into_usize();
-        let x_max = rect_view.max_x().into_usize();
+        let width: usize =  size_surf.width.into();
+        let height: usize = size_surf.height.into();
+        let x_min: usize = rect_view.min_x().into();
+        let x_max: usize = rect_view.max_x().into();
         let x_iter = X::new_iter(x_min, x_max, width)
             .map_err(|msg| format!("Could not create iterator for X-axis (min: {}, max: {}, limit: {}): {}", x_min, x_max, width, msg))?;
-        let y_min = rect_view.min_y().into_usize();
-        let y_max = rect_view.max_y().into_usize();
+        let y_min: usize = rect_view.min_y().into();
+        let y_max: usize = rect_view.max_y().into();
         let mut y_iter = Y::new_iter(y_min, y_max, height)
             .map_err(|msg| format!("Could not create iterator for Y-axis (min: {}, max: {}, limit: {}): {}", y_min, y_max, height, msg))?;
         let row_offset = y_iter.next().ok_or_else(|| "Expected at least one item in Y-iterator.")? * width;

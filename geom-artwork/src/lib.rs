@@ -92,13 +92,6 @@ impl ves_geom::SpaceUnit for ArtworkSpaceUnit {
     }
 }
 
-impl ves_geom::IntoUsize for ArtworkSpaceUnit {
-    #[inline(always)]
-    fn into_usize(self) -> usize {
-        self.0.try_into().unwrap()
-    }
-}
-
 impl From<u8> for ArtworkSpaceUnit {
     fn from(val: u8) -> Self {
         Self(val.into())

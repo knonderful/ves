@@ -58,7 +58,7 @@ macro_rules! sized_surface {
                 if value.x >= size.width || value.y >= size.height {
                     None
                 } else {
-                    Some(ves_geom::IntoUsize::into_usize(value.y * size.width + value.x))
+                    Some((value.y * size.width + value.x).into())
                 }
             }
         }

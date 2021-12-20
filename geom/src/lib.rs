@@ -1,12 +1,6 @@
 use std::fmt::Debug;
 use std::ops::{Add, Div, Mul, RangeInclusive, Rem, Sub};
 
-/// Trait for converting a value to `usize`. This is sometimes needed for working with data structures that store graphical data in an
-/// indexed structure like an array or slice and we need to convert from coordinate space to index.
-pub trait IntoUsize {
-    fn into_usize(self) -> usize;
-}
-
 /// Returns the value zero (0) for a type.
 pub trait Zero {
     /// Returns the value zero.

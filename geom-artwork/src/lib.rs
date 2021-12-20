@@ -92,18 +92,6 @@ impl ves_geom::SpaceUnit for ArtworkSpaceUnit {
     }
 }
 
-impl From<u8> for ArtworkSpaceUnit {
-    fn from(val: u8) -> Self {
-        Self(val.into())
-    }
-}
-
-impl From<u16> for ArtworkSpaceUnit {
-    fn from(val: u16) -> Self {
-        Self(val.into())
-    }
-}
-
 /// A point in "artwork space".
 ///
 /// See also [`ArtworkSpace`].

@@ -19,6 +19,19 @@ pub trait One {
     fn one() -> Self;
 }
 
+/// A unit that is used in a geometrical "space".
+///
+/// Even though it is possible to simply use some basic data type (e.g. `u32`) as a unit, this is not recommendable in cases for
+/// where geometrical "worlds" coexist in the same scope (like an application). For instance, imagine a game that has a top-down
+/// world map that can be navigated and a side-view for the levels. Objects and calculations between these worlds should never
+/// mix, which can happen easily when the unit type is too basic. A `Point<u32, u32>` from the world map might be used inside a
+/// level. Additionally, in case of a game there is another geometrical space: the output surface (usually a window or the entire
+/// screen). This is another geometrical space, again with its own unit.
+///
+/// By wrapping the primitive unit type in an explicit type these spaces can be cleanly separated. Any conversion between spaces
+/// (e.g. translating a coordinate from the level view to the screen) must be performed explicitly, thus ruling out any
+/// accidental bugs. Additionally, from a code-view perspective the more advanced types are more explicit, making code easier to
+/// understand and reason about.
 pub trait SpaceUnit:
 Copy + Add<Output=Self> + Sub<Output=Self> + Mul<Output=Self> + Div<Output=Self> + Rem<Output=Self> +
 Zero + One + Into<usize> + From<Self::RawValue> + Ord + PartialOrd

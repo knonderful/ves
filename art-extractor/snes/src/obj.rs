@@ -1,3 +1,7 @@
+//! A module for SNES `OBJ` data.
+//!
+//! In the context of the SNES an `OBJ` is a graphical element that has its own position on the
+//! screen (in contrast with tiles in a background that are layed out in a pre-defined raster).
 #![allow(dead_code)]
 
 use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
@@ -95,7 +99,7 @@ impl FromSnesData<&[u8]> for Palette<Color> {
 #[cfg(test)]
 mod test_palette {
     use art_extractor_core::sprite::{Color, Palette};
-    use crate::extract::FromSnesData;
+    use crate::obj::FromSnesData;
 
     #[test]
     fn test_from_snes_data() {
@@ -294,7 +298,7 @@ mod test_obj_name_table {
     use art_extractor_core::surface::Surface;
     use ves_geom::SpaceUnit;
     use bmp::Pixel;
-    use crate::extract::ObjPalettes;
+    use crate::obj::ObjPalettes;
     use crate::mesen::Frame;
     use super::{FromSnesData, ObjNameTable};
 
@@ -463,7 +467,7 @@ impl ObjSizeSelect {
 
 #[cfg(test)]
 mod test_obj_size_select {
-    use crate::extract::{FromSnesData, ObjSize, ObjSizeSelect};
+    use crate::obj::{FromSnesData, ObjSize, ObjSizeSelect};
 
     #[test]
     fn test_small() {
@@ -571,7 +575,7 @@ impl FromSnesData<(u8, u8, u8, u8, u8)> for ObjData {
 #[cfg(test)]
 mod test_obj_data {
     use art_extractor_core::geom_art::Point;
-    use crate::extract::{FromSnesData, ObjData, ObjNameTableIndex};
+    use crate::obj::{FromSnesData, ObjData, ObjNameTableIndex};
 
     #[test]
     fn test_from_snes_data() {
@@ -645,7 +649,7 @@ impl OamTable {
 
 #[cfg(test)]
 mod test_oam_table {
-    use crate::extract::{FromSnesData, OamTable};
+    use crate::obj::{FromSnesData, OamTable};
     use crate::mesen::Frame;
 
     #[test]
@@ -663,7 +667,7 @@ mod test_oam_table {
 
 #[cfg(test)]
 mod test_combination {
-    use crate::extract::{FromSnesData, OamTable, ObjNameTable, ObjPalettes, ObjSizeSelect};
+    use crate::obj::{FromSnesData, OamTable, ObjNameTable, ObjPalettes, ObjSizeSelect};
     use crate::mesen::Frame;
     use art_extractor_core::geom_art::ArtworkSpaceUnit;
     use art_extractor_core::sprite::Color;

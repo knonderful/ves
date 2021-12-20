@@ -147,7 +147,7 @@ impl FromSnesData<&[u8]> for ObjPalettes {
     }
 }
 
-art_extractor_core::sized_surface!(ObjNameTableSurface, PaletteIndex, 128, 256, PaletteIndex::new(0));
+art_extractor_core::sized_surface!(ObjNameTableSurface, PaletteIndex, ArtworkSpaceUnit, 128, 256, PaletteIndex::new(0));
 
 /// An `OBJ NAME` table. This table contains all the graphics data for objects. In VRAM the data is stored in two separate tables:
 /// `OBJ NAME BASE` and `OBJ NAME SELECT`. The SNES treats the concatenation of the two as one table for looking up sprite data. See
@@ -671,12 +671,13 @@ mod test_oam_table {
 mod test_combination {
     use crate::extract::{FromSnesData, OamTable, ObjNameTable, ObjPalettes, ObjSizeSelect};
     use crate::mesen::Frame;
+    use art_extractor_core::geom_art::ArtworkSpaceUnit;
     use art_extractor_core::sprite::Color;
     use art_extractor_core::surface::Surface;
     use ves_geom::SpaceUnit;
     use bmp::Pixel;
 
-    art_extractor_core::sized_surface!(ScreenSurface, Color, 512, 256, Color::new(255, 0, 255));
+    art_extractor_core::sized_surface!(ScreenSurface, Color, ArtworkSpaceUnit, 512, 256, Color::new(255, 0, 255));
 
     #[test]
     fn test_render_frame() {

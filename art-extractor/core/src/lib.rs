@@ -15,7 +15,7 @@ pub mod geom_art;
 /// * `default_value`: Default element value.
 #[macro_export]
 macro_rules! sized_surface {
-    ($vis:vis $name:ident, $data_type:ty, $width:expr, $height:expr, $default_value:expr) => {
+    ($vis:vis $name:ident, $data_type:ty, $space_unit_type:ty, $width:expr, $height:expr, $default_value:expr) => {
         #[doc = concat!("A [`Sized`] implementation of [`Surface`] of ", stringify!($width), "x", stringify!($height), " pixels.")]
         #[derive(Clone, Debug, Eq, PartialEq)]
         $vis struct $name {
@@ -31,12 +31,12 @@ macro_rules! sized_surface {
             }
         }
 
-        impl $crate::surface::Surface for $name {
+        impl $crate::surface::Surface<$space_unit_type> for $name {
             type DataType = $data_type;
 
             #[inline(always)]
-            fn size(&self) -> $crate::geom_art::Size {
-                $crate::geom_art::Size::new_raw($width, $height)
+            fn size(&self) -> ves_geom::Size<$space_unit_type> {
+                ves_geom::Size::new_raw($width, $height)
             }
 
             #[inline(always)]
@@ -51,7 +51,7 @@ macro_rules! sized_surface {
         }
 
         impl $crate::surface::Offset for $name {
-            type Input = $crate::geom_art::Point;
+            type Input = ves_geom::Point<$space_unit_type>;
 
             #[inline(always)]
             fn offset(&self, value: Self::Input) -> Option<usize> {

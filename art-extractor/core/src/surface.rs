@@ -1,14 +1,14 @@
 //! A module for working with 2-dimensional surfaces.
 
 use std::ops::RangeInclusive;
-use crate::geom_art::{Point, Rect, Size};
+use ves_geom::{SpaceUnit, Point, Rect, Size};
 
 /// A 2-dimensional surface.
-pub trait Surface {
+pub trait Surface<T: SpaceUnit> {
     type DataType;
 
     /// The size.
-    fn size(&self) -> Size;
+    fn size(&self) -> Size<T>;
 
     /// Retrieves a slice of the raw data.
     fn data(&self) -> &[Self::DataType];
@@ -170,7 +170,7 @@ impl<X, Y> SurfaceIter<X, Y> where
     X: SurfaceAxisIterFactory,
     Y: SurfaceAxisIterFactory,
 {
-    pub fn new(size_surf: Size, rect_view: Rect) -> Result<Self, String> {
+    pub fn new<T: SpaceUnit>(size_surf: Size<T>, rect_view: Rect<T>) -> Result<Self, String> {
         let width: usize =  size_surf.width.into();
         let height: usize = size_surf.height.into();
         let x_min: usize = rect_view.min_x().into();
@@ -218,10 +218,10 @@ impl<X, Y> Iterator for SurfaceIter<X, Y> where
 
 #[cfg(test)]
 mod test_surface_iter {
-    use crate::geom_art::Rect;
+    use crate::geom_art::{ArtworkSpaceUnit, Rect};
     use crate::surface::Surface;
 
-    crate::sized_surface!(Surfy, u8, 12, 8, 0);
+    crate::sized_surface!(Surfy, u8, ArtworkSpaceUnit, 12, 8, 0);
 
     macro_rules! data {
         ($($elt:expr)*) => {
@@ -713,7 +713,7 @@ mod test_surface_iter {
 ///     },
 /// ).unwrap();
 /// ```
-pub fn surface_iterate<F>(surf_size: Size, select_rect: Rect, hflip: bool, vflip: bool, func: F) -> Result<(), String> where
+pub fn surface_iterate<T: SpaceUnit, F>(surf_size: Size<T>, select_rect: Rect<T>, hflip: bool, vflip: bool, func: F) -> Result<(), String> where
     F: FnMut(usize)
 {
     let x_wrap = select_rect.max_x() >= surf_size.width;
@@ -833,10 +833,10 @@ mod test_fn_surface_iterate {
 ///     },
 /// ).unwrap();
 /// ```
-pub fn surface_iterate_2<F>(a_surf_size: Size, a_select_rect: Rect, b_surf_size: Size, b_select_origin: Point, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
+pub fn surface_iterate_2<T: SpaceUnit, F>(a_surf_size: Size<T>, a_select_rect: Rect<T>, b_surf_size: Size<T>, b_select_origin: Point<T>, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
     F: FnMut(usize, usize)
 {
-    let b_select_rect = Rect::new(b_select_origin, a_select_rect.size);
+    let b_select_rect = Rect::<T>::new(b_select_origin, a_select_rect.size);
     let src_x_wrap = a_select_rect.max_x() >= a_surf_size.width;
     let src_y_wrap = a_select_rect.max_y() >= a_surf_size.height;
     let dest_x_wrap = b_select_rect.max_x() >= b_surf_size.width;
@@ -930,11 +930,11 @@ pub fn surface_iterate_2<F>(a_surf_size: Size, a_select_rect: Rect, b_surf_size:
 
 #[cfg(test)]
 mod test_fn_surface_iterate_2 {
-    use crate::geom_art::{Point, Rect};
+    use crate::geom_art::{ArtworkSpaceUnit, Point, Rect};
     use super::Surface;
     use super::surface_iterate_2;
 
-    crate::sized_surface!(Surfy, u8, 12, 8, 0);
+    crate::sized_surface!(Surfy, u8, ArtworkSpaceUnit, 12, 8, 0);
 
     macro_rules! data {
         ($($elt:expr)*) => {

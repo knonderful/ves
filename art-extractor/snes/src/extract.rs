@@ -1,9 +1,7 @@
 #![allow(dead_code)]
 
-use art_extractor_core::geom::{ArtworkSpaceUnit, Point, Size};
-use art_extractor_core::geom::Rect;
+use ves_geom_artwork::{ArtworkSpaceUnit, Point, Rect, Size};
 use art_extractor_core::sprite::{Color, Index, Palette, PaletteIndex};
-use art_extractor_core::IntoUsize;
 use art_extractor_core::surface::Surface;
 
 /// A data import error.
@@ -160,13 +158,13 @@ struct ObjNameTable {
 
 impl ObjNameTable {
     /// The number of 8x8 tiles on the X-axis.
-    const TILES_X: ArtworkSpaceUnit = 0x10;
+    const TILES_X: u32 = 0x10;
     /// The number of 8x8 tiles on the Y-axis for a sub-name table (`OBJ NAME BASE` or `OBJ NAME SELECT`).
-    const TILES_Y: ArtworkSpaceUnit = 0x10;
+    const TILES_Y: u32 = 0x10;
     /// The width of a tile in pixels.
-    const TILE_WIDTH: ArtworkSpaceUnit = 8;
+    const TILE_WIDTH: u32 = 8;
     /// The height of a tile in pixels.
-    const TILE_HEIGHT: ArtworkSpaceUnit = 8;
+    const TILE_HEIGHT: u32 = 8;
 
     /// Creates an [`IndexedSurface`] from 4bpp interleaved CHR data.
     ///
@@ -187,8 +185,8 @@ impl ObjNameTable {
 
         let mut surface = ObjNameTableSurface::new();
 
-        Self::read_name_table_into_surface(&mut surface, obj_name_base, 0);
-        Self::read_name_table_into_surface(&mut surface, obj_name_select, Self::TILES_Y);
+        Self::read_name_table_into_surface(&mut surface, obj_name_base, 0u32.into());
+        Self::read_name_table_into_surface(&mut surface, obj_name_select, Self::TILES_Y.into());
 
         Ok(surface)
     }
@@ -208,8 +206,12 @@ impl ObjNameTable {
                     for pixel_y in 0..Self::TILE_HEIGHT {
                         let plane1 = *data_iter.next().unwrap();
                         let plane2 = *data_iter.next().unwrap();
-                        let offset = surface.offset((tile_x * Self::TILE_WIDTH, (y_offset + tile_y) * Self::TILE_HEIGHT + pixel_y).into()).unwrap();
-                        let surface_row_data = &mut surface.data_mut()[offset..offset + Self::TILE_WIDTH.into_usize()];
+                        let x: ArtworkSpaceUnit = (Self::TILE_WIDTH * tile_x).into();
+                        let y: ArtworkSpaceUnit = (y_offset + tile_y.into()) * Self::TILE_HEIGHT.into() + pixel_y.into();
+
+                        let offset: usize = surface.offset(Point::new(x, y)).unwrap();
+                        let plus: usize = ArtworkSpaceUnit::from(Self::TILE_WIDTH).into();
+                        let surface_row_data = &mut surface.data_mut()[offset..offset + plus];
                         Self::apply_planes_to_row(surface_row_data, plane_pair * 2, plane1, plane2)
                     }
                 }
@@ -247,16 +249,16 @@ impl ObjNameTable {
     /// Retrieves the [`Rect`] into the [`Surface`] for the provided [`ObjNameTableIndex`] and [`ObjSize`].
     fn rect_for(&self, index: ObjNameTableIndex, size: ObjSize) -> Rect {
         let y_offset = if index.is_base {
-            0
+            0u32
         } else {
             Self::TILES_Y
         };
 
-        let idx = ArtworkSpaceUnit::from(index.index);
-        let y = idx / Self::TILES_X;
-        let x = idx % Self::TILES_X;
+        let idx = u32::from(index.index);
+        let y: u32 = idx / Self::TILES_X;
+        let x: u32 = idx % Self::TILES_X;
 
-        Rect::new((x * Self::TILE_WIDTH, (y_offset + y) * Self::TILE_HEIGHT).into(), Size::new_square(size.pixel_size()))
+        Rect::new(Point::new_raw(x * Self::TILE_WIDTH, (y_offset + y) * Self::TILE_HEIGHT), Size::new_square(size.pixel_size()))
     }
 }
 
@@ -268,23 +270,25 @@ impl FromSnesData<(&[u8], &[u8])> for ObjNameTable {
 
 #[cfg(test)]
 pub(super) mod test_util {
-    use art_extractor_core::geom::{Point, Size};
+    use ves_geom_artwork::{Point, Size};
     use art_extractor_core::surface::surface_iterate;
 
     pub fn create_bitmap(size: Size, mut func: impl FnMut(usize, Point, &mut bmp::Image)) -> bmp::Image {
-        let mut img = bmp::Image::new(size.width, size.height);
+        use ves_geom::SpaceUnit;
+
+        let mut img = bmp::Image::new(size.width.raw(), size.height.raw());
 
         let rect = size.as_rect();
-        let mut pos_iter = (0..rect.height())
+        let mut pos_iter = (0..rect.height().raw())
             .flat_map(|y| {
                 std::iter::repeat(y)
-                    .zip(0..rect.width())
+                    .zip(0..rect.width().raw())
             })
-            .map(|(y, x)| (u32::from(x), u32::from(y)));
+            .map(|(y, x)| (x, y));
 
         surface_iterate(size, rect, false, false, |index| {
             let (x, y) = pos_iter.next().unwrap();
-            func(index, Point::new(x, y), &mut img);
+            func(index, Point::new_raw(x, y), &mut img);
         }).unwrap();
         img
     }
@@ -294,6 +298,7 @@ pub(super) mod test_util {
 mod test_obj_name_table {
     use art_extractor_core::sprite::{Color, PaletteIndex};
     use art_extractor_core::surface::Surface;
+    use ves_geom::SpaceUnit;
     use bmp::Pixel;
     use crate::extract::ObjPalettes;
     use crate::mesen::Frame;
@@ -343,7 +348,7 @@ mod test_obj_name_table {
                 0 => &transparent,
                 _ => palette.get(pixel).unwrap(),
             };
-            img.set_pixel(pos.x, pos.y, Pixel::new(color.r, color.g, color.b));
+            img.set_pixel(pos.x.raw(), pos.y.raw(), Pixel::new(color.r, color.g, color.b));
         });
 
         // actual.save(format!("{}/target/out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR JUST LOOKING
@@ -371,6 +376,11 @@ enum ObjSize {
 }
 
 impl ObjSize {
+    const SMALL_SIZE: u32 = 8;
+    const MEDIUM_SIZE: u32 = 16;
+    const LARGE_SIZE: u32 = 32;
+    const EXTRA_LARGE_SIZE: u32 = 64;
+
     /// Retrieves the [`Size`].
     fn size(&self) -> Size {
         let pixel_size = self.pixel_size();
@@ -379,25 +389,25 @@ impl ObjSize {
 
     fn pixel_size(&self) -> ArtworkSpaceUnit {
         match self {
-            ObjSize::Small => 8,
-            ObjSize::Medium => 16,
-            ObjSize::Large => 32,
-            ObjSize::ExtraLarge => 64,
-        }
+            ObjSize::Small => Self::SMALL_SIZE,
+            ObjSize::Medium => Self::MEDIUM_SIZE,
+            ObjSize::Large => Self::LARGE_SIZE,
+            ObjSize::ExtraLarge => Self::EXTRA_LARGE_SIZE,
+        }.into()
     }
 }
 
 #[cfg(test)]
 mod test_obj_size {
-    use art_extractor_core::geom::Size;
+    use ves_geom_artwork::Size;
     use super::ObjSize;
 
     #[test]
     fn test_size() {
-        assert_eq!(Size::new(8, 8), ObjSize::Small.size());
-        assert_eq!(Size::new(16, 16), ObjSize::Medium.size());
-        assert_eq!(Size::new(32, 32), ObjSize::Large.size());
-        assert_eq!(Size::new(64, 64), ObjSize::ExtraLarge.size());
+        assert_eq!(Size::new_raw(8, 8), ObjSize::Small.size());
+        assert_eq!(Size::new_raw(16, 16), ObjSize::Medium.size());
+        assert_eq!(Size::new_raw(32, 32), ObjSize::Large.size());
+        assert_eq!(Size::new_raw(64, 64), ObjSize::ExtraLarge.size());
     }
 }
 
@@ -555,8 +565,8 @@ impl FromSnesData<(u8, u8, u8, u8, u8)> for ObjData {
         let h_flip = low4 & 0b1 != 0;
         let v_flip = low4 & 0b10 != 0;
 
-        let pos_x = ArtworkSpaceUnit::from(low1);
-        let pos_y = ArtworkSpaceUnit::from(high & 0b1) << 8 | ArtworkSpaceUnit::from(low2);
+        let pos_x: u32 = low1.into();
+        let pos_y: u32 = u32::from(high & 0b1) << 8u32 | u32::from(low2);
         let position = (pos_x, pos_y).into();
         let size_large = high & 0b10 != 0;
 
@@ -566,7 +576,7 @@ impl FromSnesData<(u8, u8, u8, u8, u8)> for ObjData {
 
 #[cfg(test)]
 mod test_obj_data {
-    use art_extractor_core::geom::Point;
+    use ves_geom_artwork::Point;
     use crate::extract::{FromSnesData, ObjData, ObjNameTableIndex};
 
     #[test]
@@ -577,7 +587,7 @@ mod test_obj_data {
         assert_eq!(false, obj.h_flip);
         assert_eq!(true, obj.v_flip);
         assert_eq!(true, obj.size_large);
-        assert_eq!(Point::new(101, 367), obj.position);
+        assert_eq!(Point::new_raw(101, 367), obj.position);
 
         let obj = ObjData::from_snes_data((0b01110100, 0b01101000, 0b01000101, 0b01111110, 0b11000100)).unwrap();
         assert_eq!(ObjNameTableIndex::for_base(69), obj.obj_name_table_index);
@@ -585,7 +595,7 @@ mod test_obj_data {
         assert_eq!(true, obj.h_flip);
         assert_eq!(false, obj.v_flip);
         assert_eq!(false, obj.size_large);
-        assert_eq!(Point::new(116, 104), obj.position);
+        assert_eq!(Point::new_raw(116, 104), obj.position);
     }
 }
 
@@ -663,6 +673,7 @@ mod test_combination {
     use crate::mesen::Frame;
     use art_extractor_core::sprite::Color;
     use art_extractor_core::surface::Surface;
+    use ves_geom::SpaceUnit;
     use bmp::Pixel;
 
     art_extractor_core::sized_surface!(ScreenSurface, Color, 512, 256, Color::new(255, 0, 255));
@@ -712,7 +723,7 @@ mod test_combination {
         // Write BMP
         let actual = super::test_util::create_bitmap(screen_size, |index, pos, img| {
             let color = screen_data[index];
-            img.set_pixel(pos.x, pos.y, Pixel::new(color.r, color.g, color.b));
+            img.set_pixel(pos.x.raw(), pos.y.raw(), Pixel::new(color.r, color.g, color.b));
         });
 
         // actual.save(format!("{}/target/test_render_frame_out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR JUST LOOKING

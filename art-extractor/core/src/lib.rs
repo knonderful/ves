@@ -1,13 +1,7 @@
 #![allow(dead_code)] // TODO: Remove this
 
-pub mod geom;
 pub mod surface;
 pub mod sprite;
-
-/// Trait for converting a value to `usize`.
-pub trait IntoUsize {
-    fn into_usize(self) -> usize;
-}
 
 /// Macro for creating [`surface::Surface`] implementations that do no require any allocation.
 ///
@@ -40,8 +34,8 @@ macro_rules! sized_surface {
             type DataType = $data_type;
 
             #[inline(always)]
-            fn size(&self) -> $crate::geom::Size {
-                $crate::geom::Size::new($width, $height)
+            fn size(&self) -> ves_geom_artwork::Size {
+                ves_geom_artwork::Size::new_raw($width, $height)
             }
 
             #[inline(always)]
@@ -56,14 +50,15 @@ macro_rules! sized_surface {
         }
 
         impl $crate::surface::Offset for $name {
-            type Input = $crate::geom::Point;
+            type Input = ves_geom_artwork::Point;
 
             #[inline(always)]
             fn offset(&self, value: Self::Input) -> Option<usize> {
-                if value.x >= $width || value.y >= $height {
+                let size = self.size();
+                if value.x >= size.width || value.y >= size.height {
                     None
                 } else {
-                    Some($crate::IntoUsize::into_usize(value.y * $width + value.x))
+                    Some(ves_geom::IntoUsize::into_usize(value.y * size.width + value.x))
                 }
             }
         }

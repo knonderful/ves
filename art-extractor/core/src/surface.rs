@@ -1,7 +1,7 @@
 //! A module for working with 2-dimensional surfaces.
 
 use std::ops::RangeInclusive;
-use crate::geom::{Point, Rect, Size};
+use ves_geom_artwork::{Point, Rect, Size};
 
 /// A 2-dimensional surface.
 pub trait Surface {
@@ -171,7 +171,7 @@ impl<X, Y> SurfaceIter<X, Y> where
     Y: SurfaceAxisIterFactory,
 {
     pub fn new(size_surf: Size, rect_view: Rect) -> Result<Self, String> {
-        use crate::IntoUsize;
+        use ves_geom::IntoUsize;
 
         let width = size_surf.width.into_usize();
         let height = size_surf.height.into_usize();
@@ -220,7 +220,7 @@ impl<X, Y> Iterator for SurfaceIter<X, Y> where
 
 #[cfg(test)]
 mod test_surface_iter {
-    use crate::geom::Rect;
+    use ves_geom_artwork::Rect;
     use crate::surface::Surface;
 
     crate::sized_surface!(Surfy, u8, 12, 8, 0);
@@ -694,7 +694,7 @@ mod test_surface_iter {
 ///
 /// ```
 /// use art_extractor_core::surface::surface_iterate_2;
-/// use art_extractor_core::geom::{Size, Rect, Point};
+/// use ves_geom_artwork::{Size, Rect, Point};
 ///
 /// let mut exp_iter: std::slice::Iter<(usize, usize)> = [
 ///     (22, 8080), (23, 8081), (24, 8082), (25, 8083), (32, 8180), (33, 8181), (34, 8182), (35, 8183),
@@ -702,10 +702,10 @@ mod test_surface_iter {
 /// ].iter();
 ///
 /// surface_iterate_2(
-///     Size::new(10, 10), // a_surf_size
-///     Rect::new(Point::new(2, 2), Size::new(4, 4)), // a_select_rect
-///     Size::new(100, 100), // b_surf_size
-///     Point::new(80, 80), // b_select_origin
+///     Size::new_raw(10, 10), // a_surf_size
+///     Rect::new(Point::new_raw(2, 2), Size::new_raw(4, 4)), // a_select_rect
+///     Size::new_raw(100, 100), // b_surf_size
+///     Point::new_raw(80, 80), // b_select_origin
 ///     false, // hflip
 ///     false, // vflip
 ///     |idx_a, idx_b| { // func
@@ -814,7 +814,7 @@ mod test_fn_surface_iterate {
 ///
 /// ```
 /// use art_extractor_core::surface::surface_iterate_2;
-/// use art_extractor_core::geom::{Size, Rect, Point};
+/// use ves_geom_artwork::{Size, Rect, Point};
 ///
 /// let mut exp_iter: std::slice::Iter<(usize, usize)> = [
 ///     (22, 8080), (23, 8081), (24, 8082), (25, 8083), (32, 8180), (33, 8181), (34, 8182), (35, 8183),
@@ -822,10 +822,10 @@ mod test_fn_surface_iterate {
 /// ].iter();
 ///
 /// surface_iterate_2(
-///     Size::new(10, 10), // a_surf_size
-///     Rect::new(Point::new(2, 2), Size::new(4, 4)), // a_select_rect
-///     Size::new(100, 100), // b_surf_size
-///     Point::new(80, 80), // b_select_origin
+///     Size::new_raw(10, 10), // a_surf_size
+///     Rect::new(Point::new_raw(2, 2), Size::new_raw(4, 4)), // a_select_rect
+///     Size::new_raw(100, 100), // b_surf_size
+///     Point::new_raw(80, 80), // b_select_origin
 ///     false, // hflip
 ///     false, // vflip
 ///     |idx_a, idx_b| { // func
@@ -932,7 +932,7 @@ pub fn surface_iterate_2<F>(a_surf_size: Size, a_select_rect: Rect, b_surf_size:
 
 #[cfg(test)]
 mod test_fn_surface_iterate_2 {
-    use crate::geom::{Point, Rect};
+    use ves_geom_artwork::{Point, Rect};
     use super::Surface;
     use super::surface_iterate_2;
 

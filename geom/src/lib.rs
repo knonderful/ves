@@ -1,6 +1,11 @@
 use std::fmt::Debug;
-use std::marker::PhantomData;
-use std::ops::RangeInclusive;
+use std::ops::{Add, Div, Mul, RangeInclusive, Rem, Sub};
+
+/// Trait for converting a value to `usize`. This is sometimes needed for working with data structures that store graphical data in an
+/// indexed structure like an array or slice and we need to convert from coordinate space to index.
+pub trait IntoUsize {
+    fn into_usize(self) -> usize;
+}
 
 /// Returns the value zero (0) for a type.
 pub trait Zero {
@@ -8,17 +13,33 @@ pub trait Zero {
     fn zero() -> Self;
 }
 
+/// Returns the value one (1) for a type.
+pub trait One {
+    /// Returns the value zero.
+    fn one() -> Self;
+}
+
+pub trait SpaceUnit:
+Copy + Add<Output=Self> + Sub<Output=Self> + Mul<Output=Self> + Div<Output=Self> + Rem<Output=Self> +
+Zero + One + Into<usize> + From<Self::RawValue> + Ord + PartialOrd
+{
+    type RawValue;
+
+    fn raw(&self) -> Self::RawValue;
+}
+
 /// A point in 2D space.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct Point<T, U> {
+pub struct Point<T> {
     /// The X-coordinate.
     pub x: T,
     /// The Y-coordinate.
     pub y: T,
-    _phantom: PhantomData<U>,
 }
 
-impl<T, U> Point<T, U> {
+impl<T> Point<T> where
+    T: SpaceUnit,
+{
     /// Creates a new instance.
     ///
     /// # Parameters
@@ -29,29 +50,41 @@ impl<T, U> Point<T, U> {
         Self {
             x,
             y,
-            _phantom: Default::default(),
         }
+    }
+
+    /// Creates a new instance.
+    ///
+    /// # Parameters
+    /// * `x`: The X-coordinate.
+    /// * `y`: The X-coordinate.
+    #[inline(always)]
+    pub fn new_raw(x: T::RawValue, y: T::RawValue) -> Self {
+        Self::new(x.into(), y.into())
     }
 }
 
-impl<T, U> From<(T, T)> for Point<T, U> {
+impl<T> From<(T::RawValue, T::RawValue)> for Point<T> where
+    T: SpaceUnit,
+{
     #[inline(always)]
-    fn from(coords: (T, T)) -> Self {
-        Self::new(coords.0, coords.1)
+    fn from(coords: (T::RawValue, T::RawValue)) -> Self {
+        Self::new_raw(coords.0, coords.1)
     }
 }
 
 /// A size (or dimension) in 2D space.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct Size<T, U> {
+pub struct Size<T> {
     /// The width.
     pub width: T,
     /// The height.
     pub height: T,
-    _phantom: PhantomData<U>,
 }
 
-impl<T, U> Size<T, U> {
+impl<T> Size<T> where
+    T: SpaceUnit,
+{
     /// Creates a new instance.
     ///
     /// # Parameters
@@ -62,14 +95,18 @@ impl<T, U> Size<T, U> {
         Self {
             width,
             height,
-            _phantom: Default::default(),
         }
     }
-}
+    /// Creates a new instance.
+    ///
+    /// # Parameters
+    /// * `width`: The width.
+    /// * `height`: The height.
+    #[inline(always)]
+    pub fn new_raw(width: T::RawValue, height: T::RawValue) -> Self {
+        Self::new(width.into(), height.into())
+    }
 
-impl<T, U> Size<T, U> where
-    T: Copy,
-{
     /// Creates a new instance of a square.
     ///
     /// # Parameters
@@ -80,9 +117,8 @@ impl<T, U> Size<T, U> where
     }
 }
 
-impl<T, U> Size<T, U> where
-    T: Zero + Clone,
-    U: Clone,
+impl<T> Size<T> where
+    T: SpaceUnit,
 {
     /// Creates a new instance.
     ///
@@ -90,49 +126,36 @@ impl<T, U> Size<T, U> where
     /// * `width`: The width.
     /// * `height`: The height.
     #[inline(always)]
-    pub fn as_rect(&self) -> Rect<T, U> {
-        Rect::new((T::zero(), T::zero()).into(), self.clone())
+    pub fn as_rect(&self) -> Rect<T> {
+        Rect::new(Point::new(T::zero(), T::zero()), *self)
     }
 }
-
-/*
-
-    #[inline(always)]
-    pub fn as_rect(&self) -> Rect<T, U> {
-        Rect::new((0,0).into(), *self)
-    }
-
- */
 
 /// A rectangle in 2D space.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct Rect<T, U> {
+pub struct Rect<T> {
     /// The point of origin.
-    pub origin: Point<T, U>,
+    pub origin: Point<T>,
     /// The size.
-    pub size: Size<T, U>,
-    _phantom: PhantomData<U>,
+    pub size: Size<T>,
 }
 
-impl<T, U> Rect<T, U> {
+impl<T> Rect<T> where
+    T: SpaceUnit,
+{
     /// Creates a new instance.
     ///
     /// # Parameters
     /// * `origin`: The point of origin.
     /// * `size`: The size.
     #[inline(always)]
-    pub fn new(origin: Point<T, U>, size: Size<T, U>) -> Self {
+    pub fn new(origin: Point<T>, size: Size<T>) -> Self {
         Self {
             origin,
             size,
-            _phantom: Default::default(),
         }
     }
-}
 
-impl<T, U> Rect<T, U> where
-    T: Copy,
-{
     #[inline(always)]
     pub fn min_x(&self) -> T {
         self.origin.x
@@ -152,20 +175,16 @@ impl<T, U> Rect<T, U> where
     pub fn height(&self) -> T {
         self.size.height
     }
-}
 
-
-impl<T, U> Rect<T, U> where
-    T: Copy + std::ops::Add<Output=T> + std::ops::Sub<Output=T> + From<u8>,
-{
     #[inline(always)]
     pub fn max_x(&self) -> T {
-        self.origin.x + self.size.width - T::from(1u8)
+        let x = self.origin.x + self.size.width;
+        x - T::one()
     }
 
     #[inline(always)]
     pub fn max_y(&self) -> T {
-        self.origin.y + self.size.height - T::from(1u8)
+        self.origin.y + self.size.height - T::one()
     }
 
     #[inline(always)]
@@ -179,13 +198,14 @@ impl<T, U> Rect<T, U> where
     }
 }
 
-impl<T, U> From<((T, T), T, T)> for Rect<T, U> {
+impl<T> From<((T::RawValue, T::RawValue), T::RawValue, T::RawValue)> for Rect<T> where
+    T: SpaceUnit,
+{
     #[inline(always)]
-    fn from(args: ((T, T), T, T)) -> Self {
+    fn from(args: ((T::RawValue, T::RawValue), T::RawValue, T::RawValue)) -> Self {
         Self {
             origin: args.0.into(),
-            size: Size::<T, U>::new(args.1, args.2),
-            _phantom: Default::default(),
+            size: Size::<T>::new_raw(args.1, args.2),
         }
     }
 }

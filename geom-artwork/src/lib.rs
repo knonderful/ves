@@ -1,12 +1,6 @@
 use std::convert::TryFrom;
 
-/// The geometrical unit for the "artwork space". This is the space for working with graphical entities like surfaces, sprites, cels and
-/// animations.
-///
-/// The main reason for having explicit space units is to avoid (unintentionally) mixing up incompatible geometric spaces. For instance,
-/// positional data that describes a point in a sprite should not (directly) be used for geometric calculations in the "GUI window space" or
-/// the "screen space". Note that it is possible to translate between these spaces, but this should be handled explicitly. Having separate
-/// space units avoids accidental errors in this area.
+/// See [`ves_geom::SpaceUnit`].
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ArtworkSpaceUnit(u32);
 
@@ -94,15 +88,15 @@ impl ves_geom::SpaceUnit for ArtworkSpaceUnit {
 
 /// A point in "artwork space".
 ///
-/// See also [`ArtworkSpace`].
+/// See also [`ArtworkSpaceUnit`].
 pub type Point = ves_geom::Point<ArtworkSpaceUnit>;
 
 /// A size in "artwork space".
 ///
-/// See also [`ArtworkSpace`].
+/// See also [`ArtworkSpaceUnit`].
 pub type Size = ves_geom::Size<ArtworkSpaceUnit>;
 
 /// A 2-dimensional rectangle in "artwork space".
 ///
-/// See also [`ArtworkSpace`].
+/// See also [`ArtworkSpaceUnit`].
 pub type Rect = ves_geom::Rect<ArtworkSpaceUnit>;

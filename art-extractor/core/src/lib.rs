@@ -8,7 +8,7 @@ pub mod sprite;
 /// # Parameters
 /// * `vis`: Output type visibility.
 /// * `name`: Output type name.
-/// * `data_type`: Data type of an element in the surface. This must implement [`IntoUsize`].
+/// * `data_type`: Data type of an element in the surface. This must implement [`ves_geom::SpaceUnit`].
 /// * `width`: Width of the surface in pixels.
 /// * `height`: Height of the surface in pixels.
 /// * `default_value`: Default element value.

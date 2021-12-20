@@ -9,7 +9,7 @@ pub trait Zero {
 
 /// Returns the value one (1) for a type.
 pub trait One {
-    /// Returns the value zero.
+    /// Returns the value one.
     fn one() -> Self;
 }
 

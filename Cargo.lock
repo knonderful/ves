@@ -54,6 +54,7 @@ dependencies = [
 name = "art-extractor-snes"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "art-extractor-core",
  "bmp",
  "serde",

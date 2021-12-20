@@ -3,13 +3,7 @@
 use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
 use art_extractor_core::sprite::{Color, Index, Palette, PaletteIndex};
 use art_extractor_core::surface::Surface;
-
-/// A data import error.
-#[derive(Clone, Debug, Eq, PartialEq)]
-enum DataImportError {
-    /// Invalid input data. The provided string contains a more detailed description of the problem.
-    InvalidData(String),
-}
+use anyhow::{anyhow, bail, Result};
 
 /// A trait for constructing objects from (raw) SNES data.
 ///
@@ -22,7 +16,7 @@ trait FromSnesData<T> where Self: Sized {
     ///
     /// # Panics
     /// This function panics if the provided buffer is not of the correct size (2 KiB).
-    fn from_snes_data(data: T) -> Result<Self, DataImportError>;
+    fn from_snes_data(data: T) -> Result<Self>;
 }
 
 /// Make a color component from a 5-bit color value.
@@ -40,7 +34,7 @@ fn make_color_component_5bit(bits: u8) -> u8 {
 /// The input data is a tuple where the first byte is the lower byte and the second is the higher byte of the color data. Refer to section
 /// A-17 in the SNES developer manual for more information.
 impl FromSnesData<(u8, u8)> for Color {
-    fn from_snes_data(data: (u8, u8)) -> Result<Self, DataImportError> {
+    fn from_snes_data(data: (u8, u8)) -> Result<Self> {
         let (low, high) = data;
         let r = make_color_component_5bit(low);
         let g = make_color_component_5bit(high << 3 | low >> 5);
@@ -80,9 +74,9 @@ const OBJ_PALETTE_SIZE: usize = BYTES_PER_COLOR * OBJ_PALETTE_NR_COLORS;
 /// The input data is a slice of color entries. Each entry takes 2 bytes. Refer to section A-17 in the SNES developer manual for more
 /// information.
 impl FromSnesData<&[u8]> for Palette<Color> {
-    fn from_snes_data(data: &[u8]) -> Result<Self, DataImportError> {
+    fn from_snes_data(data: &[u8]) -> Result<Self> {
         if data.len() != OBJ_PALETTE_SIZE {
-            return Err(DataImportError::InvalidData(format!("Invalid data length. Expected {} but got {}.", OBJ_PALETTE_SIZE, data.len())));
+            bail!("Invalid data length. Expected {} but got {}.", OBJ_PALETTE_SIZE, data.len());
         }
 
         let mut palette = Palette::new_filled(OBJ_PALETTE_NR_COLORS, Color::new(0, 0, 0));
@@ -132,10 +126,10 @@ impl ObjPalettes {
 }
 
 impl FromSnesData<&[u8]> for ObjPalettes {
-    fn from_snes_data(data: &[u8]) -> Result<Self, DataImportError> {
+    fn from_snes_data(data: &[u8]) -> Result<Self> {
         const EXPECTED_DATA_LEN: usize = OBJ_PALETTE_SIZE * OBJ_PALETTE_COUNT;
         if data.len() != EXPECTED_DATA_LEN {
-            return Err(DataImportError::InvalidData(format!("Invalid data length. Expected {} but got {}.", EXPECTED_DATA_LEN, data.len())));
+            bail!("Invalid data length. Expected {} but got {}.", EXPECTED_DATA_LEN, data.len());
         }
 
         let mut palettes: Vec<Palette<Color>> = Vec::with_capacity(OBJ_PALETTE_COUNT);
@@ -174,13 +168,13 @@ impl ObjNameTable {
     ///
     /// # Panics
     /// If the provided slice is not exactly 0x2000 bytes in size.
-    fn read_interleaved_chr(obj_name_base: &[u8], obj_name_select: &[u8]) -> Result<ObjNameTableSurface, DataImportError> {
+    fn read_interleaved_chr(obj_name_base: &[u8], obj_name_select: &[u8]) -> Result<ObjNameTableSurface> {
         const EXPECTED_LEN: usize = 0x2000;
         if obj_name_base.len() != EXPECTED_LEN {
-            return Err(DataImportError::InvalidData(format!("Expected OBJ NAME BASE length {}, but found {}", EXPECTED_LEN, obj_name_base.len())));
+            bail!("Expected OBJ NAME BASE length {}, but found {}", EXPECTED_LEN, obj_name_base.len());
         }
         if obj_name_select.len() != EXPECTED_LEN {
-            return Err(DataImportError::InvalidData(format!("Expected OBJ NAME SELECT length {}, but found {}", EXPECTED_LEN, obj_name_select.len())));
+            bail!("Expected OBJ NAME SELECT length {}, but found {}", EXPECTED_LEN, obj_name_select.len());
         }
 
         let mut surface = ObjNameTableSurface::new();
@@ -263,7 +257,7 @@ impl ObjNameTable {
 }
 
 impl FromSnesData<(&[u8], &[u8])> for ObjNameTable {
-    fn from_snes_data(data: (&[u8], &[u8])) -> Result<Self, DataImportError> {
+    fn from_snes_data(data: (&[u8], &[u8])) -> Result<Self> {
         Ok(Self { surface: Self::read_interleaved_chr(data.0, data.1)? })
     }
 }
@@ -431,7 +425,7 @@ enum ObjSizeSelect {
 }
 
 impl FromSnesData<u8> for ObjSizeSelect {
-    fn from_snes_data(data: u8) -> Result<Self, DataImportError> {
+    fn from_snes_data(data: u8) -> Result<Self> {
         use ObjSizeSelect::*;
         match data {
             0 => Ok(SM),
@@ -440,7 +434,7 @@ impl FromSnesData<u8> for ObjSizeSelect {
             3 => Ok(ML),
             4 => Ok(MXL),
             5 => Ok(LXL),
-            _ => Err(DataImportError::InvalidData(format!("Unexpected OBJ SIZE SELECT value: {}.", data)))
+            _ => Err(anyhow!("Unexpected OBJ SIZE SELECT value: {}.", data))
         }
     }
 }
@@ -469,7 +463,7 @@ impl ObjSizeSelect {
 
 #[cfg(test)]
 mod test_obj_size_select {
-    use crate::extract::{DataImportError, FromSnesData, ObjSize, ObjSizeSelect};
+    use crate::extract::{FromSnesData, ObjSize, ObjSizeSelect};
 
     #[test]
     fn test_small() {
@@ -493,14 +487,14 @@ mod test_obj_size_select {
 
     #[test]
     fn test_from_snes_data() {
-        assert_eq!(Ok(ObjSizeSelect::SM), ObjSizeSelect::from_snes_data(0));
-        assert_eq!(Ok(ObjSizeSelect::SL), ObjSizeSelect::from_snes_data(1));
-        assert_eq!(Ok(ObjSizeSelect::SXL), ObjSizeSelect::from_snes_data(2));
-        assert_eq!(Ok(ObjSizeSelect::ML), ObjSizeSelect::from_snes_data(3));
-        assert_eq!(Ok(ObjSizeSelect::MXL), ObjSizeSelect::from_snes_data(4));
-        assert_eq!(Ok(ObjSizeSelect::LXL), ObjSizeSelect::from_snes_data(5));
+        assert_eq!(ObjSizeSelect::SM, ObjSizeSelect::from_snes_data(0).unwrap());
+        assert_eq!(ObjSizeSelect::SL, ObjSizeSelect::from_snes_data(1).unwrap());
+        assert_eq!(ObjSizeSelect::SXL, ObjSizeSelect::from_snes_data(2).unwrap());
+        assert_eq!(ObjSizeSelect::ML, ObjSizeSelect::from_snes_data(3).unwrap());
+        assert_eq!(ObjSizeSelect::MXL, ObjSizeSelect::from_snes_data(4).unwrap());
+        assert_eq!(ObjSizeSelect::LXL, ObjSizeSelect::from_snes_data(5).unwrap());
         for i in 6..=255 {
-            assert_eq!(Err(DataImportError::InvalidData(format!("Unexpected OBJ SIZE SELECT value: {}.", i))), ObjSizeSelect::from_snes_data(i));
+            assert_eq!(format!("Unexpected OBJ SIZE SELECT value: {}.", i), ObjSizeSelect::from_snes_data(i).err().unwrap().to_string());
         }
     }
 }
@@ -528,7 +522,7 @@ impl ObjNameTableIndex {
 }
 
 impl FromSnesData<u16> for ObjNameTableIndex {
-    fn from_snes_data(data: u16) -> Result<Self, DataImportError> {
+    fn from_snes_data(data: u16) -> Result<Self> {
         let is_base = (0x100 & data) == 0;
         let index = (0xFF & data) as u8;
         Ok(Self { is_base, index })
@@ -553,11 +547,11 @@ struct ObjData {
 }
 
 impl FromSnesData<(u8, u8, u8, u8, u8)> for ObjData {
-    fn from_snes_data((low1, low2, low3, low4, high): (u8, u8, u8, u8, u8)) -> Result<Self, DataImportError> {
+    fn from_snes_data((low1, low2, low3, low4, high): (u8, u8, u8, u8, u8)) -> Result<Self> {
         let mut low4 = low4;
 
         let name = ((low4 & 0b1) as u16) << 8 | (low3 as u16);
-        let name = ObjNameTableIndex::from_snes_data(name).unwrap();
+        let name = ObjNameTableIndex::from_snes_data(name)?;
 
         low4 >>= 1;
         let color = low4 & 0b111;
@@ -607,10 +601,10 @@ struct OamTable {
 }
 
 impl FromSnesData<&[u8]> for OamTable {
-    fn from_snes_data(data: &[u8]) -> Result<Self, DataImportError> {
+    fn from_snes_data(data: &[u8]) -> Result<Self> {
         const EXPECTED_SIZE: usize = 0x220;
         if data.len() != EXPECTED_SIZE {
-            return Err(DataImportError::InvalidData(format!("Invalid data length. Expected {} but got {}.", EXPECTED_SIZE, data.len())));
+            bail!("Invalid data length. Expected {} but got {}.", EXPECTED_SIZE, data.len());
         }
 
         let mut low_iter = data[0x00..0x200].iter();

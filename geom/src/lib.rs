@@ -216,3 +216,92 @@ impl<T> From<((T::RawValue, T::RawValue), T::RawValue, T::RawValue)> for Rect<T>
         }
     }
 }
+
+/// Macro for generating simple [`SpaceUnit`] implementations.
+///
+/// # Parameters
+/// * `name`: Output type name.
+/// * `raw_type`: The [`SpaceUnit::RawValue`] type.
+#[macro_export]
+macro_rules! space_unit {
+    ($name:ident, $raw_type:ty) => {
+        /// See [`$crate::SpaceUnit`].
+        #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+        pub struct $name($raw_type);
+
+        impl std::ops::Add for $name {
+            type Output = Self;
+
+            #[inline(always)]
+            fn add(self, rhs: Self) -> Self::Output {
+                Self(self.0 + rhs.0)
+            }
+        }
+
+        impl std::ops::Sub for $name {
+            type Output = Self;
+
+            #[inline(always)]
+            fn sub(self, rhs: Self) -> Self::Output {
+                Self(self.0 - rhs.0)
+            }
+        }
+
+        impl std::ops::Mul for $name {
+            type Output = Self;
+
+            #[inline(always)]
+            fn mul(self, rhs: Self) -> Self::Output {
+                Self(self.0 * rhs.0)
+            }
+        }
+
+        impl std::ops::Div for $name {
+            type Output = Self;
+
+            #[inline(always)]
+            fn div(self, rhs: Self) -> Self::Output {
+                Self(self.0 / rhs.0)
+            }
+        }
+
+        impl std::ops::Rem for $name {
+            type Output = Self;
+
+            #[inline(always)]
+            fn rem(self, rhs: Self) -> Self::Output {
+                Self(self.0 % rhs.0)
+            }
+        }
+
+        impl ves_geom::Zero for $name {
+            #[inline(always)]
+            fn zero() -> Self {
+                Self(0)
+            }
+        }
+
+        impl ves_geom::One for $name {
+            #[inline(always)]
+            fn one() -> Self {
+                Self(1)
+            }
+        }
+
+        impl From<$raw_type> for $name {
+            #[inline(always)]
+            fn from(value: $raw_type) -> Self {
+                Self(value)
+            }
+        }
+
+        impl ves_geom::SpaceUnit for $name {
+            type RawValue = $raw_type;
+
+            #[inline(always)]
+            fn raw(&self) -> Self::RawValue {
+                self.0
+            }
+        }
+    }
+}

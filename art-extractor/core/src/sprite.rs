@@ -128,8 +128,12 @@ impl<C> Palette<C> {
 }
 
 /// A tile. This is the smallest graphical element.
+///
+/// # Generics
+/// * `T`: The graphical data type.
 pub struct Tile<T> {
-    surface: T,
+    /// The graphical data.
+    data: T,
 }
 
 /// A reference to a [`Tile`].

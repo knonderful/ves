@@ -13,8 +13,30 @@
 use crate::geom_art::Point;
 use serde::{Deserialize, Serialize};
 
-/// A color value.
-pub type Color = rgb::RGB8;
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+pub enum Color {
+    Opaque(rgb::RGB8),
+    Transparent,
+}
+
+impl Color {
+    /// Creates a new opaque color.
+    ///
+    /// # Parameters
+    /// * `r`: The red component.
+    /// * `g`: The green component.
+    /// * `b`: The blue component.
+    #[inline(always)]
+    pub fn new(r: u8, g: u8, b: u8) -> Self {
+        Self::Opaque(rgb::RGB8::new(r,g,b))
+    }
+
+    /// Creates a new transparent color.
+    #[inline(always)]
+    pub fn new_transparent() -> Self {
+        Self::Transparent
+    }
+}
 
 /// An index type that is the same across different platforms (for the sake of serialization stability). We can't use `usize`, since that
 /// changes size on different platforms, resulting in serialized data being incompatible across platform boundaries.

@@ -83,13 +83,17 @@ impl FromSnesData<&[u8]> for Palette {
             bail!("Invalid data length. Expected {} but got {}.", OBJ_PALETTE_SIZE, data.len());
         }
 
-        let mut palette = Palette::new_filled(OBJ_PALETTE_NR_COLORS, Color::new(0, 0, 0));
+        let mut palette = Palette::new_filled(OBJ_PALETTE_NR_COLORS, Color::Transparent);
         let mut data_iter = data.iter();
-        for (_, color) in palette.iter_mut() {
+        for (idx, color) in palette.iter_mut() {
             // The unwraps are OK here because we checked the size of the slice at the beginning of the function
             let low = data_iter.next().unwrap();
             let high = data_iter.next().unwrap();
-            *color = Color::from_snes_data((*low, *high))?;
+
+            // The first index is the transparent color
+            if idx.value() != 0 {
+                *color = Color::from_snes_data((*low, *high))?;
+            }
         }
 
         Ok(palette)
@@ -107,7 +111,11 @@ mod test_palette {
         let palette = Palette::from_snes_data(&INPUT).unwrap();
 
         for (offset, color) in palette.iter().map(|(i, c)| (i.as_usize() * 2, c)) {
-            let expected = Color::from_snes_data((INPUT[offset], INPUT[offset + 1])).unwrap();
+            let expected = if offset == 0 {
+                Color::Transparent
+            } else {
+                Color::from_snes_data((INPUT[offset], INPUT[offset + 1])).unwrap()
+            };
             assert_eq!(&expected, color);
         }
     }
@@ -338,15 +346,19 @@ mod test_obj_name_table {
         let obj_name_table = ObjNameTable::from_snes_data((frame.obj_name_base_table.as_slice(), frame.obj_name_select_table.as_slice())).unwrap();
         let palettes = ObjPalettes::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
 
-        let transparent = Color::new(255, 0, 255);
+        let transparent = Pixel::new(255, 0, 255);
         let palette = &palettes.palettes()[5];
         let actual = super::test_util::create_bitmap(obj_name_table.surface.size(), |index, pos, img| {
             let pixel = obj_name_table.surface.data()[index];
-            let color = match pixel.value() {
-                0 => &transparent,
-                _ => palette.get(pixel).unwrap(),
-            };
-            img.set_pixel(pos.x.raw(), pos.y.raw(), Pixel::new(color.r, color.g, color.b));
+            let color = palette.get(pixel).unwrap();
+            match color {
+                Color::Opaque(color) => {
+                    img.set_pixel(pos.x.raw(), pos.y.raw(), Pixel::new(color.r, color.g, color.b));
+                }
+                Color::Transparent => {
+                    img.set_pixel(pos.x.raw(), pos.y.raw(), transparent);
+                }
+            }
         });
 
         // actual.save(format!("{}/target/out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR JUST LOOKING
@@ -675,7 +687,7 @@ mod test_combination {
     use ves_geom::SpaceUnit;
     use bmp::Pixel;
 
-    art_extractor_core::sized_surface!(ScreenSurface, Color, ArtworkSpaceUnit, 512, 256, Color::new(255, 0, 255));
+    art_extractor_core::sized_surface!(ScreenSurface, Color, ArtworkSpaceUnit, 512, 256, Color::Transparent);
 
     #[test]
     fn test_render_frame() {
@@ -720,9 +732,18 @@ mod test_combination {
         }
 
         // Write BMP
+        let transparent = Pixel::new(255, 0, 255);
         let actual = super::test_util::create_bitmap(screen_size, |index, pos, img| {
             let color = screen_data[index];
-            img.set_pixel(pos.x.raw(), pos.y.raw(), Pixel::new(color.r, color.g, color.b));
+            match color {
+                Color::Opaque(color) => {
+                    img.set_pixel(pos.x.raw(), pos.y.raw(), Pixel::new(color.r, color.g, color.b));
+                }
+                Color::Transparent => {
+                    img.set_pixel(pos.x.raw(), pos.y.raw(), transparent);
+                }
+            }
+
         });
 
         // actual.save(format!("{}/target/test_render_frame_out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR JUST LOOKING

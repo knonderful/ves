@@ -77,7 +77,7 @@ const OBJ_PALETTE_SIZE: usize = BYTES_PER_COLOR * OBJ_PALETTE_NR_COLORS;
 ///
 /// The input data is a slice of color entries. Each entry takes 2 bytes. Refer to section A-17 in the SNES developer manual for more
 /// information.
-impl FromSnesData<&[u8]> for Palette<Color> {
+impl FromSnesData<&[u8]> for Palette {
     fn from_snes_data(data: &[u8]) -> Result<Self> {
         if data.len() != OBJ_PALETTE_SIZE {
             bail!("Invalid data length. Expected {} but got {}.", OBJ_PALETTE_SIZE, data.len());
@@ -116,15 +116,15 @@ mod test_palette {
 const OBJ_PALETTE_COUNT: usize = 8;
 
 struct ObjPalettes {
-    palettes: Vec<Palette<Color>>,
+    palettes: Vec<Palette>,
 }
 
 impl ObjPalettes {
-    fn new(palettes: Vec<Palette<Color>>) -> Self {
+    fn new(palettes: Vec<Palette>) -> Self {
         Self { palettes }
     }
 
-    fn palettes(&self) -> &[Palette<Color>] {
+    fn palettes(&self) -> &[Palette] {
         &self.palettes[..]
     }
 }
@@ -136,7 +136,7 @@ impl FromSnesData<&[u8]> for ObjPalettes {
             bail!("Invalid data length. Expected {} but got {}.", EXPECTED_DATA_LEN, data.len());
         }
 
-        let mut palettes: Vec<Palette<Color>> = Vec::with_capacity(OBJ_PALETTE_COUNT);
+        let mut palettes: Vec<Palette> = Vec::with_capacity(OBJ_PALETTE_COUNT);
         for input in data.chunks(OBJ_PALETTE_SIZE) {
             palettes.push(Palette::from_snes_data(input)?);
         }

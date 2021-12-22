@@ -63,26 +63,23 @@ impl<T: Into<Index>> From<T> for PaletteIndex {
 }
 
 /// A palette of colors.
-///
-/// # Generic types
-/// * `C`: The color type.
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub struct Palette<C> {
-    colors: Vec<C>,
+pub struct Palette {
+    colors: Vec<Color>,
 }
 
-impl<C: Clone> Palette<C> {
+impl Palette {
     /// Creates a new instance with the specified length and default value.
     ///
     /// # Parameters
     /// * `length`: The number of entries.
     /// * `default`: The default value.
-    pub fn new_filled(length: usize, default: C) -> Self {
+    pub fn new_filled(length: usize, default: Color) -> Self {
         Self { colors: vec![default; length] }
     }
 }
 
-impl<C> Palette<C> {
+impl Palette {
     /// Retrieves the number of entries in the palette.
     pub fn len(&self) -> usize {
         self.colors.len()
@@ -95,7 +92,7 @@ impl<C> Palette<C> {
     ///
     /// # Returns
     /// The color for the provided index, if any.
-    pub fn get(&self, index: PaletteIndex) -> Option<&C> {
+    pub fn get(&self, index: PaletteIndex) -> Option<&Color> {
         self.colors.get(index.as_usize())
     }
     /// Sets a color at the specified index.
@@ -106,12 +103,12 @@ impl<C> Palette<C> {
     ///
     /// # Panics
     /// This method panics if the index is out-of-bounds.
-    pub fn set(&mut self, index: PaletteIndex, color: C) {
+    pub fn set(&mut self, index: PaletteIndex, color: Color) {
         self.colors[index.as_usize()] = color;
     }
 
     /// Gets an immutable iterator over all slots.
-    pub fn iter(&self) -> impl Iterator<Item=(PaletteIndex, &C)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item=(PaletteIndex, &Color)> + '_ {
         self.colors.iter()
             .enumerate()
             // Unwrap is OK here because we never add anything other than a PaletteIndex to the Vec
@@ -119,7 +116,7 @@ impl<C> Palette<C> {
     }
 
     /// Gets a mutable iterator over all slots.
-    pub fn iter_mut(&mut self) -> impl Iterator<Item=(PaletteIndex, &mut C)> + '_ {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item=(PaletteIndex, &mut Color)> + '_ {
         self.colors.iter_mut()
             .enumerate()
             // Unwrap is OK here because we never add anything other than a PaletteIndex to the Vec

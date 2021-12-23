@@ -350,7 +350,7 @@ mod test_obj_name_table {
         let palette = &palettes.palettes()[5];
         let actual = super::test_util::create_bitmap(obj_name_table.surface.size(), |index, pos, img| {
             let pixel = obj_name_table.surface.data()[index];
-            let color = palette.get(pixel).unwrap();
+            let color = palette[pixel];
             match color {
                 Color::Opaque(color) => {
                     img.set_pixel(pos.x.raw(), pos.y.raw(), Pixel::new(color.r, color.g, color.b));
@@ -725,8 +725,8 @@ mod test_combination {
                     if index.value() == 0 {
                         return;
                     }
-                    let color = palette.get(index).unwrap();
-                    screen_data[dest_idx] = *color;
+                    let color = palette[index];
+                    screen_data[dest_idx] = color;
                 },
             ).unwrap();
         }

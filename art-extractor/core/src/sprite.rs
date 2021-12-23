@@ -107,28 +107,6 @@ impl Palette {
         self.colors.len()
     }
 
-    /// Retrieves the color with the specified index.
-    ///
-    /// # Parameters
-    /// * `index`: The index.
-    ///
-    /// # Returns
-    /// The color for the provided index, if any.
-    pub fn get(&self, index: PaletteIndex) -> Option<&Color> {
-        self.colors.get(index.as_usize())
-    }
-    /// Sets a color at the specified index.
-    ///
-    /// # Parameters
-    /// * `index`: The index.
-    /// * `color`: The color.
-    ///
-    /// # Panics
-    /// This method panics if the index is out-of-bounds.
-    pub fn set(&mut self, index: PaletteIndex, color: Color) {
-        self.colors[index.as_usize()] = color;
-    }
-
     /// Gets an immutable iterator over all slots.
     pub fn iter(&self) -> impl Iterator<Item=(PaletteIndex, &Color)> + '_ {
         self.colors.iter()
@@ -143,6 +121,20 @@ impl Palette {
             .enumerate()
             // Unwrap is OK here because we never add anything other than a PaletteIndex to the Vec
             .map(|(index, color)| (PaletteIndex::new(index.try_into().unwrap()), color))
+    }
+}
+
+impl std::ops::Index<PaletteIndex> for Palette {
+    type Output = Color;
+
+    fn index(&self, index: PaletteIndex) -> &Self::Output {
+        &self.colors[index.as_usize()]
+    }
+}
+
+impl std::ops::IndexMut<PaletteIndex> for Palette {
+    fn index_mut(&mut self, index: PaletteIndex) -> &mut Self::Output {
+        &mut self.colors[index.as_usize()]
     }
 }
 
@@ -269,21 +261,19 @@ mod test_palette {
         let color2 = Color::new(0x44, 0x55, 0x66);
         let color3 = Color::new(0x11, 0x22, 0x33);
 
-        pal.set(2u16.into(), color2);
+        pal[2u16.into()] = color2;
         assert_eq_colors!(pal, color_default, color_default, color2, color_default);
-        pal.set(0u16.into(), color0);
-        pal.set(1u16.into(), color1);
-        pal.set(3u16.into(), color3);
+        pal[0u16.into()] = color0;
+        pal[1u16.into()] = color1;
+        pal[3u16.into()] = color3;
         assert_eq_colors!(pal, color0, color1, color2, color3);
 
-        assert_eq!(pal.get(0u16.into()), Some(&color0));
-        assert_eq!(pal.get(1u16.into()), Some(&color1));
-        assert_eq!(pal.get(2u16.into()), Some(&color2));
-        assert_eq!(pal.get(3u16.into()), Some(&color3));
+        assert_eq!(pal[0u16.into()], color0);
+        assert_eq!(pal[1u16.into()], color1);
+        assert_eq!(pal[2u16.into()], color2);
+        assert_eq!(pal[3u16.into()], color3);
 
-        assert_eq!(pal.get(4u16.into()), None);
-
-        let result = super::catch_unwind_silent(move || pal.set(4u16.into(), Color::new(1, 2, 3)));
+        let result = super::catch_unwind_silent(move || pal[4u16.into()]);
         assert!(result.is_err());
     }
 }

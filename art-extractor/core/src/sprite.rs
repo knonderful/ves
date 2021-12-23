@@ -28,7 +28,7 @@ impl Color {
     /// * `b`: The blue component.
     #[inline(always)]
     pub fn new(r: u8, g: u8, b: u8) -> Self {
-        Self::Opaque(rgb::RGB8::new(r,g,b))
+        Self::Opaque(rgb::RGB8::new(r, g, b))
     }
 
     /// Creates a new transparent color.

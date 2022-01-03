@@ -3,14 +3,14 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::ops::Index;
 
-/// A generic cache of values.
+/// A generic cache of entries.
 ///
 /// # Generic types
-/// * `T`: The contained type.
+/// * `T`: The entry type.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IndexedCache<T> {
     /// A vector of cached values.
-    values: Vec<T>,
+    entries: Vec<T>,
     /// A hash map of hash values for `V` to indices into `values`.
     hashes: HashMap<u64, Vec<usize>>,
 }
@@ -19,14 +19,14 @@ impl<T> IndexedCache<T> {
     /// Creates a new instance.
     pub fn new() -> Self {
         Self {
-            values: Vec::new(),
+            entries: Vec::new(),
             hashes: HashMap::new(),
         }
     }
 
     /// Returns the number of values.
     pub fn len(&self) -> usize {
-        self.values.len()
+        self.entries.len()
     }
 }
 
@@ -49,22 +49,22 @@ impl<T> IndexedCache<T> where
             // We've seen this hash before, so we need to compare with the existing values of this hash
             indices.iter()
                 // Look up the value for this index
-                .map(|i| (i, &self.values[*i]))
+                .map(|i| (i, &self.entries[*i]))
                 // Compare the value
                 .find(|(_, val)| *val == &value)
                 // Deref the index and ignore the value (since we're only interested in the index)
                 .map(|(i, _)| *i)
                 // Handle new entry
                 .unwrap_or_else(|| {
-                    let index = self.values.len();
-                    self.values.push(value);
+                    let index = self.entries.len();
+                    self.entries.push(value);
                     indices.push(index);
                     index
                 })
         } else {
             // This is a new hash, so we can just add it and update the hashes
-            let index = self.values.len();
-            self.values.push(value);
+            let index = self.entries.len();
+            self.entries.push(value);
             if self.hashes.insert(hash, vec![index]).is_some() {
                 // This can only happen with a local programming error
                 panic!("Expected no element to be pre-existing for hash {}.", hash);
@@ -78,7 +78,7 @@ impl<T> Index<usize> for IndexedCache<T> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
-        &self.values[index]
+        &self.entries[index]
     }
 }
 
@@ -124,7 +124,7 @@ mod tests {
         assert_eq!(cache.offer(val2), 0usize);
         assert_eq!(cache.offer(val3), 1usize);
 
-        assert_eq!(cache.values.len(), 4);
+        assert_eq!(cache.entries.len(), 4);
         let mut value_iter = cache.hashes.values();
         assert_eq!(2, value_iter.next().unwrap().len());
         assert_eq!(2, value_iter.next().unwrap().len());

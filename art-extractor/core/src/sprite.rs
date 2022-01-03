@@ -10,8 +10,9 @@
 //! objects are referred to by index. The original object can only be retrieved via a lookup into a collection, which will usually be a
 //! global cache of some sort.
 
-use crate::geom_art::Point;
+use crate::geom_art::{ArtworkSpaceUnit, Point, Size};
 use serde::{Deserialize, Serialize};
+use crate::Surface;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Color {
@@ -138,13 +139,41 @@ impl std::ops::IndexMut<PaletteIndex> for Palette {
     }
 }
 
+pub struct TileSurface {
+    data: Vec<PaletteIndex>,
+    size: Size,
+}
+
+impl TileSurface {
+    pub fn new(size: Size) -> Self {
+        let data_len = size.width * size.height;
+        Self {
+            data: vec![PaletteIndex::new(0); data_len.into()],
+            size,
+        }
+    }
+}
+
+impl Surface<ArtworkSpaceUnit> for TileSurface {
+    type DataType = PaletteIndex;
+
+    fn size(&self) -> Size {
+        self.size
+    }
+
+    fn data(&self) -> &[Self::DataType] {
+        self.data.as_slice()
+    }
+
+    fn data_mut(&mut self) -> &mut [Self::DataType] {
+        self.data.as_mut_slice()
+    }
+}
+
 /// A tile. This is the smallest graphical element.
-///
-/// # Generics
-/// * `T`: The graphical data type.
-pub struct Tile<T> {
-    /// The graphical data.
-    data: T,
+pub struct Tile {
+    /// The surface.
+    surface: TileSurface,
 }
 
 /// A reference to a [`Tile`].

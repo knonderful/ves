@@ -1,8 +1,9 @@
 #![allow(dead_code)] // TODO: Remove this
 
-// use crate::sprite::{Color, Palette, PaletteIndex, Sprite, Tile};
-// use crate::surface::Surface;
-//
+use crate::geom_art::Size;
+use crate::sprite::{Palette, Sprite, Tile};
+use crate::surface::Surface;
+
 pub mod surface;
 pub mod sprite;
 pub mod geom_art;
@@ -69,13 +70,13 @@ macro_rules! sized_surface {
     }
 }
 
-// pub struct Movie {
-//     screen_size: Size,
-//     palettes: Vec<Box<Palette<Color>>>,
-//     tiles: Vec<Tile>,
-//     frames: Vec<MovieFrame>,
-// }
-//
-// pub struct MovieFrame {
-//     sprites: Vec<Sprite>,
-// }
+pub struct Movie {
+    screen_size: Size,
+    palettes: Vec<Box<Palette>>,
+    tiles: Vec<Box<Tile>>,
+    frames: Vec<MovieFrame>,
+}
+
+pub struct MovieFrame {
+    sprites: Vec<Sprite>,
+}

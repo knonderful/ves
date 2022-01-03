@@ -90,12 +90,12 @@ mod tests {
     #[derive(Copy, Clone, Debug, Eq, PartialEq)]
     struct Val {
         hash: u64,
-        other: u8,
+        data: u8,
     }
 
     impl Val {
-        fn new(hash: u64, other: u8) -> Self {
-            Self { hash, other }
+        fn new(hash: u64, data: u8) -> Self {
+            Self { hash, data }
         }
     }
 

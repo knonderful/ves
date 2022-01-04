@@ -1,54 +1,54 @@
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
-use std::fmt::Formatter;
 use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
 use std::ops::Index;
-use serde::{Serialize, Deserialize, Deserializer};
-use serde::de::{Error, MapAccess, Unexpected, Visitor};
 
 /// A generic cache of entries.
 ///
 /// # Generic types
 /// * `T`: The entry type.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IndexedCache<T> {
     /// A vector of cached values.
     entries: Vec<T>,
     /// A hash map of hash values for `V` to indices into `values`.
-    #[serde(skip)]
+    #[cfg_attr(feature = "serde", serde(skip))]
     hashes: HashMap<u64, Vec<usize>>,
 }
 
 /// We need a custom [`Deserialize`] implementation because every entry needs to be fed into `offer()` in order to build up our `hashes` and
 /// we don't want to `hashes` to be a part of the (de)serialization.
-impl<'de, T> Deserialize<'de> for IndexedCache<T> where
-    T: Deserialize<'de> + PartialEq + Hash,
+#[cfg(feature = "serde")]
+impl<'de, T> serde::Deserialize<'de> for IndexedCache<T> where
+    T: serde::Deserialize<'de> + PartialEq + Hash,
 {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
-        deserializer.deserialize_map(IndexedCacheDeserializeVisitor(PhantomData))
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::Deserializer<'de> {
+        deserializer.deserialize_map(IndexedCacheDeserializeVisitor(std::marker::PhantomData))
     }
 }
 
 /// A [`Visitor`] for deserialization.
-struct IndexedCacheDeserializeVisitor<T>(PhantomData<T>);
+#[cfg(feature = "serde")]
+struct IndexedCacheDeserializeVisitor<T>(std::marker::PhantomData<T>);
 
-impl<'de, T> Visitor<'de> for IndexedCacheDeserializeVisitor<T> where
-    T: Deserialize<'de> + PartialEq + Hash,
+#[cfg(feature = "serde")]
+impl<'de, T> serde::de::Visitor<'de> for IndexedCacheDeserializeVisitor<T> where
+    T: serde::Deserialize<'de> + PartialEq + Hash,
 {
     type Value = IndexedCache<T>;
 
-    fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         formatter.write_str("a non-empty sequence")
     }
 
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error> where
-        A: MapAccess<'de>,
+        A: serde::de::MapAccess<'de>,
     {
         let mut cache = IndexedCache::<T>::new();
         while let Some((key, value)) = map.next_entry::<String, Vec<T>>()? {
             if key != "entries" {
-                return Err(A::Error::invalid_value(Unexpected::Other(&key), &"entries"));
+                return Err(serde::de::Error::invalid_value(serde::de::Unexpected::Other(&key), &"entries"));
             }
 
             for val in value {
@@ -131,7 +131,8 @@ mod tests {
     use std::hash::{Hash, Hasher};
     use crate::IndexedCache;
 
-    #[derive(Copy, Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[cfg_attr(feature = "serde", derive(serde::Deserialize), derive(serde::Serialize))]
+    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
     struct Val {
         hash_seed: u64,
         data: u8,
@@ -201,6 +202,7 @@ mod tests {
         assert_eq!(4, cache.len());
     }
 
+    #[cfg(feature = "serde")]
     #[test]
     fn test_serialize() {
         let mut cache = IndexedCache::new();
@@ -227,6 +229,7 @@ mod tests {
         )
     }
 
+    #[cfg(feature = "serde")]
     #[test]
     fn test_deserialize() {
         const INPUT: &'static str = r#"

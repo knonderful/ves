@@ -36,7 +36,8 @@ Zero + One + Into<usize> + From<Self::RawValue> + Ord + PartialOrd
 }
 
 /// A point in 2D space.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Point<T> {
     /// The X-coordinate.
     pub x: T,
@@ -81,7 +82,8 @@ impl<T> From<(T::RawValue, T::RawValue)> for Point<T> where
 }
 
 /// A size (or dimension) in 2D space.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Size<T> {
     /// The width.
     pub width: T,
@@ -139,7 +141,8 @@ impl<T> Size<T> where
 }
 
 /// A rectangle in 2D space.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Rect<T> {
     /// The point of origin.
     pub origin: Point<T>,
@@ -226,7 +229,8 @@ impl<T> From<((T::RawValue, T::RawValue), T::RawValue, T::RawValue)> for Rect<T>
 macro_rules! space_unit {
     ($(#[doc = $doc:expr])* $name:ident, $raw_type:ty) => {
         $(#[doc = $doc])*
-        #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+        #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
         pub struct $name($raw_type);
 
         impl std::ops::Add for $name {

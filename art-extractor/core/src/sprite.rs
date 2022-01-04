@@ -11,9 +11,9 @@
 //! global cache of some sort.
 
 use crate::geom_art::{ArtworkSpaceUnit, Point, Size};
-use serde::{Deserialize, Serialize};
 use crate::Surface;
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Color {
     Opaque(rgb::RGB8),
@@ -46,7 +46,8 @@ impl Color {
 pub type Index = u16;
 
 /// An index into a [`Palette`].
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PaletteIndex(Index); // Currently just a simple Newtype
 
 impl PaletteIndex {
@@ -86,12 +87,18 @@ impl<T: Into<Index>> From<T> for PaletteIndex {
 }
 
 /// A palette of colors.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Palette {
     colors: Vec<Color>,
 }
 
 impl Palette {
+    /// Creates a new instance from a `Vec`.
+    pub fn new(colors: Vec<Color>) -> Self {
+        Self { colors }
+    }
+
     /// Creates a new instance with the specified length and default value.
     ///
     /// # Parameters
@@ -139,6 +146,8 @@ impl std::ops::IndexMut<PaletteIndex> for Palette {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct TileSurface {
     data: Vec<PaletteIndex>,
     size: Size,
@@ -171,16 +180,28 @@ impl Surface<ArtworkSpaceUnit> for TileSurface {
 }
 
 /// A tile. This is the smallest graphical element.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Tile {
     /// The surface.
     surface: TileSurface,
 }
 
+impl Tile {
+    /// Creates a new instance.
+    pub fn new(surface: TileSurface) -> Self {
+        Self { surface }
+    }
+}
+
 /// A reference to a [`Tile`].
-#[derive(Copy, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct TileRef(Index);
 
 /// A sprite. This is basically a [`Tile`] inside a container (like a [`Cel`]) with some extra properties like position and flipping flags.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Sprite {
     /// The tile.
     tile: TileRef,
@@ -193,22 +214,29 @@ pub struct Sprite {
 }
 
 /// A cel. This is a composition of zero or more [`Sprite`]s that together form one image.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Cel {
     /// The sprites.
     sprites: Vec<Sprite>,
 }
 
 /// A reference to a [`Cel`].
-#[derive(Copy, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct CelRef(Index);
 
 /// A single frame in an [`Animation`].
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct AnimationFrame {
     cel: CelRef,
     duration: std::time::Duration,
 }
 
 /// An animation. This is a sequence of [`AnimationFrame`]s.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Animation {
     frames: Vec<AnimationFrame>,
 }

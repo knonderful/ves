@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rgb = ">=0.8, <1"
-serde = { version = ">=1, <2", features = ["derive"] }
+rgb = { version = ">=0.8, <1", features = ["serde"] }
+serde = { version = ">=1, <2", features = ["derive"], optional = true }
 ves-geom = { path = "../../geom" }

@@ -91,7 +91,9 @@ impl<T> Index<usize> for IndexedCache<T> {
 impl<'de, T> serde::Deserialize<'de> for IndexedCache<T> where
     T: serde::Deserialize<'de> + PartialEq + Hash,
 {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::Deserializer<'de> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
+        D: serde::Deserializer<'de>
+    {
         let visitor = IndexedCacheDeserializeVisitor(std::marker::PhantomData);
         if deserializer.is_human_readable() {
             deserializer.deserialize_map(visitor)

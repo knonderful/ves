@@ -89,19 +89,19 @@ mod tests {
 
     #[derive(Copy, Clone, Debug, Eq, PartialEq)]
     struct Val {
-        hash: u64,
+        hash_seed: u64,
         data: u8,
     }
 
     impl Val {
-        fn new(hash: u64, data: u8) -> Self {
-            Self { hash, data }
+        fn new(hash_seed: u64, data: u8) -> Self {
+            Self { hash_seed, data }
         }
     }
 
     impl Hash for Val {
         fn hash<H: Hasher>(&self, state: &mut H) {
-            state.write_u64(self.hash)
+            state.write_u64(self.hash_seed)
         }
     }
 

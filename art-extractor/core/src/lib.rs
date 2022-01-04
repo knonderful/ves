@@ -7,6 +7,7 @@ use crate::surface::Surface;
 pub mod surface;
 pub mod sprite;
 pub mod geom_art;
+pub mod movie;
 
 /// Macro for creating [`surface::Surface`] implementations that do no require any allocation.
 ///
@@ -68,15 +69,4 @@ macro_rules! sized_surface {
             }
         }
     }
-}
-
-pub struct Movie {
-    screen_size: Size,
-    palettes: Vec<Box<Palette>>,
-    tiles: Vec<Box<Tile>>,
-    frames: Vec<MovieFrame>,
-}
-
-pub struct MovieFrame {
-    sprites: Vec<Sprite>,
 }

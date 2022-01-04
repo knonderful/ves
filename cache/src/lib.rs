@@ -17,48 +17,6 @@ pub struct IndexedCache<T> {
     hashes: HashMap<u64, Vec<usize>>,
 }
 
-/// We need a custom [`Deserialize`] implementation because every entry needs to be fed into `offer()` in order to build up our `hashes` and
-/// we don't want to `hashes` to be a part of the (de)serialization.
-#[cfg(feature = "serde")]
-impl<'de, T> serde::Deserialize<'de> for IndexedCache<T> where
-    T: serde::Deserialize<'de> + PartialEq + Hash,
-{
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::Deserializer<'de> {
-        deserializer.deserialize_map(IndexedCacheDeserializeVisitor(std::marker::PhantomData))
-    }
-}
-
-/// A [`Visitor`] for deserialization.
-#[cfg(feature = "serde")]
-struct IndexedCacheDeserializeVisitor<T>(std::marker::PhantomData<T>);
-
-#[cfg(feature = "serde")]
-impl<'de, T> serde::de::Visitor<'de> for IndexedCacheDeserializeVisitor<T> where
-    T: serde::Deserialize<'de> + PartialEq + Hash,
-{
-    type Value = IndexedCache<T>;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("a non-empty sequence")
-    }
-
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error> where
-        A: serde::de::MapAccess<'de>,
-    {
-        let mut cache = IndexedCache::<T>::new();
-        while let Some((key, value)) = map.next_entry::<String, Vec<T>>()? {
-            if key != "entries" {
-                return Err(serde::de::Error::invalid_value(serde::de::Unexpected::Other(&key), &"entries"));
-            }
-
-            for val in value {
-                cache.offer(val);
-            }
-        }
-        Ok(cache)
-    }
-}
-
 impl<T> IndexedCache<T> {
     /// Creates a new instance.
     pub fn new() -> Self {
@@ -123,6 +81,64 @@ impl<T> Index<usize> for IndexedCache<T> {
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.entries[index]
+    }
+}
+
+
+/// We need a custom [`Deserialize`] implementation because every entry needs to be fed into `offer()` in order to build up our `hashes` and
+/// we don't want to `hashes` to be a part of the (de)serialization.
+#[cfg(feature = "serde")]
+impl<'de, T> serde::Deserialize<'de> for IndexedCache<T> where
+    T: serde::Deserialize<'de> + PartialEq + Hash,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: serde::Deserializer<'de> {
+        let visitor = IndexedCacheDeserializeVisitor(std::marker::PhantomData);
+        if deserializer.is_human_readable() {
+            deserializer.deserialize_map(visitor)
+        } else {
+            deserializer.deserialize_seq(visitor)
+        }
+    }
+}
+
+/// A [`Visitor`] for deserialization.
+#[cfg(feature = "serde")]
+struct IndexedCacheDeserializeVisitor<T>(std::marker::PhantomData<T>);
+
+#[cfg(feature = "serde")]
+impl<'de, T> serde::de::Visitor<'de> for IndexedCacheDeserializeVisitor<T> where
+    T: serde::Deserialize<'de> + PartialEq + Hash,
+{
+    type Value = IndexedCache<T>;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a non-empty sequence")
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error> where
+        A: serde::de::SeqAccess<'de>,
+    {
+        let mut cache = IndexedCache::<T>::new();
+        while let Some(val) = seq.next_element()? {
+            cache.offer(val);
+        }
+        Ok(cache)
+    }
+
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error> where
+        A: serde::de::MapAccess<'de>,
+    {
+        let mut cache = IndexedCache::<T>::new();
+        while let Some((key, value)) = map.next_entry::<String, Vec<T>>()? {
+            if key != "entries" {
+                return Err(serde::de::Error::invalid_value(serde::de::Unexpected::Other(&key), &"entries"));
+            }
+
+            for val in value {
+                cache.offer(val);
+            }
+        }
+        Ok(cache)
     }
 }
 
@@ -258,5 +274,48 @@ mod tests {
         assert_eq!(3, expected.offer(Val::new(9833440827789222417, 240)));
 
         assert_eq!(expected, actual);
+    }
+
+    const BINCODE_DATA: [u8; 44] = [
+        0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11,
+        0x78, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0xf0, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66,
+        0x77, 0x88, 0x78, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0xf0,
+    ];
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn test_serialize_bincode() {
+        let mut cache = IndexedCache::new();
+        let val1 = Val::new(0x1122334455667788, 120);
+        let val2 = Val::new(0x1122334455667788, 240);
+        let val3 = Val::new(0x8877665544332211, 120);
+        let val4 = Val::new(0x8877665544332211, 240);
+
+        cache.offer(val1);
+        cache.offer(val2);
+        cache.offer(val3);
+        cache.offer(val4);
+
+        let data = bincode::serialize(&cache).unwrap();
+
+        assert_eq!(&BINCODE_DATA, &data[..]);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn test_deserialize_bincode() {
+        let mut expected = IndexedCache::new();
+        let val1 = Val::new(0x1122334455667788, 120);
+        let val2 = Val::new(0x1122334455667788, 240);
+        let val3 = Val::new(0x8877665544332211, 120);
+        let val4 = Val::new(0x8877665544332211, 240);
+
+        expected.offer(val1);
+        expected.offer(val2);
+        expected.offer(val3);
+        expected.offer(val4);
+
+        let actual = bincode::deserialize(&BINCODE_DATA).unwrap();
+        assert_eq!(&expected, &actual);
     }
 }

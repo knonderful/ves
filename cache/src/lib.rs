@@ -204,23 +204,17 @@ mod tests {
 
     #[cfg(feature = "serde")]
     #[test]
-    fn test_serialize() {
+    fn test_serialize_json() {
         let mut cache = IndexedCache::new();
         let val1 = Val::new(0x1122334455667788, 120);
-        let val2 = Val::new(0x1122334455667788, 120);
-        let val3 = Val::new(0x1122334455667788, 240);
-        let val4 = Val::new(0x8877665544332211, 120);
-        let val5 = Val::new(0x8877665544332211, 240);
-        let val6 = Val::new(0x8877665544332211, 120);
+        let val2 = Val::new(0x1122334455667788, 240);
+        let val3 = Val::new(0x8877665544332211, 120);
+        let val4 = Val::new(0x8877665544332211, 240);
 
         cache.offer(val1);
         cache.offer(val2);
         cache.offer(val3);
         cache.offer(val4);
-        cache.offer(val5);
-        cache.offer(val6);
-        cache.offer(val2);
-        cache.offer(val3);
 
         let str = serde_json::to_string(&cache).unwrap();
         assert_eq!(
@@ -231,7 +225,7 @@ mod tests {
 
     #[cfg(feature = "serde")]
     #[test]
-    fn test_deserialize() {
+    fn test_deserialize_json() {
         const INPUT: &'static str = r#"
             {
               "entries": [

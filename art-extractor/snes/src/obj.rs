@@ -359,7 +359,7 @@ mod test_obj_name_table {
 }
 
 /// An OBJ size.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum ObjSize {
     /// Small OBJ size: 8x8 pixels.
     Small,

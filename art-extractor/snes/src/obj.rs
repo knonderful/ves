@@ -728,7 +728,6 @@ mod test_combination {
                     img.set_pixel(pos.x.raw(), pos.y.raw(), transparent);
                 }
             }
-
         });
 
         // actual.save(format!("{}/target/test_render_frame_out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR JUST LOOKING

@@ -123,21 +123,7 @@ mod test_palette {
 
 const OBJ_PALETTE_COUNT: usize = 8;
 
-struct ObjPalettes {
-    palettes: Vec<Palette>,
-}
-
-impl ObjPalettes {
-    fn new(palettes: Vec<Palette>) -> Self {
-        Self { palettes }
-    }
-
-    fn palettes(&self) -> &[Palette] {
-        &self.palettes[..]
-    }
-}
-
-impl FromSnesData<&[u8]> for ObjPalettes {
+impl FromSnesData<&[u8]> for Vec<Palette> {
     fn from_snes_data(data: &[u8]) -> Result<Self> {
         const EXPECTED_DATA_LEN: usize = OBJ_PALETTE_SIZE * OBJ_PALETTE_COUNT;
         if data.len() != EXPECTED_DATA_LEN {
@@ -149,7 +135,7 @@ impl FromSnesData<&[u8]> for ObjPalettes {
             palettes.push(Palette::from_snes_data(input)?);
         }
 
-        Ok(ObjPalettes::new(palettes))
+        Ok(palettes)
     }
 }
 
@@ -302,11 +288,10 @@ pub(super) mod test_util {
 
 #[cfg(test)]
 mod test_obj_name_table {
-    use art_extractor_core::sprite::{Color, PaletteIndex};
+    use art_extractor_core::sprite::{Color, Palette, PaletteIndex};
     use art_extractor_core::surface::Surface;
     use ves_geom::SpaceUnit;
     use bmp::Pixel;
-    use crate::obj::ObjPalettes;
     use crate::mesen::Frame;
     use super::{FromSnesData, ObjNameTable};
 
@@ -344,10 +329,10 @@ mod test_obj_name_table {
         let frame: Frame = serde_json::from_reader(file).unwrap();
 
         let obj_name_table = ObjNameTable::from_snes_data((frame.obj_name_base_table.as_slice(), frame.obj_name_select_table.as_slice())).unwrap();
-        let palettes = ObjPalettes::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
+        let palettes: Vec<Palette> = FromSnesData::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
 
         let transparent = Pixel::new(255, 0, 255);
-        let palette = &palettes.palettes()[5];
+        let palette = &palettes[5];
         let actual = super::test_util::create_bitmap(obj_name_table.surface.size(), |index, pos, img| {
             let pixel = obj_name_table.surface.data()[index];
             let color = palette[pixel];
@@ -679,10 +664,10 @@ mod test_oam_table {
 
 #[cfg(test)]
 mod test_combination {
-    use crate::obj::{FromSnesData, OamTable, ObjNameTable, ObjPalettes, ObjSizeSelect};
+    use crate::obj::{FromSnesData, OamTable, ObjNameTable, ObjSizeSelect};
     use crate::mesen::Frame;
     use art_extractor_core::geom_art::ArtworkSpaceUnit;
-    use art_extractor_core::sprite::Color;
+    use art_extractor_core::sprite::{Color, Palette};
     use art_extractor_core::surface::Surface;
     use ves_geom::SpaceUnit;
     use bmp::Pixel;
@@ -699,7 +684,7 @@ mod test_combination {
 
         let obj_size_select = ObjSizeSelect::from_snes_data(frame.obj_size_select).unwrap();
         let oam = OamTable::from_snes_data(frame.oam.as_slice()).unwrap();
-        let palettes = ObjPalettes::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
+        let palettes: Vec<Palette> = FromSnesData::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
         let name_table = ObjNameTable::from_snes_data((frame.obj_name_base_table.as_slice(), frame.obj_name_select_table.as_slice())).unwrap();
         let src_size = name_table.surface().size();
         let src_data = name_table.surface().data();
@@ -717,7 +702,7 @@ mod test_combination {
                 obj_size_select.small()
             };
             let src_rect = name_table.rect_for(obj.obj_name_table_index, obj_size);
-            let palette = &palettes.palettes()[usize::from(obj.palette)];
+            let palette = &palettes[usize::from(obj.palette)];
 
             art_extractor_core::surface::surface_iterate_2(
                 src_size, src_rect, screen_size, obj.position, obj.h_flip, obj.v_flip, |src_idx, dest_idx| {

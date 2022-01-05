@@ -328,7 +328,7 @@ mod test_obj_name_table {
         let file = std::fs::File::open(json_path.as_path()).unwrap();
         let frame: Frame = serde_json::from_reader(file).unwrap();
 
-        let obj_name_table = ObjNameTable::from_snes_data((frame.obj_name_base_table.as_slice(), frame.obj_name_select_table.as_slice())).unwrap();
+        let obj_name_table: ObjNameTable = FromSnesData::from_snes_data((frame.obj_name_base_table.as_slice(), frame.obj_name_select_table.as_slice())).unwrap();
         let palettes: Vec<Palette> = FromSnesData::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
 
         let transparent = Pixel::new(255, 0, 255);
@@ -682,10 +682,10 @@ mod test_combination {
         let file = std::fs::File::open(json_path.as_path()).unwrap();
         let frame: Frame = serde_json::from_reader(file).unwrap();
 
-        let obj_size_select = ObjSizeSelect::from_snes_data(frame.obj_size_select).unwrap();
-        let oam = OamTable::from_snes_data(frame.oam.as_slice()).unwrap();
+        let obj_size_select: ObjSizeSelect = FromSnesData::from_snes_data(frame.obj_size_select).unwrap();
+        let oam: OamTable = FromSnesData::from_snes_data(frame.oam.as_slice()).unwrap();
         let palettes: Vec<Palette> = FromSnesData::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
-        let name_table = ObjNameTable::from_snes_data((frame.obj_name_base_table.as_slice(), frame.obj_name_select_table.as_slice())).unwrap();
+        let name_table: ObjNameTable = FromSnesData::from_snes_data((frame.obj_name_base_table.as_slice(), frame.obj_name_select_table.as_slice())).unwrap();
         let src_size = name_table.surface().size();
         let src_data = name_table.surface().data();
 

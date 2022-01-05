@@ -39,52 +39,53 @@ impl Color {
     }
 }
 
-/// An index type that is the same across different platforms (for the sake of serialization stability). We can't use `usize`, since that
-/// changes size on different platforms, resulting in serialized data being incompatible across platform boundaries.
-// Taking u16 here because the collections are not expected to be too big and it can always be safely converted to ´usize` (which is not the
-// case with `u32`).
-pub type Index = u16;
+macro_rules! usize_wrapper {
+    ($(#[doc = $doc:expr])* $vis:vis $name:ident) => {
+        $(#[doc = $doc])*
+        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+        #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+        $vis struct $name(usize);
 
-/// An index into a [`Palette`].
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct PaletteIndex(Index); // Currently just a simple Newtype
+        impl $name {
+            /// Creates a new instance.
+            ///
+            /// # Arguments
+            /// * `value` the value.
+            #[inline(always)]
+            $vis fn new(value: usize) -> Self {
+                Self(value)
+            }
 
-impl PaletteIndex {
-    /// Creates a new instance.
-    ///
-    /// # Arguments
-    /// * `index` the index.
-    pub fn new(index: Index) -> Self {
-        Self(index)
-    }
+            /// Retrieves the underlying value.
+            #[inline(always)]
+            $vis fn value(&self) -> usize {
+                self.0
+            }
 
-    /// Retrieves the underlying value.
-    pub fn value(&self) -> Index {
-        self.as_index()
-    }
+            /// Sets the underlying value.
+            #[inline(always)]
+            $vis fn set_value(&mut self, value: usize) {
+                self.0 = value;
+            }
+        }
 
-    /// Sets the underlying value.
-    pub fn set_value(&mut self, value: Index) {
-        self.0 = value;
-    }
-
-    /// Retrieves the value as an [`Index`].
-    pub fn as_index(&self) -> Index {
-        self.0
-    }
-
-    /// Retrieves the value as a `usize`.
-    pub fn as_usize(&self) -> usize {
-        self.0.into()
+        impl<T: Into<usize>> From<T> for $name {
+            fn from(val: T) -> Self {
+                Self::new(val.into())
+            }
+        }
     }
 }
 
-impl<T: Into<Index>> From<T> for PaletteIndex {
-    fn from(val: T) -> Self {
-        Self::new(val.into())
-    }
-}
+usize_wrapper!(
+    /// An index into a [`Palette`].
+    pub PaletteIndex
+);
+
+usize_wrapper!(
+    /// A reference to a [`Palette`].
+    pub PaletteRef
+);
 
 /// A palette of colors.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -136,13 +137,13 @@ impl std::ops::Index<PaletteIndex> for Palette {
     type Output = Color;
 
     fn index(&self, index: PaletteIndex) -> &Self::Output {
-        &self.colors[index.as_usize()]
+        &self.colors[index.value()]
     }
 }
 
 impl std::ops::IndexMut<PaletteIndex> for Palette {
     fn index_mut(&mut self, index: PaletteIndex) -> &mut Self::Output {
-        &mut self.colors[index.as_usize()]
+        &mut self.colors[index.value()]
     }
 }
 
@@ -192,12 +193,20 @@ impl Tile {
     pub fn new(surface: TileSurface) -> Self {
         Self { surface }
     }
+
+    pub fn surface(&self) -> &TileSurface {
+        &self.surface
+    }
+
+    pub fn surface_mut(&mut self) -> &mut TileSurface {
+        &mut self.surface
+    }
 }
 
-/// A reference to a [`Tile`].
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub struct TileRef(Index);
+usize_wrapper!(
+    /// A reference to a [`Tile`].
+    pub TileRef
+);
 
 /// A sprite. This is basically a [`Tile`] inside a container (like a [`Cel`]) with some extra properties like position and flipping flags.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -205,12 +214,20 @@ pub struct TileRef(Index);
 pub struct Sprite {
     /// The tile.
     tile: TileRef,
+    /// The palette.
+    palette: PaletteRef,
     /// The position of the origin of the tile inside its container.
     position: Point,
     /// A flag that specifies whether the tile is flipped horizontally.
     h_flip: bool,
     /// A flag that specifies whether the tile is flipped vertically.
     v_flip: bool,
+}
+
+impl Sprite {
+    pub fn new(tile: TileRef, palette: PaletteRef, position: Point, h_flip: bool, v_flip: bool) -> Self {
+        Self { tile, palette, position, h_flip, v_flip }
+    }
 }
 
 /// A cel. This is a composition of zero or more [`Sprite`]s that together form one image.
@@ -221,10 +238,10 @@ pub struct Cel {
     sprites: Vec<Sprite>,
 }
 
-/// A reference to a [`Cel`].
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub struct CelRef(Index);
+usize_wrapper!(
+    /// A reference to a [`Cel`].
+    pub CelRef
+);
 
 /// A single frame in an [`Animation`].
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -259,34 +276,28 @@ mod test_palette_index {
     fn test_getters() {
         // Some number
         let idx = PaletteIndex::new(12);
-        assert_eq!(idx.as_index(), 12u16);
-        assert_eq!(idx.as_usize(), 12usize);
+        assert_eq!(idx.value(), 12usize);
 
         // Zero
         let idx = PaletteIndex::new(0);
-        assert_eq!(idx.as_index(), 0u16);
-        assert_eq!(idx.as_usize(), 0usize);
+        assert_eq!(idx.value(), 0usize);
     }
 
     #[test]
     fn test_from() {
         // Some number (u16)
         let idx = PaletteIndex::from(12u16);
-        assert_eq!(idx.as_index(), 12u16);
-        assert_eq!(idx.as_usize(), 12usize);
+        assert_eq!(idx.value(), 12usize);
         // Some number (u8)
         let idx = PaletteIndex::from(12u8);
-        assert_eq!(idx.as_index(), 12u16);
-        assert_eq!(idx.as_usize(), 12usize);
+        assert_eq!(idx.value(), 12usize);
 
         // Zero (u16)
         let idx = PaletteIndex::from(0u16);
-        assert_eq!(idx.as_index(), 0u16);
-        assert_eq!(idx.as_usize(), 0usize);
+        assert_eq!(idx.value(), 0usize);
         // Zero (u8)
         let idx = PaletteIndex::from(0u8);
-        assert_eq!(idx.as_index(), 0u16);
-        assert_eq!(idx.as_usize(), 0usize);
+        assert_eq!(idx.value(), 0usize);
     }
 }
 

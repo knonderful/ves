@@ -4,8 +4,9 @@
 //! screen (in contrast with tiles in a background that are layed out in a pre-defined raster).
 #![allow(dead_code)]
 
+use std::usize;
 use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
-use art_extractor_core::sprite::{Color, Index, Palette, PaletteIndex};
+use art_extractor_core::sprite::{Color, Palette, PaletteIndex, Sprite, Tile, TileRef, TileSurface};
 use art_extractor_core::surface::Surface;
 use anyhow::{anyhow, bail, Result};
 
@@ -110,7 +111,7 @@ mod test_palette {
         const INPUT: [u8; 32] = [0, 0, 159, 75, 28, 59, 179, 37, 0, 0, 159, 75, 223, 99, 255, 115, 0, 0, 255, 127, 255, 127, 255, 127, 27, 115, 255, 127, 255, 127, 255, 127];
         let palette = Palette::from_snes_data(&INPUT).unwrap();
 
-        for (offset, color) in palette.iter().map(|(i, c)| (i.as_usize() * 2, c)) {
+        for (offset, color) in palette.iter().map(|(i, c)| (i.value() * 2, c)) {
             let expected = if offset == 0 {
                 Color::Transparent
             } else {
@@ -225,7 +226,7 @@ impl ObjNameTable {
         // Iterate from right to left, since the right-most pixel is the lsb of the source byte
         for pixel in target_row_data.iter_mut().rev() {
             // Apply the two planes to the current pixel
-            let mask = (Index::from((plane2 & 0x1) << 1) | Index::from(plane1 & 0x1)) << bit_offset;
+            let mask = (usize::from((plane2 & 0x1) << 1) | usize::from(plane1 & 0x1)) << bit_offset;
             pixel.set_value(pixel.value() | mask);
             // Move to the next bit in the source bytes
             plane1 >>= 1;

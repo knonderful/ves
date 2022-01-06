@@ -773,7 +773,6 @@ mod test_mod_fns {
     use crate::mesen::Frame;
     use ves_cache::IndexedCache;
 
-
     #[test]
     fn test_create_movie_frame() {
         let mut json_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));

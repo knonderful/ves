@@ -7,7 +7,7 @@
 use std::borrow::Cow;
 use std::usize;
 use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
-use art_extractor_core::sprite::{Color, Palette, PaletteIndex, Sprite, Tile, TileSurface};
+use art_extractor_core::sprite::{Color, Palette, PaletteIndex, PaletteRef, Sprite, Tile, TileRef, TileSurface};
 use art_extractor_core::surface::Surface;
 use anyhow::{anyhow, bail, Result};
 use art_extractor_core::movie::MovieFrame;
@@ -650,7 +650,7 @@ mod test_oam_table {
 ///
 /// # Returns
 /// The [`MovieFrame`] or an error if the provided [`crate::mesen::Frame`] contains invalid data.
-pub fn create_movie_frame(frame: &crate::mesen::Frame, palette_cache: &mut IndexedCache<Palette>, tile_cache: &mut IndexedCache<Tile>) -> Result<MovieFrame> {
+pub fn create_movie_frame(frame: &crate::mesen::Frame, palette_cache: &mut IndexedCache<Palette, PaletteRef>, tile_cache: &mut IndexedCache<Tile, TileRef>) -> Result<MovieFrame> {
     let obj_size_select: ObjSizeSelect = FromSnesData::from_snes_data(frame.obj_size_select)?;
     let oam: OamTable = FromSnesData::from_snes_data(frame.oam.as_slice())?;
     let palettes: Vec<Palette> = FromSnesData::from_snes_data(&frame.cgram.as_slice()[0x100..])?;

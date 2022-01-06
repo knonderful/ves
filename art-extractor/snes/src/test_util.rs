@@ -1,7 +1,7 @@
 use bmp::Pixel;
 use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
 use art_extractor_core::movie::MovieFrame;
-use art_extractor_core::sprite::{Color, Palette, Tile};
+use art_extractor_core::sprite::{Color, Palette, PaletteRef, Tile, TileRef};
 use art_extractor_core::surface::{Surface, surface_iterate};
 use ves_cache::IndexedCache;
 use ves_geom::SpaceUnit;
@@ -26,7 +26,7 @@ pub fn create_bitmap(size: Size, mut func: impl FnMut(usize, Point, &mut bmp::Im
     img
 }
 
-pub fn bmp_from_movie_frame(movie_frame: &MovieFrame, palettes: &IndexedCache<Palette>, tiles: &IndexedCache<Tile>) -> bmp::Image {
+pub fn bmp_from_movie_frame(movie_frame: &MovieFrame, palettes: &IndexedCache<Palette, PaletteRef>, tiles: &IndexedCache<Tile, TileRef>) -> bmp::Image {
     // Render everything to our special screen surface.
     let mut screen_surface = ScreenSurface::new();
     let screen_size = screen_surface.size();
@@ -34,13 +34,13 @@ pub fn bmp_from_movie_frame(movie_frame: &MovieFrame, palettes: &IndexedCache<Pa
 
     // Reverse-iterate because the first objects should be rendered on top
     for sprite in movie_frame.sprites().iter().rev() {
-        let tile = &tiles[sprite.tile().value()];
+        let tile = &tiles[sprite.tile()];
         let sprite_surface = tile.surface();
         let src_data = sprite_surface.data();
         let src_size = sprite_surface.size();
         let src_rect = Rect::new(Point::new(0.into(), 0.into()), src_size);
 
-        let palette = &palettes[sprite.palette().value()];
+        let palette = &palettes[sprite.palette()];
         art_extractor_core::surface::surface_iterate_2(
             src_size, src_rect, screen_size, sprite.position(), sprite.h_flip(), sprite.v_flip(), |src_idx, dest_idx| {
                 let index = src_data[src_idx];

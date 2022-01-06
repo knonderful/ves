@@ -69,10 +69,17 @@ macro_rules! primitive_wrapper {
             }
         }
 
-        impl<T: Into<$ty>> From<T> for $name {
+        impl From<$ty> for $name {
             #[inline(always)]
-            fn from(val: T) -> Self {
+            fn from(val: $ty) -> Self {
                 Self::new(val.into())
+            }
+        }
+
+        impl Into<$ty> for $name {
+            #[inline(always)]
+            fn into(self) -> $ty {
+                self.0
             }
         }
     }

@@ -31,6 +31,11 @@ impl<T> IndexedCache<T> {
     pub fn len(&self) -> usize {
         self.entries.len()
     }
+
+    /// Consumes this instance and returns the entries.
+    pub fn consume(self) -> Vec<T> {
+        self.entries
+    }
 }
 
 impl<T> IndexedCache<T> where

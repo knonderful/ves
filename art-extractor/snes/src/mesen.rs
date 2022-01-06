@@ -62,7 +62,7 @@ mod test_frame {
     #[test]
     fn test_deserialize_real() {
         let mut file_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        file_path.push("resources/test/frame_199250.json");
+        file_path.push("resources/test/mesen-s_frames/frame_199250.json");
 
         let file = std::fs::File::open(file_path.as_path()).unwrap();
         let frame: Frame = serde_json::from_reader(file).unwrap();

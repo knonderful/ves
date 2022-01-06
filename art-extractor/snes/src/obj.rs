@@ -4,11 +4,14 @@
 //! screen (in contrast with tiles in a background that are layed out in a pre-defined raster).
 #![allow(dead_code)]
 
+use std::borrow::Cow;
 use std::usize;
 use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
-use art_extractor_core::sprite::{Color, Palette, PaletteIndex, Sprite, Tile, TileRef, TileSurface};
+use art_extractor_core::sprite::{Color, Palette, PaletteIndex, Sprite, Tile, TileSurface};
 use art_extractor_core::surface::Surface;
 use anyhow::{anyhow, bail, Result};
+use art_extractor_core::movie::MovieFrame;
+use ves_cache::IndexedCache;
 
 /// A trait for constructing objects from (raw) SNES data.
 ///
@@ -662,6 +665,60 @@ mod test_oam_table {
         // Currently we only test that the unwrap doesn't fail, which means we at least read the right amount of data.
         OamTable::from_snes_data(frame.oam.as_slice()).unwrap();
     }
+}
+
+/// Creates a [`MovieFrame`] from the provided [`crate::mesen::Frame`].
+///
+/// # Parameters
+/// * `frame`: The [`crate::mesen::Frame`].
+/// * `palette_cache`: The [`Palette`] cache.
+/// * `tile_cache`: The [`Tile`] cache.
+///
+/// # Returns
+/// The [`MovieFrame`] or an error if the provided [`crate::mesen::Frame`] contains invalid data.
+pub fn create_movie_frame(frame: &crate::mesen::Frame, palette_cache: &mut IndexedCache<Palette>, tile_cache: &mut IndexedCache<Tile>) -> Result<MovieFrame> {
+    let obj_size_select: ObjSizeSelect = FromSnesData::from_snes_data(frame.obj_size_select)?;
+    let oam: OamTable = FromSnesData::from_snes_data(frame.oam.as_slice())?;
+    let palettes: Vec<Palette> = FromSnesData::from_snes_data(&frame.cgram.as_slice()[0x100..])?;
+    let name_table: ObjNameTable = FromSnesData::from_snes_data((frame.obj_name_base_table.as_slice(), frame.obj_name_select_table.as_slice()))?;
+    let src_size = name_table.surface().size();
+    let src_data = name_table.surface().data();
+
+    let mut sprites = Vec::with_capacity(oam.objects().len());
+    for obj in oam.objects() {
+        let obj_size = if obj.size_large {
+            obj_size_select.large()
+        } else {
+            obj_size_select.small()
+        };
+
+        // Build the Tile
+        let mut tile = Tile::new(TileSurface::new(obj_size.size()));
+        let src_rect = name_table.rect_for(obj.obj_name_table_index, obj_size);
+        let dest_size = tile.surface().size();
+        let dest_point = Point::new(0.into(), 0.into());
+        let dest_data = tile.surface_mut().data_mut();
+
+        art_extractor_core::surface::surface_iterate_2(
+            src_size, src_rect,
+            dest_size, dest_point,
+            false, false,
+            |src_idx, dest_idx| {
+                dest_data[dest_idx] = src_data[src_idx];
+            },
+        ).map_err(|msg| anyhow::Error::msg(msg))?;
+
+        // Build the Palette
+        let palette = &palettes[usize::from(obj.palette)];
+
+        let tile_ref = tile_cache.offer(Cow::Owned(tile));
+        let palette_ref = palette_cache.offer(Cow::Borrowed(palette));
+
+        let sprite = Sprite::new(tile_ref.into(), palette_ref.into(), obj.position, obj.h_flip, obj.v_flip);
+        sprites.push(sprite);
+    }
+
+    Ok(MovieFrame::new(frame.frame_nr, sprites))
 }
 
 #[cfg(test)]

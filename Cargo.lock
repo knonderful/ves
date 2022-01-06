@@ -59,6 +59,7 @@ dependencies = [
  "bmp",
  "serde",
  "serde_json",
+ "ves-cache",
  "ves-geom",
 ]
 

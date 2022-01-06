@@ -722,31 +722,29 @@ pub fn create_movie_frame(frame: &crate::mesen::Frame, palette_cache: &mut Index
 }
 
 #[cfg(test)]
-mod test_combination {
+mod test_mod_fns {
     use crate::obj::{FromSnesData, OamTable, ObjNameTable, ObjSizeSelect};
     use crate::mesen::Frame;
-    use art_extractor_core::geom_art::ArtworkSpaceUnit;
+    use art_extractor_core::geom_art::{ArtworkSpaceUnit, Rect};
     use art_extractor_core::sprite::{Color, Palette};
     use art_extractor_core::surface::Surface;
-    use ves_geom::SpaceUnit;
+    use ves_geom::{Point, SpaceUnit};
     use bmp::Pixel;
+    use ves_cache::IndexedCache;
 
     art_extractor_core::sized_surface!(ScreenSurface, Color, ArtworkSpaceUnit, 512, 256, Color::Transparent);
 
     #[test]
-    fn test_render_frame() {
+    fn test_create_movie_frame() {
         let mut json_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         json_path.push("resources/test/mesen-s_frames/frame_199250.json");
 
         let file = std::fs::File::open(json_path.as_path()).unwrap();
         let frame: Frame = serde_json::from_reader(file).unwrap();
 
-        let obj_size_select: ObjSizeSelect = FromSnesData::from_snes_data(frame.obj_size_select).unwrap();
-        let oam: OamTable = FromSnesData::from_snes_data(frame.oam.as_slice()).unwrap();
-        let palettes: Vec<Palette> = FromSnesData::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
-        let name_table: ObjNameTable = FromSnesData::from_snes_data((frame.obj_name_base_table.as_slice(), frame.obj_name_select_table.as_slice())).unwrap();
-        let src_size = name_table.surface().size();
-        let src_data = name_table.surface().data();
+        let mut palettes = IndexedCache::new();
+        let mut tiles = IndexedCache::new();
+        let movie_frame = super::create_movie_frame(&frame, &mut palettes, &mut tiles).unwrap();
 
         // Render everything to our special screen surface.
         let mut screen_surface = ScreenSurface::new();
@@ -754,17 +752,16 @@ mod test_combination {
         let screen_data = screen_surface.data_mut();
 
         // Reverse-iterate because the first objects should be rendered on top
-        for obj in oam.objects().iter().rev() {
-            let obj_size = if obj.size_large {
-                obj_size_select.large()
-            } else {
-                obj_size_select.small()
-            };
-            let src_rect = name_table.rect_for(obj.obj_name_table_index, obj_size);
-            let palette = &palettes[usize::from(obj.palette)];
+        for sprite in movie_frame.sprites().iter().rev() {
+            let tile = &tiles[sprite.tile().value()];
+            let sprite_surface = tile.surface();
+            let src_data = sprite_surface.data();
+            let src_size = sprite_surface.size();
+            let src_rect = Rect::new(Point::new(0.into(), 0.into()), src_size);
 
+            let palette = &palettes[sprite.palette().value()];
             art_extractor_core::surface::surface_iterate_2(
-                src_size, src_rect, screen_size, obj.position, obj.h_flip, obj.v_flip, |src_idx, dest_idx| {
+                src_size, src_rect, screen_size, sprite.position(), sprite.h_flip(), sprite.v_flip(), |src_idx, dest_idx| {
                     let index = src_data[src_idx];
                     if index.value() == 0 {
                         return;

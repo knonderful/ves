@@ -39,12 +39,12 @@ impl Color {
     }
 }
 
-macro_rules! usize_wrapper {
-    ($(#[doc = $doc:expr])* $vis:vis $name:ident) => {
+macro_rules! primitive_wrapper {
+    ($(#[doc = $doc:expr])* $vis:vis $name:ident < $ty:ty >) => {
         $(#[doc = $doc])*
         #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
         #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-        $vis struct $name(usize);
+        $vis struct $name($ty);
 
         impl $name {
             /// Creates a new instance.
@@ -52,24 +52,25 @@ macro_rules! usize_wrapper {
             /// # Arguments
             /// * `value` the value.
             #[inline(always)]
-            $vis fn new(value: usize) -> Self {
+            $vis fn new(value: $ty) -> Self {
                 Self(value)
             }
 
             /// Retrieves the underlying value.
             #[inline(always)]
-            $vis fn value(&self) -> usize {
+            $vis fn value(&self) -> $ty {
                 self.0
             }
 
             /// Sets the underlying value.
             #[inline(always)]
-            $vis fn set_value(&mut self, value: usize) {
+            $vis fn set_value(&mut self, value: $ty) {
                 self.0 = value;
             }
         }
 
-        impl<T: Into<usize>> From<T> for $name {
+        impl<T: Into<$ty>> From<T> for $name {
+            #[inline(always)]
             fn from(val: T) -> Self {
                 Self::new(val.into())
             }
@@ -77,14 +78,14 @@ macro_rules! usize_wrapper {
     }
 }
 
-usize_wrapper!(
+primitive_wrapper!(
     /// An index into a [`Palette`].
-    pub PaletteIndex
+    pub PaletteIndex<u8>
 );
 
-usize_wrapper!(
+primitive_wrapper!(
     /// A reference to a [`Palette`].
-    pub PaletteRef
+    pub PaletteRef<usize>
 );
 
 /// A palette of colors.
@@ -137,13 +138,13 @@ impl std::ops::Index<PaletteIndex> for Palette {
     type Output = Color;
 
     fn index(&self, index: PaletteIndex) -> &Self::Output {
-        &self.colors[index.value()]
+        &self.colors[usize::from(index.value())]
     }
 }
 
 impl std::ops::IndexMut<PaletteIndex> for Palette {
     fn index_mut(&mut self, index: PaletteIndex) -> &mut Self::Output {
-        &mut self.colors[index.value()]
+        &mut self.colors[usize::from(index.value())]
     }
 }
 
@@ -203,9 +204,9 @@ impl Tile {
     }
 }
 
-usize_wrapper!(
+primitive_wrapper!(
     /// A reference to a [`Tile`].
-    pub TileRef
+    pub TileRef<usize>
 );
 
 /// A sprite. This is basically a [`Tile`] inside a container (like a [`Cel`]) with some extra properties like position and flipping flags.
@@ -238,9 +239,9 @@ pub struct Cel {
     sprites: Vec<Sprite>,
 }
 
-usize_wrapper!(
+primitive_wrapper!(
     /// A reference to a [`Cel`].
-    pub CelRef
+    pub CelRef<usize>
 );
 
 /// A single frame in an [`Animation`].
@@ -276,28 +277,22 @@ mod test_palette_index {
     fn test_getters() {
         // Some number
         let idx = PaletteIndex::new(12);
-        assert_eq!(idx.value(), 12usize);
+        assert_eq!(idx.value(), 12u8);
 
         // Zero
         let idx = PaletteIndex::new(0);
-        assert_eq!(idx.value(), 0usize);
+        assert_eq!(idx.value(), 0u8);
     }
 
     #[test]
     fn test_from() {
-        // Some number (u16)
-        let idx = PaletteIndex::from(12u16);
-        assert_eq!(idx.value(), 12usize);
         // Some number (u8)
         let idx = PaletteIndex::from(12u8);
-        assert_eq!(idx.value(), 12usize);
+        assert_eq!(idx.value(), 12u8);
 
-        // Zero (u16)
-        let idx = PaletteIndex::from(0u16);
-        assert_eq!(idx.value(), 0usize);
         // Zero (u8)
         let idx = PaletteIndex::from(0u8);
-        assert_eq!(idx.value(), 0usize);
+        assert_eq!(idx.value(), 0u8);
     }
 }
 
@@ -329,19 +324,19 @@ mod test_palette {
         let color2 = Color::new(0x44, 0x55, 0x66);
         let color3 = Color::new(0x11, 0x22, 0x33);
 
-        pal[2u16.into()] = color2;
+        pal[2u8.into()] = color2;
         assert_eq_colors!(pal, color_default, color_default, color2, color_default);
-        pal[0u16.into()] = color0;
-        pal[1u16.into()] = color1;
-        pal[3u16.into()] = color3;
+        pal[0u8.into()] = color0;
+        pal[1u8.into()] = color1;
+        pal[3u8.into()] = color3;
         assert_eq_colors!(pal, color0, color1, color2, color3);
 
-        assert_eq!(pal[0u16.into()], color0);
-        assert_eq!(pal[1u16.into()], color1);
-        assert_eq!(pal[2u16.into()], color2);
-        assert_eq!(pal[3u16.into()], color3);
+        assert_eq!(pal[0u8.into()], color0);
+        assert_eq!(pal[1u8.into()], color1);
+        assert_eq!(pal[2u8.into()], color2);
+        assert_eq!(pal[3u8.into()], color3);
 
-        let result = super::catch_unwind_silent(move || pal[4u16.into()]);
+        let result = super::catch_unwind_silent(move || pal[4u8.into()]);
         assert!(result.is_err());
     }
 }

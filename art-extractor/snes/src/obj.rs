@@ -115,7 +115,8 @@ mod test_palette {
             let expected = if offset == 0 {
                 Color::Transparent
             } else {
-                Color::from_snes_data((INPUT[offset], INPUT[offset + 1])).unwrap()
+                let idx = usize::from(offset);
+                Color::from_snes_data((INPUT[idx], INPUT[idx + 1])).unwrap()
             };
             assert_eq!(&expected, color);
         }
@@ -222,11 +223,11 @@ impl ObjNameTable {
     /// * `bit_offset`: The bit-offset at which to apply the data inside the `PaletteIndex` values.
     /// * `plane1`: The byte containing the bit values for the least-significant value of the row.
     /// * `plane2`: The byte containing the bit values for the most-significant value of the row.
-    fn apply_planes_to_row(target_row_data: &mut [PaletteIndex], bit_offset: usize, mut plane1: u8, mut plane2: u8) {
+    fn apply_planes_to_row(target_row_data: &mut [PaletteIndex], bit_offset: u8, mut plane1: u8, mut plane2: u8) {
         // Iterate from right to left, since the right-most pixel is the lsb of the source byte
         for pixel in target_row_data.iter_mut().rev() {
             // Apply the two planes to the current pixel
-            let mask = (usize::from((plane2 & 0x1) << 1) | usize::from(plane1 & 0x1)) << bit_offset;
+            let mask = (u8::from((plane2 & 0x1) << 1) | u8::from(plane1 & 0x1)) << bit_offset;
             pixel.set_value(pixel.value() | mask);
             // Move to the next bit in the source bytes
             plane1 >>= 1;

@@ -267,12 +267,17 @@ impl FromSnesData<(&[u8], &[u8])> for ObjNameTable {
 
 #[cfg(test)]
 pub(super) mod test_util {
-    use art_extractor_core::geom_art::{Point, Size};
-    use art_extractor_core::surface::surface_iterate;
+    use bmp::Pixel;
+    use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
+    use art_extractor_core::movie::MovieFrame;
+    use art_extractor_core::sprite::{Color, Palette, Tile};
+    use art_extractor_core::surface::{Surface, surface_iterate};
+    use ves_cache::IndexedCache;
+    use ves_geom::SpaceUnit;
+
+    art_extractor_core::sized_surface!(ScreenSurface, Color, ArtworkSpaceUnit, 512, 256, Color::Transparent);
 
     pub fn create_bitmap(size: Size, mut func: impl FnMut(usize, Point, &mut bmp::Image)) -> bmp::Image {
-        use ves_geom::SpaceUnit;
-
         let mut img = bmp::Image::new(size.width.raw(), size.height.raw());
 
         let rect = size.as_rect();
@@ -288,6 +293,48 @@ pub(super) mod test_util {
             func(index, Point::new_raw(x, y), &mut img);
         }).unwrap();
         img
+    }
+
+    pub fn bmp_from_movie_frame(movie_frame: &MovieFrame, palettes: &IndexedCache<Palette>, tiles: &IndexedCache<Tile>) -> bmp::Image {
+        // Render everything to our special screen surface.
+        let mut screen_surface = ScreenSurface::new();
+        let screen_size = screen_surface.size();
+        let screen_data = screen_surface.data_mut();
+
+        // Reverse-iterate because the first objects should be rendered on top
+        for sprite in movie_frame.sprites().iter().rev() {
+            let tile = &tiles[sprite.tile().value()];
+            let sprite_surface = tile.surface();
+            let src_data = sprite_surface.data();
+            let src_size = sprite_surface.size();
+            let src_rect = Rect::new(Point::new(0.into(), 0.into()), src_size);
+
+            let palette = &palettes[sprite.palette().value()];
+            art_extractor_core::surface::surface_iterate_2(
+                src_size, src_rect, screen_size, sprite.position(), sprite.h_flip(), sprite.v_flip(), |src_idx, dest_idx| {
+                    let index = src_data[src_idx];
+                    if index.value() == 0 {
+                        return;
+                    }
+                    let color = palette[index];
+                    screen_data[dest_idx] = color;
+                },
+            ).unwrap();
+        }
+
+        // Write BMP
+        let transparent = Pixel::new(255, 0, 255);
+        super::test_util::create_bitmap(screen_size, |index, pos, img| {
+            let color = screen_data[index];
+            match color {
+                Color::Opaque(color) => {
+                    img.set_pixel(pos.x.raw(), pos.y.raw(), Pixel::new(color.r, color.g, color.b));
+                }
+                Color::Transparent => {
+                    img.set_pixel(pos.x.raw(), pos.y.raw(), transparent);
+                }
+            }
+        })
     }
 }
 
@@ -723,16 +770,9 @@ pub fn create_movie_frame(frame: &crate::mesen::Frame, palette_cache: &mut Index
 
 #[cfg(test)]
 mod test_mod_fns {
-    use crate::obj::{FromSnesData, OamTable, ObjNameTable, ObjSizeSelect};
     use crate::mesen::Frame;
-    use art_extractor_core::geom_art::{ArtworkSpaceUnit, Rect};
-    use art_extractor_core::sprite::{Color, Palette};
-    use art_extractor_core::surface::Surface;
-    use ves_geom::{Point, SpaceUnit};
-    use bmp::Pixel;
     use ves_cache::IndexedCache;
 
-    art_extractor_core::sized_surface!(ScreenSurface, Color, ArtworkSpaceUnit, 512, 256, Color::Transparent);
 
     #[test]
     fn test_create_movie_frame() {
@@ -745,46 +785,7 @@ mod test_mod_fns {
         let mut palettes = IndexedCache::new();
         let mut tiles = IndexedCache::new();
         let movie_frame = super::create_movie_frame(&frame, &mut palettes, &mut tiles).unwrap();
-
-        // Render everything to our special screen surface.
-        let mut screen_surface = ScreenSurface::new();
-        let screen_size = screen_surface.size();
-        let screen_data = screen_surface.data_mut();
-
-        // Reverse-iterate because the first objects should be rendered on top
-        for sprite in movie_frame.sprites().iter().rev() {
-            let tile = &tiles[sprite.tile().value()];
-            let sprite_surface = tile.surface();
-            let src_data = sprite_surface.data();
-            let src_size = sprite_surface.size();
-            let src_rect = Rect::new(Point::new(0.into(), 0.into()), src_size);
-
-            let palette = &palettes[sprite.palette().value()];
-            art_extractor_core::surface::surface_iterate_2(
-                src_size, src_rect, screen_size, sprite.position(), sprite.h_flip(), sprite.v_flip(), |src_idx, dest_idx| {
-                    let index = src_data[src_idx];
-                    if index.value() == 0 {
-                        return;
-                    }
-                    let color = palette[index];
-                    screen_data[dest_idx] = color;
-                },
-            ).unwrap();
-        }
-
-        // Write BMP
-        let transparent = Pixel::new(255, 0, 255);
-        let actual = super::test_util::create_bitmap(screen_size, |index, pos, img| {
-            let color = screen_data[index];
-            match color {
-                Color::Opaque(color) => {
-                    img.set_pixel(pos.x.raw(), pos.y.raw(), Pixel::new(color.r, color.g, color.b));
-                }
-                Color::Transparent => {
-                    img.set_pixel(pos.x.raw(), pos.y.raw(), transparent);
-                }
-            }
-        });
+        let actual = super::test_util::bmp_from_movie_frame(&movie_frame, &palettes, &tiles);
 
         // actual.save(format!("{}/../../target/test_render_frame_out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR JUST LOOKING
         // actual.save(format!("{}/resources/test/expected_render_frame.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR UPDATING

@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -33,16 +34,16 @@ impl<T> IndexedCache<T> {
 }
 
 impl<T> IndexedCache<T> where
-    T: PartialEq + Hash,
+    T: PartialEq + Hash + Clone,
 {
     /// Offers a value.
     ///
     /// # Parameters
-    /// * `value`: The value to add.
+    /// * `value`: A [`Cow`] of the value to add. [`Cow::into_owned`] will be called if the value is not found in the cache.
     ///
     /// # Return
     /// The index of the entry.
-    pub fn offer(&mut self, value: T) -> usize {
+    pub fn offer(&mut self, value: Cow<T>) -> usize {
         let mut hasher = DefaultHasher::new();
         value.hash(&mut hasher);
         let hash = hasher.finish();
@@ -53,20 +54,20 @@ impl<T> IndexedCache<T> where
                 // Look up the value for this index
                 .map(|i| (i, &self.entries[*i]))
                 // Compare the value
-                .find(|(_, val)| *val == &value)
+                .find(|(_, val)| *val == &*value)
                 // Deref the index and ignore the value (since we're only interested in the index)
                 .map(|(i, _)| *i)
                 // Handle new entry
                 .unwrap_or_else(|| {
                     let index = self.entries.len();
-                    self.entries.push(value);
+                    self.entries.push(value.into_owned());
                     indices.push(index);
                     index
                 })
         } else {
             // This is a new hash, so we can just add it and update the hashes
             let index = self.entries.len();
-            self.entries.push(value);
+            self.entries.push(value.into_owned());
             if self.hashes.insert(hash, vec![index]).is_some() {
                 // This can only happen with a local programming error
                 panic!("Expected no element to be pre-existing for hash {}.", hash);
@@ -89,7 +90,7 @@ impl<T> Index<usize> for IndexedCache<T> {
 /// we don't want to `hashes` to be a part of the (de)serialization.
 #[cfg(feature = "serde")]
 impl<'de, T> serde::Deserialize<'de> for IndexedCache<T> where
-    T: serde::Deserialize<'de> + PartialEq + Hash,
+    T: serde::Deserialize<'de> + PartialEq + Hash + Clone,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where
         D: serde::Deserializer<'de>
@@ -109,7 +110,7 @@ struct IndexedCacheDeserializeVisitor<T>(std::marker::PhantomData<T>);
 
 #[cfg(feature = "serde")]
 impl<'de, T> serde::de::Visitor<'de> for IndexedCacheDeserializeVisitor<T> where
-    T: serde::Deserialize<'de> + PartialEq + Hash,
+    T: serde::Deserialize<'de> + PartialEq + Hash + Clone,
 {
     type Value = IndexedCache<T>;
 
@@ -122,7 +123,7 @@ impl<'de, T> serde::de::Visitor<'de> for IndexedCacheDeserializeVisitor<T> where
     {
         let mut cache = IndexedCache::<T>::new();
         while let Some(val) = seq.next_element()? {
-            cache.offer(val);
+            cache.offer(Cow::Owned(val));
         }
         Ok(cache)
     }
@@ -137,7 +138,7 @@ impl<'de, T> serde::de::Visitor<'de> for IndexedCacheDeserializeVisitor<T> where
             }
 
             for val in value {
-                cache.offer(val);
+                cache.offer(Cow::Owned(val));
             }
         }
         Ok(cache)
@@ -146,6 +147,7 @@ impl<'de, T> serde::de::Visitor<'de> for IndexedCacheDeserializeVisitor<T> where
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
     use std::hash::{Hash, Hasher};
     use crate::IndexedCache;
 
@@ -170,7 +172,7 @@ mod tests {
 
     #[test]
     fn test_offer() {
-        let mut cache = IndexedCache::new();
+        let mut cache = IndexedCache::<Val>::new();
         let val1 = Val::new(0x1122334455667788, 120);
         let val2 = Val::new(0x1122334455667788, 120);
         let val3 = Val::new(0x1122334455667788, 240);
@@ -178,14 +180,14 @@ mod tests {
         let val5 = Val::new(0x8877665544332211, 240);
         let val6 = Val::new(0x8877665544332211, 120);
 
-        assert_eq!(cache.offer(val1), 0usize);
-        assert_eq!(cache.offer(val2), 0usize);
-        assert_eq!(cache.offer(val3), 1usize);
-        assert_eq!(cache.offer(val4), 2usize);
-        assert_eq!(cache.offer(val5), 3usize);
-        assert_eq!(cache.offer(val6), 2usize);
-        assert_eq!(cache.offer(val2), 0usize);
-        assert_eq!(cache.offer(val3), 1usize);
+        assert_eq!(cache.offer(Cow::Owned(val1)), 0usize);
+        assert_eq!(cache.offer(Cow::Owned(val2)), 0usize);
+        assert_eq!(cache.offer(Cow::Owned(val3)), 1usize);
+        assert_eq!(cache.offer(Cow::Owned(val4)), 2usize);
+        assert_eq!(cache.offer(Cow::Owned(val5)), 3usize);
+        assert_eq!(cache.offer(Cow::Owned(val6)), 2usize);
+        assert_eq!(cache.offer(Cow::Owned(val2)), 0usize);
+        assert_eq!(cache.offer(Cow::Owned(val3)), 1usize);
 
         assert_eq!(cache.entries.len(), 4);
         let mut value_iter = cache.hashes.values();
@@ -196,7 +198,7 @@ mod tests {
 
     #[test]
     fn test_index() {
-        let mut cache = IndexedCache::new();
+        let mut cache = IndexedCache::<Val>::new();
         let val1 = Val::new(0x1122334455667788, 120);
         let val2 = Val::new(0x1122334455667788, 120);
         let val3 = Val::new(0x1122334455667788, 240);
@@ -204,14 +206,14 @@ mod tests {
         let val5 = Val::new(0x8877665544332211, 240);
         let val6 = Val::new(0x8877665544332211, 120);
 
-        cache.offer(val1);
-        cache.offer(val2);
-        cache.offer(val3);
-        cache.offer(val4);
-        cache.offer(val5);
-        cache.offer(val6);
-        cache.offer(val2);
-        cache.offer(val3);
+        cache.offer(Cow::Owned(val1));
+        cache.offer(Cow::Owned(val2));
+        cache.offer(Cow::Owned(val3));
+        cache.offer(Cow::Owned(val4));
+        cache.offer(Cow::Owned(val5));
+        cache.offer(Cow::Owned(val6));
+        cache.offer(Cow::Owned(val2));
+        cache.offer(Cow::Owned(val3));
 
         assert_eq!(Val::new(0x1122334455667788, 120), cache[0]);
         assert_eq!(Val::new(0x1122334455667788, 240), cache[1]);
@@ -223,16 +225,16 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn test_serialize_json() {
-        let mut cache = IndexedCache::new();
+        let mut cache = IndexedCache::<Val>::new();
         let val1 = Val::new(0x1122334455667788, 120);
         let val2 = Val::new(0x1122334455667788, 240);
         let val3 = Val::new(0x8877665544332211, 120);
         let val4 = Val::new(0x8877665544332211, 240);
 
-        cache.offer(val1);
-        cache.offer(val2);
-        cache.offer(val3);
-        cache.offer(val4);
+        cache.offer(Cow::Owned(val1));
+        cache.offer(Cow::Owned(val2));
+        cache.offer(Cow::Owned(val3));
+        cache.offer(Cow::Owned(val4));
 
         let str = serde_json::to_string(&cache).unwrap();
         assert_eq!(
@@ -270,10 +272,10 @@ mod tests {
         let actual: IndexedCache<Val> = serde_json::from_str(INPUT).unwrap();
 
         let mut expected = IndexedCache::new();
-        assert_eq!(0, expected.offer(Val::new(1234605616436508552, 120)));
-        assert_eq!(1, expected.offer(Val::new(1234605616436508552, 240)));
-        assert_eq!(2, expected.offer(Val::new(9833440827789222417, 120)));
-        assert_eq!(3, expected.offer(Val::new(9833440827789222417, 240)));
+        assert_eq!(0, expected.offer(Cow::Owned(Val::new(1234605616436508552, 120))));
+        assert_eq!(1, expected.offer(Cow::Owned(Val::new(1234605616436508552, 240))));
+        assert_eq!(2, expected.offer(Cow::Owned(Val::new(9833440827789222417, 120))));
+        assert_eq!(3, expected.offer(Cow::Owned(Val::new(9833440827789222417, 240))));
 
         assert_eq!(expected, actual);
     }
@@ -288,16 +290,16 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn test_serialize_bincode() {
-        let mut cache = IndexedCache::new();
+        let mut cache = IndexedCache::<Val>::new();
         let val1 = Val::new(0x1122334455667788, 120);
         let val2 = Val::new(0x1122334455667788, 240);
         let val3 = Val::new(0x8877665544332211, 120);
         let val4 = Val::new(0x8877665544332211, 240);
 
-        cache.offer(val1);
-        cache.offer(val2);
-        cache.offer(val3);
-        cache.offer(val4);
+        cache.offer(Cow::Owned(val1));
+        cache.offer(Cow::Owned(val2));
+        cache.offer(Cow::Owned(val3));
+        cache.offer(Cow::Owned(val4));
 
         let data = bincode::serialize(&cache).unwrap();
 
@@ -307,16 +309,16 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn test_deserialize_bincode() {
-        let mut expected = IndexedCache::new();
+        let mut expected = IndexedCache::<Val>::new();
         let val1 = Val::new(0x1122334455667788, 120);
         let val2 = Val::new(0x1122334455667788, 240);
         let val3 = Val::new(0x8877665544332211, 120);
         let val4 = Val::new(0x8877665544332211, 240);
 
-        expected.offer(val1);
-        expected.offer(val2);
-        expected.offer(val3);
-        expected.offer(val4);
+        expected.offer(Cow::Owned(val1));
+        expected.offer(Cow::Owned(val2));
+        expected.offer(Cow::Owned(val3));
+        expected.offer(Cow::Owned(val4));
 
         let actual = bincode::deserialize(&BINCODE_DATA).unwrap();
         assert_eq!(&expected, &actual);

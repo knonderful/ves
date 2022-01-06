@@ -13,3 +13,4 @@ ves-geom = { path = "../../geom", features = ["serde"] }
 
 [dev-dependencies]
 bmp = ">= 0.4, <1"
+bincode = ">= 1.3"

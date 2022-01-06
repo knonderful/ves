@@ -4,6 +4,8 @@ use art_extractor_core::movie::{FrameRate, Movie};
 use ves_cache::IndexedCache;
 use crate::mesen::Frame;
 
+#[cfg(test)]
+pub(crate) mod test_util;
 mod mesen;
 mod obj;
 

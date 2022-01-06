@@ -9,7 +9,7 @@ pub enum FrameRate {
 
 impl FrameRate {
     /// Retrieves the number of frames per second.
-    pub fn fps(&self) -> usize {
+    pub fn fps(&self) -> u64 {
         match self {
             FrameRate::Ntsc => 60,
             FrameRate::Pal => 50,
@@ -37,13 +37,13 @@ impl Movie {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MovieFrame {
-    frame_number: usize,
+    frame_number: u64,
     sprites: Vec<Sprite>,
 }
 
 impl MovieFrame {
     /// Creates a new instance.
-    pub fn new(frame_number: usize, sprites: Vec<Sprite>) -> Self {
+    pub fn new(frame_number: u64, sprites: Vec<Sprite>) -> Self {
         Self { frame_number, sprites }
     }
 }

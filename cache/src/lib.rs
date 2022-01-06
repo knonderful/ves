@@ -11,9 +11,9 @@ use std::ops::Index;
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IndexedCache<T> {
-    /// A vector of cached values.
+    /// A vector of cached entries.
     entries: Vec<T>,
-    /// A hash map of hash values for `V` to indices into `values`.
+    /// A hash map of entry hash values to indices into `entries`.
     #[cfg_attr(feature = "serde", serde(skip))]
     hashes: HashMap<u64, Vec<usize>>,
 }
@@ -27,7 +27,7 @@ impl<T> IndexedCache<T> {
         }
     }
 
-    /// Returns the number of values.
+    /// Returns the number of entries.
     pub fn len(&self) -> usize {
         self.entries.len()
     }

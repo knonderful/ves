@@ -229,6 +229,31 @@ impl Sprite {
     pub fn new(tile: TileRef, palette: PaletteRef, position: Point, h_flip: bool, v_flip: bool) -> Self {
         Self { tile, palette, position, h_flip, v_flip }
     }
+
+    /// Retrieves the [`TileRef`].
+    pub fn tile(&self) -> TileRef {
+        self.tile
+    }
+
+    /// Retrieves the [`PaletteRef`].
+    pub fn palette(&self) -> PaletteRef {
+        self.palette
+    }
+
+    /// Retrieves the position.
+    pub fn position(&self) -> Point {
+        self.position
+    }
+
+    /// Retrieves the horizontal-flip flag.
+    pub fn h_flip(&self) -> bool {
+        self.h_flip
+    }
+
+    /// Retrieves the vertical-flip flag.
+    pub fn v_flip(&self) -> bool {
+        self.v_flip
+    }
 }
 
 /// A cel. This is a composition of zero or more [`Sprite`]s that together form one image.

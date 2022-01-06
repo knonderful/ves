@@ -351,7 +351,7 @@ mod test_obj_name_table {
             }
         });
 
-        // actual.save(format!("{}/target/out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR JUST LOOKING
+        // actual.save(format!("{}/../../target/out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR JUST LOOKING
         // actual.save(format!("{}/resources/test/expected_obj_table.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR UPDATING
 
         let mut expected_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -789,7 +789,7 @@ mod test_combination {
             }
         });
 
-        // actual.save(format!("{}/target/test_render_frame_out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR JUST LOOKING
+        // actual.save(format!("{}/../../target/test_render_frame_out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR JUST LOOKING
         // actual.save(format!("{}/resources/test/expected_render_frame.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR UPDATING
 
         let mut expected_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));

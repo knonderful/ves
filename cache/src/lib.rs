@@ -4,11 +4,35 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::ops::Index;
 
+/// A trait for retrieving the index into a collection of a type.
+pub trait AsIndex {
+    /// Retrieves the index value.
+    fn as_index(&self) -> usize;
+}
+
+/// A trait for creating an instance from an index.
+pub trait FromIndex {
+    /// Creates an instance from the provided index.
+    fn from_index(index: usize) -> Self;
+}
+
+impl AsIndex for usize {
+    fn as_index(&self) -> usize {
+        *self
+    }
+}
+
+impl FromIndex for usize {
+    fn from_index(index: usize) -> Self {
+        index
+    }
+}
+
 /// A generic cache of entries.
 ///
 /// # Generic types
 /// * `T`: The entry type. This type should implement [`PartialEq`], [`Hash`] and [`Clone`].
-/// * `K`: The key type. This type should implement [`Copy`], `From<usize>` and `Into<usize>`.
+/// * `K`: The key type. This type should implement [`Copy`], [`AsIndex`] and [`FromIndex`].
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IndexedCache<T, K = usize> {
     /// A vector of cached entries.
@@ -39,7 +63,7 @@ impl<T, K> IndexedCache<T, K> {
 
 impl<T, K> IndexedCache<T, K> where
     T: PartialEq + Hash + Clone,
-    K: Copy + From<usize> + Into<usize>,
+    K: Copy + AsIndex + FromIndex,
 {
     /// Offers a value.
     ///
@@ -57,21 +81,21 @@ impl<T, K> IndexedCache<T, K> where
             // We've seen this hash before, so we need to compare with the existing values of this hash
             indices.iter()
                 // Look up the value for this index
-                .map(|i| (i, &self.entries[(*i).into()]))
+                .map(|i| (i, &self.entries[i.as_index()]))
                 // Compare the value
                 .find(|(_, val)| *val == &*value)
                 // Deref the index and ignore the value (since we're only interested in the index)
                 .map(|(i, _)| *i)
                 // Handle new entry
                 .unwrap_or_else(|| {
-                    let index: K = self.entries.len().into();
+                    let index = K::from_index(self.entries.len());
                     self.entries.push(value.into_owned());
                     indices.push(index);
                     index
                 })
         } else {
             // This is a new hash, so we can just add it and update the hashes
-            let index: K = self.entries.len().into();
+            let index = K::from_index(self.entries.len());
             self.entries.push(value.into_owned());
             if self.hashes.insert(hash, vec![index]).is_some() {
                 // This can only happen with a local programming error
@@ -83,12 +107,12 @@ impl<T, K> IndexedCache<T, K> where
 }
 
 impl<T, K> Index<K> for IndexedCache<T, K> where
-    K: Into<usize>,
+    K: AsIndex,
 {
     type Output = T;
 
     fn index(&self, index: K) -> &Self::Output {
-        &self.entries[index.into()]
+        &self.entries[index.as_index()]
     }
 }
 

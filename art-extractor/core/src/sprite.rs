@@ -75,11 +75,22 @@ macro_rules! primitive_wrapper {
                 Self::new(val.into())
             }
         }
+    }
+}
 
-        impl Into<$ty> for $name {
-            #[inline(always)]
-            fn into(self) -> $ty {
+macro_rules! ref_type {
+    ($(#[doc = $doc:expr])* $vis:vis $name:ident < $ty:ty >) => {
+        primitive_wrapper!($(#[doc = $doc])* $vis $name<$ty>);
+
+        impl ves_cache::AsIndex for $name {
+            fn as_index(&self) -> usize {
                 self.0
+            }
+        }
+
+        impl ves_cache::FromIndex for $name {
+            fn from_index(index: usize) -> Self {
+                Self::new(index)
             }
         }
     }
@@ -90,7 +101,7 @@ primitive_wrapper!(
     pub PaletteIndex<u8>
 );
 
-primitive_wrapper!(
+ref_type!(
     /// A reference to a [`Palette`].
     pub PaletteRef<usize>
 );
@@ -211,7 +222,7 @@ impl Tile {
     }
 }
 
-primitive_wrapper!(
+ref_type!(
     /// A reference to a [`Tile`].
     pub TileRef<usize>
 );
@@ -271,7 +282,7 @@ pub struct Cel {
     sprites: Vec<Sprite>,
 }
 
-primitive_wrapper!(
+ref_type!(
     /// A reference to a [`Cel`].
     pub CelRef<usize>
 );

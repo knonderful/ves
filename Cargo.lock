@@ -47,6 +47,7 @@ version = "0.1.0"
 dependencies = [
  "rgb",
  "serde",
+ "ves-cache",
  "ves-geom",
 ]
 

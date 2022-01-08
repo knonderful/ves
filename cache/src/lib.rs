@@ -30,6 +30,8 @@ impl FromIndex for usize {
 
 /// A mutable [`Vec`]-based cache.
 ///
+/// Due to implementation details this cache does not support removal of values.
+///
 /// # Generic types
 /// * `T`: The element type. This type should implement [`PartialEq`], [`Hash`] and [`Clone`].
 /// * `K`: The key type. This type should implement [`Copy`], [`AsIndex`] and [`FromIndex`].
@@ -55,8 +57,8 @@ impl<T, K> VecCacheMut<T, K> {
         self.values.len()
     }
 
-    /// Consumes this instance and returns the values.
-    pub fn consume(self) -> Vec<T> {
+    /// Consumes this instance and returns the [`Vec`] of values.
+    pub fn into_vec(self) -> Vec<T> {
         self.values
     }
 }

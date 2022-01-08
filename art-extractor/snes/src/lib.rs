@@ -22,7 +22,7 @@ pub fn create_movie(files: Vec<impl AsRef<Path>>) -> anyhow::Result<Movie> {
         movie_frames.push(movie_frame);
     }
 
-    let movie = Movie::new(Size::new(512.into(), 256.into()), palettes.consume(), tiles.consume(), movie_frames, FrameRate::Ntsc);
+    let movie = Movie::new(Size::new(512.into(), 256.into()), palettes.into_vec(), tiles.into_vec(), movie_frames, FrameRate::Ntsc);
     Ok(movie)
 }
 

@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::marker::PhantomData;
 use std::ops::Index;
 
 /// A trait for retrieving the index into a collection of a type.
@@ -25,6 +26,40 @@ impl AsIndex for usize {
 impl FromIndex for usize {
     fn from_index(index: usize) -> Self {
         index
+    }
+}
+
+
+/// An immutable slice-based cache.
+///
+/// # Generic types
+/// * `T`: The element type.
+/// * `K`: The key type.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SliceCache<'a, T, K = usize> {
+    /// A slice of cached values.
+    values: &'a [T],
+    _phantom: PhantomData<K>,
+}
+
+impl<'a, T, K> SliceCache<'a, T, K> {
+    pub fn new(values: &'a [T]) -> Self {
+        Self { values, _phantom: Default::default() }
+    }
+
+    /// Return the values.
+    pub fn values(&self) -> &[T] {
+        self.values
+    }
+}
+
+impl<T, K> Index<K> for SliceCache<'_, T, K> where
+    K: AsIndex,
+{
+    type Output = T;
+
+    fn index(&self, index: K) -> &Self::Output {
+        &self.values[index.as_index()]
     }
 }
 

@@ -28,10 +28,9 @@ pub fn create_movie(files: Vec<impl AsRef<Path>>) -> anyhow::Result<Movie> {
 
 #[cfg(test)]
 mod test_create_movie {
-    use std::borrow::Cow;
     use std::fs::File;
     use art_extractor_core::movie::Movie;
-    use ves_cache::VecCacheMut;
+    use ves_cache::SliceCache;
     use super::create_movie;
 
     #[test]
@@ -47,16 +46,8 @@ mod test_create_movie {
         }
 
         let actual_movie = create_movie(files).unwrap();
-        let mut palettes = VecCacheMut::new();
-        let mut tiles = VecCacheMut::new();
-
-        // TODO: Change test_util::bmp_from_movie_frame to accept something more lenient than an IndexedCache, so that we don't have to do this
-        for palette in actual_movie.palettes() {
-            palettes.offer(Cow::Borrowed(palette));
-        }
-        for tile in actual_movie.tiles() {
-            tiles.offer(Cow::Borrowed(tile));
-        }
+        let palettes = SliceCache::new(actual_movie.palettes());
+        let tiles = SliceCache::new(actual_movie.tiles());
 
         const DEBUG_OUT: bool = false;
         if DEBUG_OUT {

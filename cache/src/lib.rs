@@ -117,7 +117,7 @@ impl<T, K> Index<K> for VecCacheMut<T, K> where
 }
 
 #[cfg(test)]
-mod tests {
+mod test_vec_cache_mut {
     use std::borrow::Cow;
     use std::hash::{Hash, Hasher};
     use crate::VecCacheMut;

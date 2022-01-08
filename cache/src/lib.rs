@@ -28,40 +28,40 @@ impl FromIndex for usize {
     }
 }
 
-/// A generic cache of entries.
+/// A mutable [`Vec`]-based cache.
 ///
 /// # Generic types
-/// * `T`: The entry type. This type should implement [`PartialEq`], [`Hash`] and [`Clone`].
+/// * `T`: The element type. This type should implement [`PartialEq`], [`Hash`] and [`Clone`].
 /// * `K`: The key type. This type should implement [`Copy`], [`AsIndex`] and [`FromIndex`].
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct IndexedCache<T, K = usize> {
-    /// A vector of cached entries.
-    entries: Vec<T>,
-    /// A hash map of entry hash values to indices into `entries`.
+pub struct VecCacheMut<T, K = usize> {
+    /// A vector of cached values.
+    values: Vec<T>,
+    /// A hash map of value hash values to indices into `values`.
     hashes: HashMap<u64, Vec<K>>,
 }
 
-impl<T, K> IndexedCache<T, K> {
+impl<T, K> VecCacheMut<T, K> {
     /// Creates a new instance.
     pub fn new() -> Self {
         Self {
-            entries: Vec::new(),
+            values: Vec::new(),
             hashes: HashMap::new(),
         }
     }
 
-    /// Returns the number of entries.
+    /// Returns the number of values.
     pub fn len(&self) -> usize {
-        self.entries.len()
+        self.values.len()
     }
 
-    /// Consumes this instance and returns the entries.
+    /// Consumes this instance and returns the values.
     pub fn consume(self) -> Vec<T> {
-        self.entries
+        self.values
     }
 }
 
-impl<T, K> IndexedCache<T, K> where
+impl<T, K> VecCacheMut<T, K> where
     T: PartialEq + Hash + Clone,
     K: Copy + AsIndex + FromIndex,
 {
@@ -81,22 +81,22 @@ impl<T, K> IndexedCache<T, K> where
             // We've seen this hash before, so we need to compare with the existing values of this hash
             indices.iter()
                 // Look up the value for this index
-                .map(|i| (i, &self.entries[i.as_index()]))
+                .map(|i| (i, &self.values[i.as_index()]))
                 // Compare the value
                 .find(|(_, val)| *val == &*value)
                 // Deref the index and ignore the value (since we're only interested in the index)
                 .map(|(i, _)| *i)
-                // Handle new entry
+                // Handle new value
                 .unwrap_or_else(|| {
-                    let index = K::from_index(self.entries.len());
-                    self.entries.push(value.into_owned());
+                    let index = K::from_index(self.values.len());
+                    self.values.push(value.into_owned());
                     indices.push(index);
                     index
                 })
         } else {
             // This is a new hash, so we can just add it and update the hashes
-            let index = K::from_index(self.entries.len());
-            self.entries.push(value.into_owned());
+            let index = K::from_index(self.values.len());
+            self.values.push(value.into_owned());
             if self.hashes.insert(hash, vec![index]).is_some() {
                 // This can only happen with a local programming error
                 panic!("Expected no element to be pre-existing for hash {}.", hash);
@@ -106,13 +106,13 @@ impl<T, K> IndexedCache<T, K> where
     }
 }
 
-impl<T, K> Index<K> for IndexedCache<T, K> where
+impl<T, K> Index<K> for VecCacheMut<T, K> where
     K: AsIndex,
 {
     type Output = T;
 
     fn index(&self, index: K) -> &Self::Output {
-        &self.entries[index.as_index()]
+        &self.values[index.as_index()]
     }
 }
 
@@ -120,7 +120,7 @@ impl<T, K> Index<K> for IndexedCache<T, K> where
 mod tests {
     use std::borrow::Cow;
     use std::hash::{Hash, Hasher};
-    use crate::IndexedCache;
+    use crate::VecCacheMut;
 
     #[derive(Copy, Clone, Debug, Eq, PartialEq)]
     struct Val {
@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_offer() {
-        let mut cache = IndexedCache::<Val>::new();
+        let mut cache = VecCacheMut::<Val>::new();
         let val1 = Val::new(0x1122334455667788, 120);
         let val2 = Val::new(0x1122334455667788, 120);
         let val3 = Val::new(0x1122334455667788, 240);
@@ -159,7 +159,7 @@ mod tests {
         assert_eq!(cache.offer(Cow::Owned(val2)), 0usize);
         assert_eq!(cache.offer(Cow::Owned(val3)), 1usize);
 
-        assert_eq!(cache.entries.len(), 4);
+        assert_eq!(cache.values.len(), 4);
         let mut value_iter = cache.hashes.values();
         assert_eq!(2, value_iter.next().unwrap().len());
         assert_eq!(2, value_iter.next().unwrap().len());
@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn test_index() {
-        let mut cache = IndexedCache::<Val>::new();
+        let mut cache = VecCacheMut::<Val>::new();
         let val1 = Val::new(0x1122334455667788, 120);
         let val2 = Val::new(0x1122334455667788, 120);
         let val3 = Val::new(0x1122334455667788, 240);

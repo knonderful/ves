@@ -11,7 +11,7 @@ use art_extractor_core::sprite::{Color, Palette, PaletteIndex, PaletteRef, Sprit
 use art_extractor_core::surface::Surface;
 use anyhow::{anyhow, bail, Result};
 use art_extractor_core::movie::MovieFrame;
-use ves_cache::IndexedCache;
+use ves_cache::VecCacheMut;
 
 /// A trait for constructing objects from (raw) SNES data.
 ///
@@ -650,7 +650,7 @@ mod test_oam_table {
 ///
 /// # Returns
 /// The [`MovieFrame`] or an error if the provided [`crate::mesen::Frame`] contains invalid data.
-pub fn create_movie_frame(frame: &crate::mesen::Frame, palette_cache: &mut IndexedCache<Palette, PaletteRef>, tile_cache: &mut IndexedCache<Tile, TileRef>) -> Result<MovieFrame> {
+pub fn create_movie_frame(frame: &crate::mesen::Frame, palette_cache: &mut VecCacheMut<Palette, PaletteRef>, tile_cache: &mut VecCacheMut<Tile, TileRef>) -> Result<MovieFrame> {
     let obj_size_select: ObjSizeSelect = FromSnesData::from_snes_data(frame.obj_size_select)?;
     let oam: OamTable = FromSnesData::from_snes_data(frame.oam.as_slice())?;
     let palettes: Vec<Palette> = FromSnesData::from_snes_data(&frame.cgram.as_slice()[0x100..])?;
@@ -698,7 +698,7 @@ pub fn create_movie_frame(frame: &crate::mesen::Frame, palette_cache: &mut Index
 #[cfg(test)]
 mod test_mod_fns {
     use crate::mesen::Frame;
-    use ves_cache::IndexedCache;
+    use ves_cache::VecCacheMut;
 
     #[test]
     fn test_create_movie_frame() {
@@ -708,8 +708,8 @@ mod test_mod_fns {
         let file = std::fs::File::open(json_path.as_path()).unwrap();
         let frame: Frame = serde_json::from_reader(file).unwrap();
 
-        let mut palettes = IndexedCache::new();
-        let mut tiles = IndexedCache::new();
+        let mut palettes = VecCacheMut::new();
+        let mut tiles = VecCacheMut::new();
         let movie_frame = super::create_movie_frame(&frame, &mut palettes, &mut tiles).unwrap();
         let actual = crate::test_util::bmp_from_movie_frame(&movie_frame, &palettes, &tiles);
 

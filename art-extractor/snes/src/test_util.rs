@@ -3,7 +3,7 @@ use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
 use art_extractor_core::movie::MovieFrame;
 use art_extractor_core::sprite::{Color, Palette, PaletteRef, Tile, TileRef};
 use art_extractor_core::surface::{Surface, surface_iterate};
-use ves_cache::IndexedCache;
+use ves_cache::VecCacheMut;
 use ves_geom::SpaceUnit;
 
 art_extractor_core::sized_surface!(ScreenSurface, Color, ArtworkSpaceUnit, 512, 256, Color::Transparent);
@@ -26,7 +26,7 @@ pub fn create_bitmap(size: Size, mut func: impl FnMut(usize, Point, &mut bmp::Im
     img
 }
 
-pub fn bmp_from_movie_frame(movie_frame: &MovieFrame, palettes: &IndexedCache<Palette, PaletteRef>, tiles: &IndexedCache<Tile, TileRef>) -> bmp::Image {
+pub fn bmp_from_movie_frame(movie_frame: &MovieFrame, palettes: &VecCacheMut<Palette, PaletteRef>, tiles: &VecCacheMut<Tile, TileRef>) -> bmp::Image {
     // Render everything to our special screen surface.
     let mut screen_surface = ScreenSurface::new();
     let screen_size = screen_surface.size();

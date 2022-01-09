@@ -13,7 +13,7 @@
 use crate::geom_art::{ArtworkSpaceUnit, Point, Size};
 use crate::Surface;
 
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Color {
     Opaque(rgb::RGB8),
@@ -42,7 +42,7 @@ impl Color {
 macro_rules! primitive_wrapper {
     ($(#[doc = $doc:expr])* $vis:vis $name:ident < $ty:ty >) => {
         $(#[doc = $doc])*
-        #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+        #[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
         #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
         $vis struct $name($ty);
 
@@ -107,7 +107,7 @@ ref_type!(
 );
 
 /// A palette of colors.
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Palette {
     colors: Vec<Color>,
@@ -166,7 +166,7 @@ impl std::ops::IndexMut<PaletteIndex> for Palette {
     }
 }
 
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct TileSurface {
     data: Vec<PaletteIndex>,
@@ -200,7 +200,7 @@ impl Surface<ArtworkSpaceUnit> for TileSurface {
 }
 
 /// A tile. This is the smallest graphical element.
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Tile {
     /// The surface.
@@ -228,7 +228,7 @@ ref_type!(
 );
 
 /// A sprite. This is basically a [`Tile`] inside a container (like a [`Cel`]) with some extra properties like position and flipping flags.
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Sprite {
     /// The tile.
@@ -275,7 +275,7 @@ impl Sprite {
 }
 
 /// A cel. This is a composition of zero or more [`Sprite`]s that together form one image.
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Cel {
     /// The sprites.
@@ -288,7 +288,7 @@ ref_type!(
 );
 
 /// A single frame in an [`Animation`].
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct AnimationFrame {
     cel: CelRef,
@@ -296,7 +296,7 @@ pub struct AnimationFrame {
 }
 
 /// An animation. This is a sequence of [`AnimationFrame`]s.
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Animation {
     frames: Vec<AnimationFrame>,

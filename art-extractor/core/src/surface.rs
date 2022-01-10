@@ -1,6 +1,8 @@
 //! A module for working with 2-dimensional surfaces.
 
-use ves_geom::{SpaceUnit, Point, Rect, Size, FiniteRange};
+use std::fmt::Debug;
+use std::ops::{Add, Rem, Sub};
+use ves_geom::{SpaceUnit, Point, Rect, Size, FiniteRange, One};
 
 /// A 2-dimensional surface.
 pub trait Surface<T: SpaceUnit> {
@@ -26,8 +28,8 @@ pub trait Offset {
 }
 
 /// An [`Iterator`] factory for index offsets of a [`Surface`] axis (x or y).
-pub trait SurfaceAxisIterFactory {
-    type IterType: Iterator<Item=usize>;
+pub trait SurfaceAxisIterFactory<T> {
+    type IterType: Iterator<Item=T>;
 
     /// Creates a new [`Iterator`].
     ///
@@ -38,10 +40,12 @@ pub trait SurfaceAxisIterFactory {
     ///
     /// # Returns
     /// The [`Iterator`] or a [`String`] with a description of the error.
-    fn new_iter(min: usize, max: usize, limit: usize) -> Result<Self::IterType, String>;
+    fn new_iter(min: T, max: T, limit: T) -> Result<Self::IterType, String>;
 }
 
-fn check_min_max(min: usize, max: usize) -> Result<(), String> {
+fn check_min_max<T>(min: T, max: T) -> Result<(), String> where
+    T: Copy + PartialEq + PartialOrd,
+{
     if min == max {
         Err(String::from("Min and max are equal."))
     } else if min > max {
@@ -54,28 +58,33 @@ fn check_min_max(min: usize, max: usize) -> Result<(), String> {
 /// A [`SurfaceAxisIterFactory`] with ascending iteration order and in which bounds are not checked.
 struct AscendingUnchecked;
 
-impl SurfaceAxisIterFactory for AscendingUnchecked {
-    type IterType = FiniteRange<usize>;
+impl<T> SurfaceAxisIterFactory<T> for AscendingUnchecked where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output=T>,
+{
+    type IterType = FiniteRange<T>;
 
-    fn new_iter(min: usize, max: usize, _limit: usize) -> Result<Self::IterType, String> {
+    fn new_iter(min: T, max: T, _limit: T) -> Result<Self::IterType, String> {
         check_min_max(min, max)?;
-        Ok((min, max).into())
+        Ok(FiniteRange::new(min, max))
     }
 }
 
 /// A [`SurfaceAxisIterFactory`] with descending iteration order and in which bounds are not checked.
 struct DescendingUnchecked;
 
-impl SurfaceAxisIterFactory for DescendingUnchecked {
-    type IterType = std::iter::Rev<FiniteRange<usize>>;
+impl<T> SurfaceAxisIterFactory<T> for DescendingUnchecked where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output=T> + Sub<Output=T>,
+{
+    type IterType = std::iter::Rev<FiniteRange<T>>;
 
-    fn new_iter(min: usize, max: usize, limit: usize) -> Result<Self::IterType, String> {
-        check_min_max(min, max)?;
+    fn new_iter(min: T, max: T, limit: T) -> Result<Self::IterType, String> {
         AscendingUnchecked::new_iter(min, max, limit).map(Iterator::rev)
     }
 }
 
-fn check_limit(max: usize, limit: usize) -> Result<(), String> {
+fn check_limit<T>(max: T, limit: T) -> Result<(), String> where
+    T: Copy + PartialEq + PartialOrd,
+{
     if max >= limit {
         Err(String::from("Max is out of bounds."))
     } else {
@@ -86,11 +95,13 @@ fn check_limit(max: usize, limit: usize) -> Result<(), String> {
 /// A [`SurfaceAxisIterFactory`] with descending iteration order.
 pub struct Ascending;
 
-impl SurfaceAxisIterFactory for Ascending {
-    type IterType = FiniteRange<usize>;
+impl<T> SurfaceAxisIterFactory<T> for Ascending where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output=T>,
+{
+    type IterType = FiniteRange<T>;
 
-    fn new_iter(min: usize, max: usize, limit: usize) -> Result<Self::IterType, String> {
-        check_limit(max, limit)?;
+    fn new_iter(min: T, max: T, limit: T) -> Result<Self::IterType, String> {
+        check_limit(&max, &limit)?;
         AscendingUnchecked::new_iter(min, max, limit)
     }
 }
@@ -98,30 +109,33 @@ impl SurfaceAxisIterFactory for Ascending {
 /// A [`SurfaceAxisIterFactory`] with descending iteration order.
 pub struct Descending;
 
-impl SurfaceAxisIterFactory for Descending {
-    type IterType = std::iter::Rev<FiniteRange<usize>>;
+impl<T> SurfaceAxisIterFactory<T> for Descending where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output=T> + Sub<Output=T>,
+{
+    type IterType = std::iter::Rev<FiniteRange<T>>;
 
-    fn new_iter(min: usize, max: usize, limit: usize) -> Result<Self::IterType, String> {
-        check_limit(max, limit)?;
+    fn new_iter(min: T, max: T, limit: T) -> Result<Self::IterType, String> {
+        check_limit(&max, &limit)?;
         DescendingUnchecked::new_iter(min, max, limit)
     }
 }
 
-pub struct Modularizer<I> {
+pub struct Modularizer<T, I> {
     iter: I,
-    limit: usize,
+    limit: T,
 }
 
-impl<I> Modularizer<I> {
-    fn new(iter: I, limit: usize) -> Self {
+impl<T, I> Modularizer<T, I> {
+    fn new(iter: I, limit: T) -> Self {
         Self { iter, limit }
     }
 }
 
-impl<I> Iterator for Modularizer<I> where
-    I: Iterator<Item=usize>,
+impl<T, I> Iterator for Modularizer<T, I> where
+    T: Rem<Output=T> + Copy,
+    I: Iterator<Item=T>,
 {
-    type Item = usize;
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|val| val % self.limit)
@@ -132,10 +146,12 @@ impl<I> Iterator for Modularizer<I> where
 /// A [`SurfaceAxisIterFactory`] with ascending iteration order. This implementation will wrap-around on axis boundaries.
 pub struct AscendingWrap;
 
-impl SurfaceAxisIterFactory for AscendingWrap {
-    type IterType = Modularizer<FiniteRange<usize>>;
+impl<T> SurfaceAxisIterFactory<T> for AscendingWrap where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output=T> + Rem<Output=T>,
+{
+    type IterType = Modularizer<T, FiniteRange<T>>;
 
-    fn new_iter(min: usize, max: usize, limit: usize) -> Result<Self::IterType, String> {
+    fn new_iter(min: T, max: T, limit: T) -> Result<Self::IterType, String> {
         AscendingUnchecked::new_iter(min, max, limit)
             .map(|iter| Modularizer::new(iter, limit))
     }
@@ -144,55 +160,71 @@ impl SurfaceAxisIterFactory for AscendingWrap {
 /// A [`SurfaceAxisIterFactory`] with descending iteration order. This implementation will wrap-around on axis boundaries.
 pub struct DescendingWrap;
 
-impl SurfaceAxisIterFactory for DescendingWrap {
-    type IterType = Modularizer<std::iter::Rev<FiniteRange<usize>>>;
+impl<T> SurfaceAxisIterFactory<T> for DescendingWrap where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output=T> + Sub<Output=T> + Rem<Output=T>,
+{
+    type IterType = Modularizer<T, std::iter::Rev<FiniteRange<T>>>;
 
-    fn new_iter(min: usize, max: usize, limit: usize) -> Result<Self::IterType, String> {
+    fn new_iter(min: T, max: T, limit: T) -> Result<Self::IterType, String> {
         DescendingUnchecked::new_iter(min, max, limit)
             .map(|iter| Modularizer::new(iter, limit))
     }
 }
 
-pub struct SurfaceIter<X = Ascending, Y = Ascending> where
-    X: SurfaceAxisIterFactory,
-    Y: SurfaceAxisIterFactory,
+pub struct SurfaceIter<T, X = Ascending, Y = Ascending> where
+    X: SurfaceAxisIterFactory<T>,
+    Y: SurfaceAxisIterFactory<T>,
 {
-    width: usize,
-    x_min: usize,
-    x_max: usize,
+    width: T,
+    x_min: T,
+    x_max: T,
     x_iter: X::IterType,
     y_iter: Y::IterType,
     row_offset: usize,
 }
 
-impl<X, Y> SurfaceIter<X, Y> where
-    X: SurfaceAxisIterFactory,
-    Y: SurfaceAxisIterFactory,
+impl<T, X, Y> SurfaceIter<T, X, Y> where
+    T: SpaceUnit + Into<usize> + Debug,
+    X: SurfaceAxisIterFactory<T>,
+    Y: SurfaceAxisIterFactory<T>,
 {
-    pub fn new<T: SpaceUnit + Into<usize>>(size_surf: Size<T>, rect_view: Rect<T>) -> Result<Self, String> {
-        let width: usize =  size_surf.width.into();
-        let height: usize = size_surf.height.into();
-        let x_min: usize = rect_view.min_x().into();
-        let x_max: usize = rect_view.max_x().into();
+    pub fn new(size_surf: Size<T>, rect_view: Rect<T>) -> Result<Self, String> {
+        let width = size_surf.width;
+        let height = size_surf.height;
+        let x_min = rect_view.min_x();
+        let x_max = rect_view.max_x();
         let x_iter = X::new_iter(x_min, x_max, width)
-            .map_err(|msg| format!("Could not create iterator for X-axis (min: {}, max: {}, limit: {}): {}", x_min, x_max, width, msg))?;
-        let y_min: usize = rect_view.min_y().into();
-        let y_max: usize = rect_view.max_y().into();
+            .map_err(|msg| format!("Could not create iterator for X-axis (min: {:?}, max: {:?}, limit: {:?}): {}", x_min, x_max, width, msg))?;
+        let y_min = rect_view.min_y();
+        let y_max = rect_view.max_y();
         let mut y_iter = Y::new_iter(y_min, y_max, height)
-            .map_err(|msg| format!("Could not create iterator for Y-axis (min: {}, max: {}, limit: {}): {}", y_min, y_max, height, msg))?;
-        let row_offset = y_iter.next().ok_or_else(|| "Expected at least one item in Y-iterator.")? * width;
+            .map_err(|msg| format!("Could not create iterator for Y-axis (min: {:?}, max: {:?}, limit: {:?}): {}", y_min, y_max, height, msg))?;
+        let y_usize: usize = y_iter.next().ok_or_else(|| "Expected at least one item in Y-iterator.")?.into();
+        let width_usize: usize = width.into();
+        let row_offset = y_usize * width_usize;
         Ok(Self { width, x_min, x_max, x_iter, y_iter, row_offset })
     }
+}
 
+impl<T, X, Y> SurfaceIter<T, X, Y> where
+    T: SpaceUnit + Into<usize>,
+    X: SurfaceAxisIterFactory<T>,
+    Y: SurfaceAxisIterFactory<T>,
+{
     #[inline(always)]
     fn do_next(&mut self) -> Option<usize> {
         match self.x_iter.next() {
-            Some(x) => Some(self.row_offset + x),
+            Some(x) => {
+                let x_usize: usize = x.into();
+                Some(self.row_offset + x_usize)
+            },
             None => {
                 match self.y_iter.next() {
                     None => None,
                     Some(y) => {
-                        self.row_offset = y * self.width;
+                        let y_usize: usize = y.into();
+                        let width_usize: usize = self.width.into();
+                        self.row_offset = y_usize * width_usize;
                         // We're forced to unwrap here, since we can't return an error, but it should also not fail because we called this
                         // with the same params in the constructor.
                         self.x_iter = X::new_iter(self.x_min, self.x_max, self.width).unwrap();
@@ -204,9 +236,10 @@ impl<X, Y> SurfaceIter<X, Y> where
     }
 }
 
-impl<X, Y> Iterator for SurfaceIter<X, Y> where
-    X: SurfaceAxisIterFactory,
-    Y: SurfaceAxisIterFactory,
+impl<T, X, Y> Iterator for SurfaceIter<T, X, Y> where
+    T: SpaceUnit + Into<usize>,
+    X: SurfaceAxisIterFactory<T>,
+    Y: SurfaceAxisIterFactory<T>,
 {
     type Item = usize;
 
@@ -255,7 +288,7 @@ impl<X, Y> Iterator for SurfaceIter<X, Y> where
 ///     },
 /// ).unwrap();
 /// ```
-pub fn surface_iterate<T: SpaceUnit + Into<usize>, F>(surf_size: Size<T>, select_rect: Rect<T>, hflip: bool, vflip: bool, func: F) -> Result<(), String> where
+pub fn surface_iterate<T: SpaceUnit + Into<usize> + Debug, F>(surf_size: Size<T>, select_rect: Rect<T>, hflip: bool, vflip: bool, func: F) -> Result<(), String> where
     F: FnMut(usize)
 {
     let x_wrap = select_rect.max_x() >= surf_size.width;
@@ -263,7 +296,7 @@ pub fn surface_iterate<T: SpaceUnit + Into<usize>, F>(surf_size: Size<T>, select
 
     macro_rules! process {
         ($x_type:ty, $y_type:ty) => {
-            SurfaceIter::<$x_type, $y_type>::new(surf_size, select_rect)?
+            SurfaceIter::<T, $x_type, $y_type>::new(surf_size, select_rect)?
                 .for_each(func);
         };
     }
@@ -375,7 +408,7 @@ mod test_fn_surface_iterate {
 ///     },
 /// ).unwrap();
 /// ```
-pub fn surface_iterate_2<T: SpaceUnit + Into<usize>, F>(a_surf_size: Size<T>, a_select_rect: Rect<T>, b_surf_size: Size<T>, b_select_origin: Point<T>, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
+pub fn surface_iterate_2<T: SpaceUnit + Into<usize> + Debug, F>(a_surf_size: Size<T>, a_select_rect: Rect<T>, b_surf_size: Size<T>, b_select_origin: Point<T>, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
     F: FnMut(usize, usize)
 {
     let b_select_rect = Rect::<T>::new(b_select_origin, a_select_rect.size);
@@ -386,8 +419,8 @@ pub fn surface_iterate_2<T: SpaceUnit + Into<usize>, F>(a_surf_size: Size<T>, a_
 
     macro_rules! process {
         ($src_x_type:ty, $src_y_type:ty, $dest_x_type:ty, $dest_y_type:ty) => {
-            let a_iter = SurfaceIter::<$src_x_type, $src_y_type>::new(a_surf_size, a_select_rect)?;
-            let b_iter = SurfaceIter::<$dest_x_type, $dest_y_type>::new(b_surf_size, b_select_rect)?;
+            let a_iter = SurfaceIter::<T, $src_x_type, $src_y_type>::new(a_surf_size, a_select_rect)?;
+            let b_iter = SurfaceIter::<T, $dest_x_type, $dest_y_type>::new(b_surf_size, b_select_rect)?;
             for (a_idx, b_idx) in a_iter.zip(b_iter) {
                 func(a_idx, b_idx);
             }

@@ -93,7 +93,7 @@ pub struct FiniteRange<T> {
 }
 
 impl<T> FiniteRange<T> where
-    T: PartialOrd + Display,
+    T: PartialOrd,
 {
     /// Creates a new instance.
     ///
@@ -105,7 +105,7 @@ impl<T> FiniteRange<T> where
     /// This function panics if `start` is greater than `end`.
     pub fn new(start: T, end: T) -> Self {
         if start > end {
-            panic!("Invalid range: {}..{}", start, end);
+            panic!("Invalid range.");
         }
         Self { start, end, exhausted: false }
     }

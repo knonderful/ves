@@ -36,16 +36,16 @@ const EMPTY_DATA: [u8; 12 * 8] = data![
 /// A convenience macro for creating a [`SurfaceIter`].
 macro_rules! surface_iter {
         ($size:expr, $rect:expr, @hflip, @vflip) => {
-            $crate::surface::SurfaceIter::<$crate::surface::DescendingWrap, $crate::surface::DescendingWrap>::new($size, $rect).unwrap()
+            $crate::surface::SurfaceIter::<ArtworkSpaceUnit, $crate::surface::DescendingWrap, $crate::surface::DescendingWrap>::new($size, $rect).unwrap()
         };
         ($size:expr, $rect:expr, @hflip) => {
-            $crate::surface::SurfaceIter::<$crate::surface::DescendingWrap, $crate::surface::AscendingWrap>::new($size, $rect).unwrap()
+            $crate::surface::SurfaceIter::<ArtworkSpaceUnit, $crate::surface::DescendingWrap, $crate::surface::AscendingWrap>::new($size, $rect).unwrap()
         };
         ($size:expr, $rect:expr, @vflip) => {
-            $crate::surface::SurfaceIter::<$crate::surface::AscendingWrap, $crate::surface::DescendingWrap>::new($size, $rect).unwrap()
+            $crate::surface::SurfaceIter::<ArtworkSpaceUnit, $crate::surface::AscendingWrap, $crate::surface::DescendingWrap>::new($size, $rect).unwrap()
         };
         ($size:expr, $rect:expr) => {
-            $crate::surface::SurfaceIter::<$crate::surface::AscendingWrap, $crate::surface::AscendingWrap>::new($size, $rect).unwrap()
+            $crate::surface::SurfaceIter::<ArtworkSpaceUnit, $crate::surface::AscendingWrap, $crate::surface::AscendingWrap>::new($size, $rect).unwrap()
         };
     }
 

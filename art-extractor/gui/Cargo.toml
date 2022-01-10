@@ -1,0 +1,11 @@
+[package]
+name = "ves-gui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+iced = { version = ">= 0.3", features = ["canvas"] }
+art-extractor-core = { path = "../core", features = ["serde_support"] }
+ves-cache = { path = "../../cache" }
+ves-geom = { path = "../../geom" }
+bincode = ">= 1.3"

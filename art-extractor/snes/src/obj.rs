@@ -677,7 +677,7 @@ pub fn create_movie_frame(frame: &crate::mesen::Frame, palette_cache: &mut VecCa
             src_size, src_rect,
             dest_size, dest_point,
             false, false,
-            |src_idx, dest_idx| {
+            |_src_pos, src_idx, _dest_pos, dest_idx| {
                 dest_data[dest_idx] = src_data[src_idx];
             },
         ).map_err(|msg| anyhow::Error::msg(msg))?;

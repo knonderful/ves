@@ -65,7 +65,7 @@ fn copy_data(src_surf: &Surfy, dest_surf: &mut Surfy, (src_rect, hflip, vflip): 
     let dest = dest_surf.data_mut();
 
     surface_iterate_2(src_size, src_rect, dest_size, dest_point, hflip, vflip,
-                      |src_idx, dest_idx| {
+                      |_src_pos, src_idx, _dest_pos, dest_idx| {
                           dest[dest_idx] = src[src_idx];
                       },
     ).unwrap();

@@ -19,7 +19,7 @@ pub fn create_bitmap(size: Size, mut func: impl FnMut(usize, Point, &mut bmp::Im
         })
         .map(|(y, x)| (x, y));
 
-    surface_iterate(size, rect, false, false, |index| {
+    surface_iterate(size, rect, false, false, |_pos, index| {
         let (x, y) = pos_iter.next().unwrap();
         func(index, Point::new_raw(x, y), &mut img);
     }).unwrap();
@@ -42,7 +42,7 @@ pub fn bmp_from_movie_frame(movie_frame: &MovieFrame, palettes: &impl Index<Pale
 
         let palette = &palettes[sprite.palette()];
         art_extractor_core::surface::surface_iterate_2(
-            src_size, src_rect, screen_size, sprite.position(), sprite.h_flip(), sprite.v_flip(), |src_idx, dest_idx| {
+            src_size, src_rect, screen_size, sprite.position(), sprite.h_flip(), sprite.v_flip(), |_src_pos, src_idx, _dest_pos, dest_idx| {
                 let index = src_data[src_idx];
                 if index.value() == 0 {
                     return;

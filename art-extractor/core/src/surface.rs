@@ -181,6 +181,7 @@ pub struct SurfaceIter<T, X = Ascending, Y = Ascending> where
     x_iter: X::IterType,
     y_iter: Y::IterType,
     row_offset: usize,
+    last_y: T,
 }
 
 impl<T, X, Y> SurfaceIter<T, X, Y> where
@@ -199,10 +200,11 @@ impl<T, X, Y> SurfaceIter<T, X, Y> where
         let y_max = rect_view.max_y();
         let mut y_iter = Y::new_iter(y_min, y_max, height)
             .map_err(|msg| format!("Could not create iterator for Y-axis (min: {:?}, max: {:?}, limit: {:?}): {}", y_min, y_max, height, msg))?;
-        let y_usize: usize = y_iter.next().ok_or_else(|| "Expected at least one item in Y-iterator.")?.into();
+        let last_y = y_iter.next().ok_or_else(|| "Expected at least one item in Y-iterator.")?;
+        let y_usize: usize = last_y.into();
         let width_usize: usize = width.into();
         let row_offset = y_usize * width_usize;
-        Ok(Self { width, x_min, x_max, x_iter, y_iter, row_offset })
+        Ok(Self { width, x_min, x_max, x_iter, y_iter, row_offset, last_y })
     }
 }
 
@@ -212,16 +214,17 @@ impl<T, X, Y> SurfaceIter<T, X, Y> where
     Y: SurfaceAxisIterFactory<T>,
 {
     #[inline(always)]
-    fn do_next(&mut self) -> Option<usize> {
+    fn do_next(&mut self) -> Option<(Point<T>, usize)> {
         match self.x_iter.next() {
             Some(x) => {
                 let x_usize: usize = x.into();
-                Some(self.row_offset + x_usize)
+                Some((Point::new(x, self.last_y), self.row_offset + x_usize))
             },
             None => {
                 match self.y_iter.next() {
                     None => None,
                     Some(y) => {
+                        self.last_y = y;
                         let y_usize: usize = y.into();
                         let width_usize: usize = self.width.into();
                         self.row_offset = y_usize * width_usize;
@@ -241,7 +244,7 @@ impl<T, X, Y> Iterator for SurfaceIter<T, X, Y> where
     X: SurfaceAxisIterFactory<T>,
     Y: SurfaceAxisIterFactory<T>,
 {
-    type Item = usize;
+    type Item = (Point<T>, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.do_next()
@@ -266,30 +269,27 @@ impl<T, X, Y> Iterator for SurfaceIter<T, X, Y> where
 /// # Example
 ///
 /// ```
-/// use art_extractor_core::surface::surface_iterate_2;
+/// use art_extractor_core::surface::surface_iterate;
 /// use art_extractor_core::geom_art::{Size, Rect, Point};
 ///
-/// let mut exp_iter: std::slice::Iter<(usize, usize)> = [
-///     (22, 8080), (23, 8081), (24, 8082), (25, 8083), (32, 8180), (33, 8181), (34, 8182), (35, 8183),
-///     (42, 8280), (43, 8281), (44, 8282), (45, 8283), (52, 8380), (53, 8381), (54, 8382), (55, 8383),
+/// let mut exp_iter: std::slice::Iter<usize> = [
+///     22, 23, 24, 25, 32, 33, 34, 35,
+///     42, 43, 44, 45, 52, 53, 54, 55,
 /// ].iter();
 ///
-/// surface_iterate_2(
+/// surface_iterate(
 ///     Size::new_raw(10, 10), // a_surf_size
 ///     Rect::new(Point::new_raw(2, 2), Size::new_raw(4, 4)), // a_select_rect
-///     Size::new_raw(100, 100), // b_surf_size
-///     Point::new_raw(80, 80), // b_select_origin
 ///     false, // hflip
 ///     false, // vflip
-///     |idx_a, idx_b| { // func
-///         let (exp_a, exp_b) = exp_iter.next().unwrap();
-///         assert_eq!(*exp_a, idx_a);
-///         assert_eq!(*exp_b, idx_b);
+///     |_pos, idx| { // func
+///         let exp = exp_iter.next().unwrap();
+///         assert_eq!(*exp, idx);
 ///     },
 /// ).unwrap();
 /// ```
-pub fn surface_iterate<T: SpaceUnit + Into<usize> + Debug, F>(surf_size: Size<T>, select_rect: Rect<T>, hflip: bool, vflip: bool, func: F) -> Result<(), String> where
-    F: FnMut(usize)
+pub fn surface_iterate<T: SpaceUnit + Into<usize> + Debug, F>(surf_size: Size<T>, select_rect: Rect<T>, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
+    F: FnMut(Point<T>, usize)
 {
     let x_wrap = select_rect.max_x() >= surf_size.width;
     let y_wrap = select_rect.max_y() >= surf_size.height;
@@ -297,7 +297,7 @@ pub fn surface_iterate<T: SpaceUnit + Into<usize> + Debug, F>(surf_size: Size<T>
     macro_rules! process {
         ($x_type:ty, $y_type:ty) => {
             SurfaceIter::<T, $x_type, $y_type>::new(surf_size, select_rect)?
-                .for_each(func);
+                .for_each(|tuple| func(tuple.0, tuple.1));
         };
     }
 
@@ -401,7 +401,7 @@ mod test_fn_surface_iterate {
 ///     Point::new_raw(80, 80), // b_select_origin
 ///     false, // hflip
 ///     false, // vflip
-///     |idx_a, idx_b| { // func
+///     |_pos_a, idx_a, _pos_b, idx_b| { // func
 ///         let (exp_a, exp_b) = exp_iter.next().unwrap();
 ///         assert_eq!(*exp_a, idx_a);
 ///         assert_eq!(*exp_b, idx_b);
@@ -409,7 +409,7 @@ mod test_fn_surface_iterate {
 /// ).unwrap();
 /// ```
 pub fn surface_iterate_2<T: SpaceUnit + Into<usize> + Debug, F>(a_surf_size: Size<T>, a_select_rect: Rect<T>, b_surf_size: Size<T>, b_select_origin: Point<T>, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
-    F: FnMut(usize, usize)
+    F: FnMut(Point<T>, usize, Point<T>, usize)
 {
     let b_select_rect = Rect::<T>::new(b_select_origin, a_select_rect.size);
     let src_x_wrap = a_select_rect.max_x() >= a_surf_size.width;
@@ -421,8 +421,8 @@ pub fn surface_iterate_2<T: SpaceUnit + Into<usize> + Debug, F>(a_surf_size: Siz
         ($src_x_type:ty, $src_y_type:ty, $dest_x_type:ty, $dest_y_type:ty) => {
             let a_iter = SurfaceIter::<T, $src_x_type, $src_y_type>::new(a_surf_size, a_select_rect)?;
             let b_iter = SurfaceIter::<T, $dest_x_type, $dest_y_type>::new(b_surf_size, b_select_rect)?;
-            for (a_idx, b_idx) in a_iter.zip(b_iter) {
-                func(a_idx, b_idx);
+            for (a_tuple, b_tuple) in a_iter.zip(b_iter) {
+                func(a_tuple.0, a_tuple.1, b_tuple.0, b_tuple.1);
             }
         };
     }

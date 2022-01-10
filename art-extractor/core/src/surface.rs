@@ -1,7 +1,6 @@
 //! A module for working with 2-dimensional surfaces.
 
-use std::ops::RangeInclusive;
-use ves_geom::{SpaceUnit, Point, Rect, Size};
+use ves_geom::{SpaceUnit, Point, Rect, Size, FiniteRange};
 
 /// A 2-dimensional surface.
 pub trait Surface<T: SpaceUnit> {
@@ -56,11 +55,11 @@ fn check_min_max(min: usize, max: usize) -> Result<(), String> {
 struct AscendingUnchecked;
 
 impl SurfaceAxisIterFactory for AscendingUnchecked {
-    type IterType = RangeInclusive<usize>;
+    type IterType = FiniteRange<usize>;
 
     fn new_iter(min: usize, max: usize, _limit: usize) -> Result<Self::IterType, String> {
         check_min_max(min, max)?;
-        Ok(min..=max)
+        Ok((min, max).into())
     }
 }
 
@@ -68,7 +67,7 @@ impl SurfaceAxisIterFactory for AscendingUnchecked {
 struct DescendingUnchecked;
 
 impl SurfaceAxisIterFactory for DescendingUnchecked {
-    type IterType = std::iter::Rev<RangeInclusive<usize>>;
+    type IterType = std::iter::Rev<FiniteRange<usize>>;
 
     fn new_iter(min: usize, max: usize, limit: usize) -> Result<Self::IterType, String> {
         check_min_max(min, max)?;
@@ -88,7 +87,7 @@ fn check_limit(max: usize, limit: usize) -> Result<(), String> {
 pub struct Ascending;
 
 impl SurfaceAxisIterFactory for Ascending {
-    type IterType = RangeInclusive<usize>;
+    type IterType = FiniteRange<usize>;
 
     fn new_iter(min: usize, max: usize, limit: usize) -> Result<Self::IterType, String> {
         check_limit(max, limit)?;
@@ -100,7 +99,7 @@ impl SurfaceAxisIterFactory for Ascending {
 pub struct Descending;
 
 impl SurfaceAxisIterFactory for Descending {
-    type IterType = std::iter::Rev<RangeInclusive<usize>>;
+    type IterType = std::iter::Rev<FiniteRange<usize>>;
 
     fn new_iter(min: usize, max: usize, limit: usize) -> Result<Self::IterType, String> {
         check_limit(max, limit)?;
@@ -134,7 +133,7 @@ impl<I> Iterator for Modularizer<I> where
 pub struct AscendingWrap;
 
 impl SurfaceAxisIterFactory for AscendingWrap {
-    type IterType = Modularizer<RangeInclusive<usize>>;
+    type IterType = Modularizer<FiniteRange<usize>>;
 
     fn new_iter(min: usize, max: usize, limit: usize) -> Result<Self::IterType, String> {
         AscendingUnchecked::new_iter(min, max, limit)
@@ -146,7 +145,7 @@ impl SurfaceAxisIterFactory for AscendingWrap {
 pub struct DescendingWrap;
 
 impl SurfaceAxisIterFactory for DescendingWrap {
-    type IterType = Modularizer<std::iter::Rev<RangeInclusive<usize>>>;
+    type IterType = Modularizer<std::iter::Rev<FiniteRange<usize>>>;
 
     fn new_iter(min: usize, max: usize, limit: usize) -> Result<Self::IterType, String> {
         DescendingUnchecked::new_iter(min, max, limit)

@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::ops::{Add, Div, Mul, RangeInclusive, Rem, Sub};
 
 /// Returns the value zero (0) for a type.
@@ -77,6 +77,86 @@ Zero + One + From<Self::RawValue> + Ord + PartialOrd
     type RawValue;
 
     fn raw(&self) -> Self::RawValue;
+}
+
+/// A finite range.
+///
+/// This serves as an alterative to the [`core::ops::Range`] family of types that can not be used for iteration when the containing type
+/// does not implement [`core::iter::Step`] (which is a nightly-only experimental trait).
+pub struct FiniteRange<T> {
+    /// The start value (inclusive).
+    start: T,
+    /// The end value (inclusive).
+    end: T,
+    /// Flag that signals that iteration is exhausted.
+    exhausted: bool,
+}
+
+impl<T> FiniteRange<T> where
+    T: PartialOrd + Display,
+{
+    /// Creates a new instance.
+    ///
+    /// # Parameters
+    /// * `start`: The start value (inclusive).
+    /// * `end`: The end value (inclusive).
+    ///
+    /// # Panics
+    /// This function panics if `start` is greater than `end`.
+    pub fn new(start: T, end: T) -> Self {
+        if start > end {
+            panic!("Invalid range: {}..{}", start, end);
+        }
+        Self { start, end, exhausted: false }
+    }
+}
+
+impl<T> From<(T, T)> for FiniteRange<T> where
+    T: PartialOrd + Display,
+{
+    fn from(value: (T, T)) -> Self {
+        FiniteRange::new(value.0, value.1)
+    }
+}
+
+impl<T> Iterator for FiniteRange<T> where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output=T>,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.start == self.end {
+            if self.exhausted {
+                None
+            } else {
+                self.exhausted = true;
+                Some(self.start)
+            }
+        } else {
+            let out = self.start;
+            self.start = self.start + T::one();
+            Some(out)
+        }
+    }
+}
+
+impl<T> DoubleEndedIterator for FiniteRange<T> where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output=T> + Sub<Output=T>,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.end == self.start {
+            if self.exhausted {
+                None
+            } else {
+                self.exhausted = true;
+                Some(self.end)
+            }
+        } else {
+            let out = self.end;
+            self.end = self.end - T::one();
+            Some(out)
+        }
+    }
 }
 
 /// A point in 2D space.

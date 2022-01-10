@@ -28,7 +28,7 @@ pub trait One {
 /// understand and reason about.
 pub trait SpaceUnit:
 Copy + Add<Output=Self> + Sub<Output=Self> + Mul<Output=Self> + Div<Output=Self> + Rem<Output=Self> +
-Zero + One + Into<usize> + From<Self::RawValue> + Ord + PartialOrd
+Zero + One + From<Self::RawValue> + Ord + PartialOrd
 {
     type RawValue;
 

@@ -170,7 +170,7 @@ impl<X, Y> SurfaceIter<X, Y> where
     X: SurfaceAxisIterFactory,
     Y: SurfaceAxisIterFactory,
 {
-    pub fn new<T: SpaceUnit>(size_surf: Size<T>, rect_view: Rect<T>) -> Result<Self, String> {
+    pub fn new<T: SpaceUnit + Into<usize>>(size_surf: Size<T>, rect_view: Rect<T>) -> Result<Self, String> {
         let width: usize =  size_surf.width.into();
         let height: usize = size_surf.height.into();
         let x_min: usize = rect_view.min_x().into();
@@ -256,7 +256,7 @@ impl<X, Y> Iterator for SurfaceIter<X, Y> where
 ///     },
 /// ).unwrap();
 /// ```
-pub fn surface_iterate<T: SpaceUnit, F>(surf_size: Size<T>, select_rect: Rect<T>, hflip: bool, vflip: bool, func: F) -> Result<(), String> where
+pub fn surface_iterate<T: SpaceUnit + Into<usize>, F>(surf_size: Size<T>, select_rect: Rect<T>, hflip: bool, vflip: bool, func: F) -> Result<(), String> where
     F: FnMut(usize)
 {
     let x_wrap = select_rect.max_x() >= surf_size.width;
@@ -376,7 +376,7 @@ mod test_fn_surface_iterate {
 ///     },
 /// ).unwrap();
 /// ```
-pub fn surface_iterate_2<T: SpaceUnit, F>(a_surf_size: Size<T>, a_select_rect: Rect<T>, b_surf_size: Size<T>, b_select_origin: Point<T>, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
+pub fn surface_iterate_2<T: SpaceUnit + Into<usize>, F>(a_surf_size: Size<T>, a_select_rect: Rect<T>, b_surf_size: Size<T>, b_select_origin: Point<T>, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
     F: FnMut(usize, usize)
 {
     let b_select_rect = Rect::<T>::new(b_select_origin, a_select_rect.size);

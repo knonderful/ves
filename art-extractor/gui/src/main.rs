@@ -1,4 +1,5 @@
-use iced::{executor, Application, Clipboard, Command, Element, Settings, Rectangle, Length};
+use std::time::{Duration, Instant};
+use iced::{executor, Application, Clipboard, Command, Element, Settings, Rectangle, Length, Subscription};
 use iced::canvas::{Cursor, Geometry};
 use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point};
 use art_extractor_core::movie::Movie;
@@ -12,11 +13,17 @@ pub fn main() -> iced::Result {
 
 struct ArtExtractorApp {
     movie: Movie,
+    current_frame_nr: usize,
+}
+
+#[derive(Debug)]
+enum AppMessage {
+    NextMovieFrame(Instant),
 }
 
 impl Application for ArtExtractorApp {
     type Executor = executor::Default;
-    type Message = ();
+    type Message = AppMessage;
     type Flags = ();
 
     fn new(_flags: ()) -> (ArtExtractorApp, Command<Self::Message>) {
@@ -25,19 +32,32 @@ impl Application for ArtExtractorApp {
         let file = std::fs::File::open(input_file).unwrap();
         let movie: Movie = bincode::deserialize_from(file).unwrap();
 
-        (ArtExtractorApp { movie }, Command::none())
+        (ArtExtractorApp { movie, current_frame_nr: 0 }, Command::none())
     }
 
     fn title(&self) -> String {
         String::from("VES Art Extractor")
     }
 
-    fn update(&mut self, _message: Self::Message, _clipboard: &mut Clipboard) -> Command<Self::Message> {
+    fn update(&mut self, message: Self::Message, _clipboard: &mut Clipboard) -> Command<Self::Message> {
+        match message {
+            AppMessage::NextMovieFrame(_) => {
+                self.current_frame_nr = (self.current_frame_nr + 1) % self.movie.frames().len()
+            },
+        };
+
         Command::none()
     }
 
+    fn subscription(&self) -> Subscription<Self::Message> {
+        // Unwrap should be OK here, as it is extremely unlikely that we'll get more than 2^32-1 FPS
+        let frame_interval = Duration::from_secs(1) / self.movie.frame_rate().fps().try_into().unwrap();
+        iced::time::every(frame_interval)
+            .map(AppMessage::NextMovieFrame)
+    }
+
     fn view(&mut self) -> Element<Self::Message> {
-        iced::canvas::Canvas::new(CanvasProgram::new(&self.movie))
+        iced::canvas::Canvas::new(CanvasProgram::new(&self.movie, self.current_frame_nr))
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
@@ -46,11 +66,12 @@ impl Application for ArtExtractorApp {
 
 struct CanvasProgram<'a> {
     movie: &'a Movie,
+    current_frame_nr: usize,
 }
 
 impl<'a> CanvasProgram<'a> {
-    fn new(movie: &'a Movie) -> Self {
-        Self { movie }
+    fn new(movie: &'a Movie, current_frame_nr: usize) -> Self {
+        Self { movie, current_frame_nr }
     }
 }
 
@@ -72,14 +93,14 @@ fn iced_color_from(color: &Color) -> iced::Color {
     }
 }
 
-impl iced::canvas::Program<()> for CanvasProgram<'_> {
+impl iced::canvas::Program<AppMessage> for CanvasProgram<'_> {
     fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         let mut frame = iced::canvas::Frame::new(bounds.size());
         frame.scale(2.0);
 
         let palettes = SliceCache::new(self.movie.palettes());
         let tiles = SliceCache::new(self.movie.tiles());
-        let movie_frame = &self.movie.frames()[0];
+        let movie_frame = &self.movie.frames()[self.current_frame_nr];
         let screen_size = self.movie.screen_size();
         for sprite in movie_frame.sprites().iter().rev() {
             let palette = &palettes[sprite.palette()];

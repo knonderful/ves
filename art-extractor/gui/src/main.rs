@@ -81,7 +81,7 @@ impl iced::canvas::Program<()> for CanvasProgram<'_> {
         let tiles = SliceCache::new(self.movie.tiles());
         let movie_frame = &self.movie.frames()[0];
         let screen_size = self.movie.screen_size();
-        for sprite in movie_frame.sprites() {
+        for sprite in movie_frame.sprites().iter().rev() {
             let palette = &palettes[sprite.palette()];
             let tile = &tiles[sprite.tile()];
             let surf = tile.surface();

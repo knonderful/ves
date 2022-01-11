@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-iced = { version = ">= 0.3", features = ["canvas"] }
+iced = { version = ">= 0.3", features = ["canvas", "tokio"] }
 art-extractor-core = { path = "../core", features = ["serde_support"] }
 ves-cache = { path = "../../cache" }
 ves-geom = { path = "../../geom" }

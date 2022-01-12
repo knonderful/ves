@@ -10,7 +10,7 @@ mod mesen;
 mod obj;
 
 /// Creates a [`Movie`] from the provided Mesen-S export files.
-pub fn create_movie(files: Vec<impl AsRef<Path>>) -> anyhow::Result<Movie> {
+pub fn create_movie(files: impl ExactSizeIterator<Item=impl AsRef<Path>>) -> anyhow::Result<Movie> {
     let mut palettes = VecCacheMut::new();
     let mut tiles = VecCacheMut::new();
 
@@ -45,7 +45,7 @@ mod test_create_movie {
             files.push(input_frames_dir.join(format!("frame_{}.json", 199250 + frame)));
         }
 
-        let actual_movie = create_movie(files).unwrap();
+        let actual_movie = create_movie(files.iter()).unwrap();
         let palettes = SliceCache::new(actual_movie.palettes());
         let tiles = SliceCache::new(actual_movie.tiles());
 

@@ -6,6 +6,7 @@ use art_extractor_core::movie::Movie;
 use art_extractor_core::sprite::Color;
 use art_extractor_core::surface::Surface;
 use ves_cache::SliceCache;
+use ves_geom::SpaceUnit;
 
 pub fn main() -> iced::Result {
     ArtExtractorApp::run(Settings::default())
@@ -20,6 +21,8 @@ struct ArtExtractorApp {
 enum AppMessage {
     NextMovieFrame(Instant),
 }
+
+const MOVIE_SCALE_FACTOR: u16 = 2;
 
 impl Application for ArtExtractorApp {
     type Executor = executor::Default;
@@ -56,9 +59,15 @@ impl Application for ArtExtractorApp {
     }
 
     fn view(&mut self) -> Element<Self::Message> {
-        iced::canvas::Canvas::new(CanvasProgram::new(&self.movie, self.current_frame_nr))
+        let canvas = iced::Canvas::new(CanvasProgram::new(&self.movie, self.current_frame_nr))
+            .width(Length::Units(u16::try_from(self.movie.screen_size().width.raw()).unwrap() * MOVIE_SCALE_FACTOR))
+            .height(Length::Units(u16::try_from(self.movie.screen_size().height.raw()).unwrap() * MOVIE_SCALE_FACTOR));
+
+        iced::Container::new(canvas)
             .width(Length::Fill)
             .height(Length::Fill)
+            .center_x()
+            .center_y()
             .into()
     }
 }
@@ -75,7 +84,6 @@ impl<'a> CanvasProgram<'a> {
 }
 
 fn i32_from(value: ArtworkSpaceUnit) -> f32 {
-    use ves_geom::SpaceUnit;
     u16::try_from(value.raw()).unwrap().into()
 }
 
@@ -95,7 +103,8 @@ fn iced_color_from(color: &Color) -> iced::Color {
 impl iced::canvas::Program<AppMessage> for CanvasProgram<'_> {
     fn draw(&self, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry> {
         let mut frame = iced::canvas::Frame::new(bounds.size());
-        frame.scale(2.0);
+        frame.fill_rectangle(iced::Point::ORIGIN, bounds.size(), iced::Color::from_rgb8(200, 200, 200));
+        frame.scale(MOVIE_SCALE_FACTOR.into());
 
         let palettes = SliceCache::new(self.movie.palettes());
         let tiles = SliceCache::new(self.movie.tiles());

@@ -50,8 +50,7 @@ impl Application for ArtExtractorApp {
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        // Unwrap should be OK here, as it is extremely unlikely that we'll get more than 2^32-1 FPS
-        let frame_interval = Duration::from_secs(1) / self.movie.frame_rate().fps().try_into().unwrap();
+        let frame_interval = Duration::from_secs(1) / self.movie.frame_rate().fps();
         iced::time::every(frame_interval)
             .map(AppMessage::NextMovieFrame)
     }

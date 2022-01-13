@@ -9,7 +9,7 @@ pub enum FrameRate {
 
 impl FrameRate {
     /// Retrieves the number of frames per second.
-    pub fn fps(&self) -> u64 {
+    pub fn fps(&self) -> u32 {
         match self {
             FrameRate::Ntsc => 60,
             FrameRate::Pal => 50,

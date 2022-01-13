@@ -1,7 +1,7 @@
 use std::time::{Duration, Instant};
 use iced::{executor, Application, Clipboard, Command, Element, Settings, Rectangle, Length, Subscription};
 use iced::canvas::{Cursor, Geometry};
-use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point};
+use art_extractor_core::geom_art::ArtworkSpaceUnit;
 use art_extractor_core::movie::Movie;
 use art_extractor_core::sprite::Color;
 use art_extractor_core::surface::Surface;
@@ -87,16 +87,30 @@ fn i32_from(value: ArtworkSpaceUnit) -> f32 {
     u16::try_from(value.raw()).unwrap().into()
 }
 
-fn iced_point_from(point: Point) -> iced::Point {
-    let x = i32_from(point.x);
-    let y = i32_from(point.y);
-    iced::Point::new(x, y)
+/// Trait for converting types into their "iced" counterparts.
+trait ToIced {
+    type Out;
+
+    /// Converts the type.
+    fn to_iced(&self) -> Self::Out;
 }
 
-fn iced_color_from(color: &Color) -> iced::Color {
-    match color {
-        Color::Opaque(rgb) => iced::Color::from_rgb8(rgb.r, rgb.g, rgb.b),
-        Color::Transparent => iced::Color::from_rgba8(0, 0, 0, 0.0),
+impl ToIced for art_extractor_core::geom_art::Point {
+    type Out = iced::Point;
+
+    fn to_iced(&self) -> Self::Out {
+        iced::Point::new(i32_from(self.x), i32_from(self.y))
+    }
+}
+
+impl ToIced for art_extractor_core::sprite::Color {
+    type Out = iced::Color;
+
+    fn to_iced(&self) -> Self::Out {
+        match self {
+            Color::Opaque(rgb) => iced::Color::from_rgb8(rgb.r, rgb.g, rgb.b),
+            Color::Transparent => iced::Color::TRANSPARENT,
+        }
     }
 }
 
@@ -123,9 +137,9 @@ impl iced::canvas::Program<AppMessage> for CanvasProgram<'_> {
                 |_, idx, pos, _| {
                     let color = &palette[surf_data[idx]];
                     frame.fill_rectangle(
-                        iced_point_from(pos),
+                        pos.to_iced(),
                         iced::Size::UNIT,
-                        iced_color_from(color),
+                        color.to_iced(),
                     )
                 }).unwrap();
         }

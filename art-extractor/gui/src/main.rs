@@ -43,8 +43,10 @@ impl Application for ArtExtractorApp {
 
     fn update(&mut self, message: Self::Message, _clipboard: &mut Clipboard) -> Command<Self::Message> {
         match message {
-            Movie(msg) => self.movie.update(msg)
-                .map(From::from),
+            Movie(msg) => {
+                self.movie.update(msg)
+                    .map(From::from)
+            },
         }
     }
 

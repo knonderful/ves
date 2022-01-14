@@ -1,3 +1,4 @@
+pub(crate) mod style;
 mod movie;
 
 use iced::{executor, Application, Clipboard, Command, Element, Settings, Subscription};
@@ -12,7 +13,7 @@ struct ArtExtractorApp {
     movie: SpriteMovie,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum AppMessage {
     Movie(MovieMessage),
 }

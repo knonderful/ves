@@ -4,8 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-iced = { version = ">= 0.3, <1", features = ["canvas", "tokio"] }
 art-extractor-core = { path = "../core", features = ["serde_support"] }
 ves-cache = { path = "../../cache" }
 ves-geom = { path = "../../geom" }
 bincode = ">= 1.3, <2"
+# Using this (untagged) version of egui because we need access to Context::load_texture()
+eframe = { git = "https://github.com/emilk/egui", rev = "87ae77aab0ffc7c7430ec850074b736f475ae3cf" }
+
+chrono = ">= 0.4, <1"

@@ -1,95 +1,172 @@
-pub(crate) mod style;
 mod movie;
 
-use iced::{executor, Application, Clipboard, Command, Element, Settings, Subscription};
-use crate::AppMessage::Movie;
-use crate::movie::{MovieMessage, SpriteMovie};
+use std::collections::VecDeque;
+use chrono::{DateTime, Local};
+use eframe::{egui, epi};
+use art_extractor_core::geom_art::ArtworkSpaceUnit;
+use art_extractor_core::movie::Movie;
+use ves_geom::SpaceUnit;
+use crate::movie::GuiMovieFrame;
 
-pub fn main() -> iced::Result {
-    ArtExtractorApp::run(Settings::default())
+#[derive(Debug, Eq, PartialEq, Clone)]
+enum MainMode {
+    Movie,
 }
 
-struct ArtExtractorApp {
-    movie: SpriteMovie,
+struct LogEntry {
+    timestamp: DateTime<Local>,
+    message: String,
 }
 
-#[derive(Debug, Clone)]
-enum AppMessage {
-    Movie(MovieMessage),
+struct ArtDirectorApp {
+    main_mode: MainMode,
+    show_log: bool,
+    log: VecDeque<LogEntry>,
+    movie: Option<Movie>,
+    movie_frame: Option<GuiMovieFrame>,
 }
 
-impl From<MovieMessage> for AppMessage {
-    fn from(msg: MovieMessage) -> Self {
-        AppMessage::Movie(msg)
-    }
-}
-
-impl Application for ArtExtractorApp {
-    type Executor = executor::Default;
-    type Message = AppMessage;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (ArtExtractorApp, Command<Self::Message>) {
+impl Default for ArtDirectorApp {
+    fn default() -> Self {
         let mut input_file = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         input_file.push("resources/test/movie_10_frames.bincode");
         let file = std::fs::File::open(input_file).unwrap();
         let movie: art_extractor_core::movie::Movie = bincode::deserialize_from(file).unwrap();
 
-        (ArtExtractorApp { movie: SpriteMovie::new(movie) }, Command::none())
-    }
-
-    fn title(&self) -> String {
-        String::from("VES Art Extractor")
-    }
-
-    fn update(&mut self, message: Self::Message, _clipboard: &mut Clipboard) -> Command<Self::Message> {
-        match message {
-            Movie(msg) => {
-                self.movie.update(msg)
-                    .map(From::from)
-            },
+        Self {
+            main_mode: MainMode::Movie,
+            show_log: true,
+            log: Default::default(),
+            movie: Some(movie),
+            movie_frame: None,
         }
     }
+}
 
-    fn subscription(&self) -> Subscription<Self::Message> {
-        self.movie.subscription()
-            .map(From::from)
-    }
+impl ArtDirectorApp {
+    #[allow(unused)]
+    fn log(&mut self, msg: impl AsRef<str>) {
+        const MAX_LOG_ENTRIES: usize = 50;
+        let log = &mut self.log;
+        if log.len() >= MAX_LOG_ENTRIES {
+            log.pop_front();
+        }
 
-    fn view(&mut self) -> Element<Self::Message> {
-        Element::<MovieMessage>::from(self.movie.view())
-            .map(From::from)
+        log.push_back(LogEntry {
+            timestamp: chrono::Local::now(),
+            message: String::from(msg.as_ref()),
+        });
     }
 }
 
-fn f32_from(value: art_extractor_core::geom_art::ArtworkSpaceUnit) -> f32 {
-    use ves_geom::SpaceUnit;
-    u16::try_from(value.raw()).unwrap().into()
+impl epi::App for ArtDirectorApp {
+    fn update(&mut self, ctx: &egui::Context, frame: &epi::Frame) {
+        let Self { main_mode, show_log, log, movie, movie_frame } = self;
+
+        egui::TopBottomPanel::top("main_menu").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                // Mode selection items
+                ui.with_layout(egui::Layout::left_to_right(), |ui| {
+                    ui.selectable_value(main_mode, MainMode::Movie, "Movie");
+                });
+                // Mini menu icons
+                ui.with_layout(egui::Layout::right_to_left(), |ui| {
+                    egui::global_dark_light_mode_switch(ui);
+
+                    let log_toggle = ui.add(egui::Button::new("📋").frame(false))
+                        .on_hover_text("Toggle application log");
+                    if log_toggle.clicked() {
+                        *show_log = !*show_log;
+                    }
+                });
+            })
+        });
+
+        if self.show_log {
+            egui::TopBottomPanel::bottom("application_log").height_range(100.0..=100.0).show(ctx, |ui| {
+                egui::ScrollArea::both().stick_to_bottom().show(ui, |ui| {
+                    egui::Grid::new("log_grid").striped(true).max_col_width(f32::INFINITY).show(ui, |ui| {
+                        for entry in log.iter() {
+                            ui.label(entry.timestamp.format("%H:%M:%S").to_string());
+                            ui.label(entry.message.as_str());
+                            ui.end_row();
+                        }
+                    });
+                });
+
+                // egui::ScrollArea::vertical().stick_to_bottom().show(ui, |ui| {
+                //     // The '&mut log.as_str()' makes it a read-only TextBuffer
+                //     ui.add(egui::TextEdit::multiline(&mut log.as_str())
+                //         .text_style(LOG_FONT)
+                //         .desired_width(f32::INFINITY));
+                // });
+            });
+        }
+
+        egui::CentralPanel::default().show(ctx, |ui| {
+            match movie {
+                None => {
+                    ui.label("No movie loaded.");
+                }
+                Some(movie) => {
+                    let movie_frame = movie_frame.get_or_insert_with(|| {
+                        GuiMovieFrame::new(ctx, movie, 0)
+                    });
+
+                    movie_frame.show(ui);
+                }
+            }
+        });
+
+        // Resize the native window to be just the size we need it to be:
+        frame.set_window_size(ctx.used_size());
+    }
+
+    fn name(&self) -> &str {
+        "VES Art Director"
+    }
 }
 
-/// Trait for converting types into their "iced" counterparts.
-trait ToIced {
+trait IntoF32 {
+    fn into_f32(self) -> f32;
+}
+
+impl IntoF32 for u32 {
+    #[inline(always)]
+    fn into_f32(self) -> f32 {
+        u16::try_from(self).unwrap().into()
+    }
+}
+
+impl IntoF32 for ArtworkSpaceUnit {
+    #[inline(always)]
+    fn into_f32(self) -> f32 {
+        self.raw().into_f32()
+    }
+}
+
+/// Trait for converting types into their "egui" counterparts.
+trait ToEgui {
     type Out;
 
     /// Converts the type.
-    fn to_iced(&self) -> Self::Out;
+    fn to_egui(&self) -> Self::Out;
 }
 
-impl ToIced for art_extractor_core::geom_art::Point {
-    type Out = iced::Point;
+impl ToEgui for art_extractor_core::geom_art::Rect {
+    type Out = egui::Rect;
 
-    fn to_iced(&self) -> Self::Out {
-        iced::Point::new(f32_from(self.x), f32_from(self.y))
+    #[inline(always)]
+    fn to_egui(&self) -> Self::Out {
+        // We have to convert from an inclusive (integer-based) to an exclusive (float-based) space, hence the +1
+        egui::Rect::from_min_max(
+            egui::pos2(self.min_x().into_f32(), self.min_y().into_f32()),
+            egui::pos2((self.max_x().raw() + 1).into_f32(), (self.max_y().raw() + 1).into_f32()),
+        )
     }
 }
 
-impl ToIced for art_extractor_core::sprite::Color {
-    type Out = iced::Color;
-
-    fn to_iced(&self) -> Self::Out {
-        match self {
-            art_extractor_core::sprite::Color::Opaque(rgb) => iced::Color::from_rgb8(rgb.r, rgb.g, rgb.b),
-            art_extractor_core::sprite::Color::Transparent => iced::Color::TRANSPARENT,
-        }
-    }
+fn main() {
+    let options = eframe::NativeOptions::default();
+    eframe::run_native(Box::new(ArtDirectorApp::default()), options);
 }

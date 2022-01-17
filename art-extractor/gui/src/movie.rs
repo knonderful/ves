@@ -72,11 +72,14 @@ impl GuiMovieFrame {
         // TODO: The scaling is not pixel-perfect, probably something to do with the rendering phase. It might be configurable.
         let zoom: f32 = 2.0;
 
+        let from_rect = egui::Rect::from_min_size(egui::Pos2::ZERO, ui.available_size());
+        let to_rect = egui::Rect::from_min_size(egui::Pos2::ZERO, zoom * ui.available_size());
+        let transform = egui::emath::RectTransform::from_to(from_rect, to_rect);
+
         for sprite in &self.sprites {
-            let rect = sprite.rect.clone();
-            let new_size = zoom * rect.size();
-            let image = egui::Image::new(&sprite.texture, new_size);
-            ui.put(egui::Rect::from_min_size(egui::pos2(zoom * rect.min.x, zoom * rect.min.y), new_size), image);
+            let rect = transform.transform_rect(sprite.rect);
+            let image = egui::Image::new(&sprite.texture, rect.size());
+            ui.put(rect, image);
         }
     }
 }

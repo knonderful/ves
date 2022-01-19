@@ -1,12 +1,12 @@
 mod movie;
 
 use std::collections::VecDeque;
+use std::time::Instant;
 use chrono::{DateTime, Local};
 use eframe::{egui, epi};
 use art_extractor_core::geom_art::ArtworkSpaceUnit;
-use art_extractor_core::movie::Movie;
 use ves_geom::SpaceUnit;
-use crate::movie::GuiMovieFrame;
+use crate::movie::GuiMovie;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 enum MainMode {
@@ -22,23 +22,16 @@ struct ArtDirectorApp {
     main_mode: MainMode,
     show_log: bool,
     log: VecDeque<LogEntry>,
-    movie: Option<Movie>,
-    movie_frame: Option<GuiMovieFrame>,
+    movie: Option<GuiMovie>,
 }
 
 impl Default for ArtDirectorApp {
     fn default() -> Self {
-        let mut input_file = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        input_file.push("resources/test/movie_10_frames.bincode");
-        let file = std::fs::File::open(input_file).unwrap();
-        let movie: art_extractor_core::movie::Movie = bincode::deserialize_from(file).unwrap();
-
         Self {
             main_mode: MainMode::Movie,
             show_log: true,
             log: Default::default(),
-            movie: Some(movie),
-            movie_frame: None,
+            movie: None,
         }
     }
 }
@@ -61,13 +54,37 @@ impl ArtDirectorApp {
 
 impl epi::App for ArtDirectorApp {
     fn update(&mut self, ctx: &egui::Context, frame: &epi::Frame) {
-        let Self { main_mode, show_log, log, movie, movie_frame } = self;
+        let current_instant = Instant::now();
+
+        if let Some(ref mut movie) = self.movie {
+            if movie.update(ctx, current_instant) {
+                ctx.request_repaint();
+            }
+        }
+
+        // Auto-load hack
+        if self.movie.is_none() {
+            let mut input_file = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+            input_file.push("../../test_movie.bincode");
+            let file = std::fs::File::open(input_file).unwrap();
+            match bincode::deserialize_from::<_, art_extractor_core::movie::Movie>(file) {
+                Ok(core_movie) => {
+                    let mut gui_movie = GuiMovie::new(core_movie);
+                    gui_movie.play(ctx, current_instant);
+                    self.movie = Some(gui_movie);
+                    self.log("Successfully loaded test movie.");
+                }
+                Err(err) => {
+                    self.log(format!("Could not load test movie: {}", err));
+                }
+            }
+        }
 
         egui::TopBottomPanel::top("main_menu").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 // Mode selection items
                 ui.with_layout(egui::Layout::left_to_right(), |ui| {
-                    ui.selectable_value(main_mode, MainMode::Movie, "Movie");
+                    ui.selectable_value(&mut self.main_mode, MainMode::Movie, "Movie");
                 });
                 // Mini menu icons
                 ui.with_layout(egui::Layout::right_to_left(), |ui| {
@@ -76,7 +93,7 @@ impl epi::App for ArtDirectorApp {
                     let log_toggle = ui.add(egui::Button::new("📋").frame(false))
                         .on_hover_text("Toggle application log");
                     if log_toggle.clicked() {
-                        *show_log = !*show_log;
+                        self.show_log = !self.show_log;
                     }
                 });
             })
@@ -86,7 +103,7 @@ impl epi::App for ArtDirectorApp {
             egui::TopBottomPanel::bottom("application_log").height_range(100.0..=100.0).show(ctx, |ui| {
                 egui::ScrollArea::both().stick_to_bottom().show(ui, |ui| {
                     egui::Grid::new("log_grid").striped(true).max_col_width(f32::INFINITY).show(ui, |ui| {
-                        for entry in log.iter() {
+                        for entry in self.log.iter() {
                             ui.label(entry.timestamp.format("%H:%M:%S").to_string());
                             ui.label(entry.message.as_str());
                             ui.end_row();
@@ -104,16 +121,12 @@ impl epi::App for ArtDirectorApp {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            match movie {
+            match self.movie {
                 None => {
                     ui.label("No movie loaded.");
                 }
-                Some(movie) => {
-                    let movie_frame = movie_frame.get_or_insert_with(|| {
-                        GuiMovieFrame::new(ctx, movie, 0)
-                    });
-
-                    movie_frame.show(ui);
+                Some(ref mut movie) => {
+                    movie.show(ui);
                 }
             }
         });

@@ -1,5 +1,7 @@
-use art_extractor_core::movie::Movie;
-use art_extractor_core::sprite::Color;
+use std::ops::{Index, Range};
+use std::time::{Duration, Instant};
+use art_extractor_core::movie::{Movie, MovieFrame};
+use art_extractor_core::sprite::{Color, Palette, PaletteRef, Tile, TileRef};
 use art_extractor_core::surface::Surface;
 use ves_cache::SliceCache;
 use ves_geom::SpaceUnit;
@@ -11,7 +13,7 @@ struct GuiMovieFrameSprite {
     texture: egui::TextureHandle,
 }
 
-pub struct GuiMovieFrame {
+struct GuiMovieFrame {
     sprites: Vec<GuiMovieFrameSprite>,
 }
 
@@ -20,11 +22,7 @@ impl GuiMovieFrame {
     ///
     /// This should normally only be called when a new movie frame is to be rendered. Otherwise this instance should be reused between
     /// renderings.
-    pub fn new(ctx: &egui::Context, movie: &Movie, frame_index: usize) -> Self {
-        let palettes = SliceCache::new(movie.palettes());
-        let tiles = SliceCache::new(movie.tiles());
-        let movie_frame = &movie.frames()[frame_index];
-
+    pub fn new(ctx: &egui::Context, palettes: &impl Index<PaletteRef, Output=Palette>, tiles: &impl Index<TileRef, Output=Tile>, movie_frame: &MovieFrame) -> Self {
         let mut sprites = Vec::with_capacity(movie_frame.sprites().len());
         for sprite in movie_frame.sprites().iter().rev() {
             let palette = &palettes[sprite.palette()];
@@ -69,7 +67,8 @@ impl GuiMovieFrame {
     }
 
     pub fn show(&self, ui: &mut egui::Ui) {
-        // TODO: The scaling is not pixel-perfect, probably something to do with the rendering phase. It might be configurable.
+        // TODO: The scaling is not pixel-perfect by default. This has to do with the texture filtering in the rendering component.
+        //       Currently this requires a hack in egui_glow, since there is no way for the application code to control this.
         let zoom: f32 = 2.0;
 
         let from_rect = egui::Rect::from_min_size(egui::Pos2::ZERO, ui.available_size());
@@ -81,5 +80,86 @@ impl GuiMovieFrame {
             let image = egui::Image::new(&sprite.texture, rect.size());
             ui.put(rect, image);
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+enum PlaybackState {
+    Paused,
+    Playing(Instant),
+}
+
+pub struct GuiMovie {
+    movie: Movie,
+    frame_iter: Range<usize>,
+    frame_duration: Duration,
+    playback_state: PlaybackState,
+    current_frame: Option<GuiMovieFrame>,
+}
+
+impl GuiMovie {
+    pub fn new(movie: Movie) -> Self {
+        let frame_iter = Self::create_frame_iter(&movie);
+        let frame_duration = Duration::from_secs(1) / movie.frame_rate().fps();
+        Self {
+            movie,
+            frame_iter,
+            frame_duration,
+            playback_state: PlaybackState::Paused,
+            current_frame: None,
+        }
+    }
+
+    pub fn play(&mut self, ctx: &egui::Context, current_instant: Instant) {
+        match self.playback_state {
+            PlaybackState::Paused => {
+                self.playback_state = PlaybackState::Playing(current_instant);
+                self.next_frame(ctx);
+            },
+            PlaybackState::Playing(_) => {} // do nothing
+        }
+    }
+
+    pub fn update(&mut self, ctx: &egui::Context, current_instant: Instant) -> bool {
+        match &self.playback_state {
+            PlaybackState::Paused => false,
+            PlaybackState::Playing(last_instant) => {
+                if current_instant >= *last_instant + self.frame_duration {
+                    self.next_frame(ctx)
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
+    fn next_frame(&mut self, ctx: &egui::Context) -> bool {
+        let index_option = self.frame_iter.next().or_else(|| {
+            self.frame_iter = Self::create_frame_iter(&self.movie);
+            self.frame_iter.next()
+        });
+
+        match index_option {
+            None => false,
+            Some(frame_index) => {
+                let palettes = SliceCache::new(self.movie.palettes());
+                let tiles = SliceCache::new(self.movie.tiles());
+                let movie_frame = &self.movie.frames()[frame_index];
+                let frame = GuiMovieFrame::new(ctx, &palettes, &tiles, movie_frame);
+                self.current_frame = Some(frame);
+                true
+            }
+        }
+    }
+
+    pub fn show(&mut self, ui: &mut egui::Ui) {
+        if let Some(ref frame) = self.current_frame {
+            frame.show(ui);
+        }
+    }
+
+    #[inline(always)]
+    fn create_frame_iter(movie: &Movie) -> Range<usize> {
+        0..movie.frames().len()
     }
 }

@@ -179,6 +179,17 @@ impl ToEgui for art_extractor_core::geom_art::Rect {
     }
 }
 
+
+impl ToEgui for art_extractor_core::geom_art::Size {
+    type Out = egui::Vec2;
+
+    #[inline(always)]
+    fn to_egui(&self) -> Self::Out {
+        egui::Vec2::new(self.width.into_f32(), self.height.into_f32())
+    }
+}
+
+
 fn main() {
     let options = eframe::NativeOptions::default();
     eframe::run_native(Box::new(ArtDirectorApp::default()), options);

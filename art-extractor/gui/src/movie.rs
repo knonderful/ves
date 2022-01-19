@@ -115,7 +115,7 @@ impl GuiMovie {
             PlaybackState::Paused => {
                 self.playback_state = PlaybackState::Playing(current_instant);
                 self.next_frame(ctx);
-            },
+            }
             PlaybackState::Playing(_) => {} // do nothing
         }
     }

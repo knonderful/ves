@@ -17,6 +17,8 @@ struct GuiMovieFrame {
     sprites: Vec<GuiMovieFrameSprite>,
 }
 
+const ZOOM: f32 = 2.0;
+
 impl GuiMovieFrame {
     /// Creates a new instance.
     ///
@@ -66,13 +68,12 @@ impl GuiMovieFrame {
         Self { sprites }
     }
 
-    pub fn show(&self, ui: &mut egui::Ui) {
+    pub fn show(&self, ui: &mut egui::Ui, viewport: egui::Rect) {
         // TODO: The scaling is not pixel-perfect by default. This has to do with the texture filtering in the rendering component.
         //       Currently this requires a hack in egui_glow, since there is no way for the application code to control this.
-        let zoom: f32 = 2.0;
 
         let from_rect = egui::Rect::from_min_size(egui::Pos2::ZERO, ui.available_size());
-        let to_rect = egui::Rect::from_min_size(egui::Pos2::ZERO, zoom * ui.available_size());
+        let to_rect = egui::Rect::from_min_size(egui::pos2(-viewport.left(), -viewport.top()), ZOOM * ui.available_size());
         let transform = egui::emath::RectTransform::from_to(from_rect, to_rect);
 
         for sprite in &self.sprites {
@@ -154,7 +155,15 @@ impl GuiMovie {
 
     pub fn show(&mut self, ui: &mut egui::Ui) {
         if let Some(ref frame) = self.current_frame {
-            frame.show(ui);
+            let movie_frame_size = self.movie.screen_size().to_egui() * ZOOM;
+            egui::ScrollArea::both()
+                .auto_shrink([false, false])
+                .always_show_scroll(true)
+                .show_viewport(ui, |ui, viewport| {
+                    // Make sure the movie window doesn't shrink too far
+                    ui.set_min_size(movie_frame_size);
+                    frame.show(ui, viewport);
+                });
         }
     }
 

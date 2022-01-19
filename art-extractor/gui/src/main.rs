@@ -121,12 +121,16 @@ impl epi::App for ArtDirectorApp {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            match self.movie {
-                None => {
-                    ui.label("No movie loaded.");
-                }
-                Some(ref mut movie) => {
-                    movie.show(ui);
+            match self.main_mode {
+                MainMode::Movie => {
+                    match self.movie {
+                        None => {
+                            ui.label("No movie loaded.");
+                        }
+                        Some(ref mut movie) => {
+                            movie.show(ui);
+                        }
+                    }
                 }
             }
         });

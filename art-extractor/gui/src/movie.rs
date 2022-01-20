@@ -79,6 +79,28 @@ impl GuiMovieFrame {
         for sprite in &self.sprites {
             let rect = transform.transform_rect(sprite.rect);
             let image = egui::Image::new(&sprite.texture, rect.size());
+
+            // TODO: Sprites may be partially outside of the viewport. In this case they need to "wrap around". In order to render this, we
+            //       should probably split the image up into sub-images and use the UV values to display only a part of the texture for each
+            //       image. This could be a method on Image (using a custom trait).
+            // Idea: (make this testable, since it's otherwise hard to confirm that it works)
+            // if rect.right() > viewport.right() {
+            //   let subimg1 = image.split_vertically(...); // clips "image"
+            //   if rect.bottom() > viewport.bottom() {
+            //     let subimg2 = subimg1.split_horizontally(...); // clips "subimg1"
+            //     ui.put(..., subimg2);
+            //   }
+            //   ui.put(..., subimg1);
+            // }
+            //
+            // if rect.bottom() > viewport.bottom() {
+            //   let subimg1 = image.split_horizontally(...); // clips "image" (possibly again, if it is already split in the previous "if")
+            //   ui.put(..., subimg1);
+            // }
+            //
+            // // Note: don't use "rect" directly for the first parameter, since the image may have been clipped
+            // ui.put(egui::Rect::from_min_size(rect.min, image.size()), image);
+
             ui.put(rect, image);
         }
     }

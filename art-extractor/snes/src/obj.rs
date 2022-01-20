@@ -539,8 +539,9 @@ impl FromSnesData<(u8, u8, u8, u8, u8)> for ObjData {
         let h_flip = low4 & 0b1 != 0;
         let v_flip = low4 & 0b10 != 0;
 
-        let pos_x: u32 = low1.into();
-        let pos_y: u32 = u32::from(high & 0b1) << 8u32 | u32::from(low2);
+        let pos_x = u32::from(high & 0b1) << 8u32 | u32::from(low1);
+        let pos_y = u32::from(low2);
+
         let position = (pos_x, pos_y).into();
         let size_large = high & 0b10 != 0;
 
@@ -561,7 +562,7 @@ mod test_obj_data {
         assert_eq!(false, obj.h_flip);
         assert_eq!(true, obj.v_flip);
         assert_eq!(true, obj.size_large);
-        assert_eq!(Point::new_raw(101, 367), obj.position);
+        assert_eq!(Point::new_raw(357, 111), obj.position);
 
         let obj = ObjData::from_snes_data((0b01110100, 0b01101000, 0b01000101, 0b01111110, 0b11000100)).unwrap();
         assert_eq!(ObjNameTableIndex::for_base(69), obj.obj_name_table_index);

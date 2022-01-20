@@ -178,7 +178,7 @@ impl ToEgui for art_extractor_core::geom_art::Rect {
         // We have to convert from an inclusive (integer-based) to an exclusive (float-based) space, hence the +1
         egui::Rect::from_min_max(
             egui::pos2(self.min_x().into_f32(), self.min_y().into_f32()),
-            egui::pos2((self.max_x().raw() + 1).into_f32(), (self.max_y().raw() + 1).into_f32()),
+            egui::pos2(self.max_x().raw().into_f32() + 1.0, self.max_y().raw().into_f32() + 1.0),
         )
     }
 }

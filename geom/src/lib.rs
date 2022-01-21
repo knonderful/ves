@@ -312,8 +312,7 @@ impl<T> Rect<T> where
 
     #[inline(always)]
     pub fn max_x(&self) -> T {
-        let x = self.origin.x + self.size.width;
-        x - T::one()
+        self.origin.x + self.size.width - T::one()
     }
 
     #[inline(always)]

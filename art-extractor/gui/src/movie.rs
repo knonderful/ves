@@ -55,7 +55,7 @@ impl GuiMovieFrame {
             let color_image = ColorImage::from_rgba_unmultiplied([w, h], &raw_image);
 
             let texture = ctx.load_texture("something", ImageData::Color(color_image));
-            let rect = art_extractor_core::geom_art::Rect::new(sprite.position(), surf.size()).to_egui();
+            let rect = art_extractor_core::geom_art::Rect::new_from_size(sprite.position(), surf.size()).to_egui();
 
             let gui_sprite = GuiMovieFrameSprite {
                 rect,

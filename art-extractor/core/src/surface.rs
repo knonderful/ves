@@ -279,7 +279,7 @@ impl<T, X, Y> Iterator for SurfaceIter<T, X, Y> where
 ///
 /// surface_iterate(
 ///     Size::new_raw(10, 10), // a_surf_size
-///     Rect::new(Point::new_raw(2, 2), Size::new_raw(4, 4)), // a_select_rect
+///     Rect::new_from_size(Point::new_raw(2, 2), Size::new_raw(4, 4)), // a_select_rect
 ///     false, // hflip
 ///     false, // vflip
 ///     |_pos, idx| { // func
@@ -396,7 +396,7 @@ mod test_fn_surface_iterate {
 ///
 /// surface_iterate_2(
 ///     Size::new_raw(10, 10), // a_surf_size
-///     Rect::new(Point::new_raw(2, 2), Size::new_raw(4, 4)), // a_select_rect
+///     Rect::new_from_size(Point::new_raw(2, 2), Size::new_raw(4, 4)), // a_select_rect
 ///     Size::new_raw(100, 100), // b_surf_size
 ///     Point::new_raw(80, 80), // b_select_origin
 ///     false, // hflip
@@ -411,7 +411,7 @@ mod test_fn_surface_iterate {
 pub fn surface_iterate_2<T: SpaceUnit + Into<usize> + Debug, F>(a_surf_size: Size<T>, a_select_rect: Rect<T>, b_surf_size: Size<T>, b_select_origin: Point<T>, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
     F: FnMut(Point<T>, usize, Point<T>, usize)
 {
-    let b_select_rect = Rect::<T>::new(b_select_origin, a_select_rect.size);
+    let b_select_rect = Rect::<T>::new_from_size(b_select_origin, a_select_rect.size());
     let src_x_wrap = a_select_rect.max_x() >= a_surf_size.width;
     let src_y_wrap = a_select_rect.max_y() >= a_surf_size.height;
     let dest_x_wrap = b_select_rect.max_x() >= b_surf_size.width;

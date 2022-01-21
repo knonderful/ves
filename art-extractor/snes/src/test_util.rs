@@ -38,7 +38,7 @@ pub fn bmp_from_movie_frame(movie_frame: &MovieFrame, palettes: &impl Index<Pale
         let sprite_surface = tile.surface();
         let src_data = sprite_surface.data();
         let src_size = sprite_surface.size();
-        let src_rect = Rect::new(Point::new(0.into(), 0.into()), src_size);
+        let src_rect = Rect::new_from_size(Point::new(0.into(), 0.into()), src_size);
 
         let palette = &palettes[sprite.palette()];
         art_extractor_core::surface::surface_iterate_2(

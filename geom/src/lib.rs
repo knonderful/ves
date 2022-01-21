@@ -72,7 +72,7 @@ impl_one!(isize);
 /// understand and reason about.
 pub trait SpaceUnit:
 Copy + Add<Output=Self> + Sub<Output=Self> + Mul<Output=Self> + Div<Output=Self> + Rem<Output=Self> +
-Zero + One + From<Self::RawValue> + Ord + PartialOrd
+Zero + One + From<Self::RawValue> + Ord + PartialOrd + Debug
 {
     type RawValue;
 
@@ -260,7 +260,7 @@ impl<T> Size<T> where
     /// * `height`: The height.
     #[inline(always)]
     pub fn as_rect(&self) -> Rect<T> {
-        Rect::new(Point::new(T::zero(), T::zero()), *self)
+        Rect::new_from_size(Point::new(T::zero(), T::zero()), *self)
     }
 }
 
@@ -268,10 +268,10 @@ impl<T> Size<T> where
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Rect<T> {
-    /// The point of origin.
-    pub origin: Point<T>,
-    /// The size.
-    pub size: Size<T>,
+    /// The start position (inclusive).
+    pub min: Point<T>,
+    /// The end position (inclusive).
+    pub max: Point<T>,
 }
 
 impl<T> Rect<T> where
@@ -280,44 +280,58 @@ impl<T> Rect<T> where
     /// Creates a new instance.
     ///
     /// # Parameters
+    /// * `min`: The start position (inclusive).
+    /// * `max`: The end position (inclusive).
+    #[inline(always)]
+    pub fn new(min: Point<T>, max: Point<T>) -> Self {
+        assert!(min.x <= max.x || min.y <= max.y, "Invalid min and max: {:?} and {:?}.", min, max);
+        Self {
+            min,
+            max,
+        }
+    }
+
+    /// Creates a new instance.
+    ///
+    /// # Parameters
     /// * `origin`: The point of origin.
     /// * `size`: The size.
     #[inline(always)]
-    pub fn new(origin: Point<T>, size: Size<T>) -> Self {
-        Self {
+    pub fn new_from_size(origin: Point<T>, size: Size<T>) -> Self {
+        Self::new(
             origin,
-            size,
-        }
+            Point::new(origin.x + size.width - T::one(), origin.y + size.height - T::one()),
+        )
     }
 
     #[inline(always)]
     pub fn min_x(&self) -> T {
-        self.origin.x
+        self.min.x
     }
 
     #[inline(always)]
     pub fn min_y(&self) -> T {
-        self.origin.y
+        self.min.y
     }
 
     #[inline(always)]
     pub fn width(&self) -> T {
-        self.size.width
+        (self.max.x - self.min.x) + T::one()
     }
 
     #[inline(always)]
     pub fn height(&self) -> T {
-        self.size.height
+        (self.max.y - self.min.y) + T::one()
     }
 
     #[inline(always)]
     pub fn max_x(&self) -> T {
-        self.origin.x + self.size.width - T::one()
+        self.max.x
     }
 
     #[inline(always)]
     pub fn max_y(&self) -> T {
-        self.origin.y + self.size.height - T::one()
+        self.max.y
     }
 
     #[inline(always)]
@@ -331,15 +345,12 @@ impl<T> Rect<T> where
     }
 }
 
-impl<T> From<((T::RawValue, T::RawValue), T::RawValue, T::RawValue)> for Rect<T> where
+impl<T> From<((T::RawValue, T::RawValue), (T::RawValue, T::RawValue))> for Rect<T> where
     T: SpaceUnit,
 {
     #[inline(always)]
-    fn from(args: ((T::RawValue, T::RawValue), T::RawValue, T::RawValue)) -> Self {
-        Self {
-            origin: args.0.into(),
-            size: Size::<T>::new_raw(args.1, args.2),
-        }
+    fn from(args: ((T::RawValue, T::RawValue), (T::RawValue, T::RawValue))) -> Self {
+        Self::new(args.0.into(), args.1.into())
     }
 }
 

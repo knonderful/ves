@@ -255,7 +255,7 @@ impl ObjNameTable {
         let y: u32 = idx / Self::TILES_X;
         let x: u32 = idx % Self::TILES_X;
 
-        Rect::new(Point::new_raw(x * Self::TILE_WIDTH, (y_offset + y) * Self::TILE_HEIGHT), Size::new_square(size.pixel_size()))
+        Rect::new_from_size(Point::new_raw(x * Self::TILE_WIDTH, (y_offset + y) * Self::TILE_HEIGHT), Size::new_square(size.pixel_size()))
     }
 }
 

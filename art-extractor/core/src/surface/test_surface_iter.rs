@@ -75,8 +75,8 @@ fn test_full_copy_no_flip() {
     {
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()));
-        let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()));
+        let src_iter = surface_iter!(src.size(), Rect::new_from_size((0, 0).into(), src.size()));
+        let dest_iter = surface_iter!(dest.size(), Rect::new_from_size((0, 0).into(), dest.size()));
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&SOURCE_DATA, dest.data());
     }
@@ -85,8 +85,8 @@ fn test_full_copy_no_flip() {
     {
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @hflip);
-        let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @hflip);
+        let src_iter = surface_iter!(src.size(), Rect::new_from_size((0, 0).into(), src.size()), @hflip);
+        let dest_iter = surface_iter!(dest.size(), Rect::new_from_size((0, 0).into(), dest.size()), @hflip);
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&SOURCE_DATA, dest.data());
     }
@@ -95,8 +95,8 @@ fn test_full_copy_no_flip() {
     {
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @vflip);
-        let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @vflip);
+        let src_iter = surface_iter!(src.size(), Rect::new_from_size((0, 0).into(), src.size()), @vflip);
+        let dest_iter = surface_iter!(dest.size(), Rect::new_from_size((0, 0).into(), dest.size()), @vflip);
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&SOURCE_DATA, dest.data());
     }
@@ -105,8 +105,8 @@ fn test_full_copy_no_flip() {
     {
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @hflip, @vflip);
-        let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @hflip, @vflip);
+        let src_iter = surface_iter!(src.size(), Rect::new_from_size((0, 0).into(), src.size()), @hflip, @vflip);
+        let dest_iter = surface_iter!(dest.size(), Rect::new_from_size((0, 0).into(), dest.size()), @hflip, @vflip);
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&SOURCE_DATA, dest.data());
     }
@@ -130,8 +130,8 @@ fn test_full_copy_hflip() {
     {
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @hflip);
-        let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()));
+        let src_iter = surface_iter!(src.size(), Rect::new_from_size((0, 0).into(), src.size()), @hflip);
+        let dest_iter = surface_iter!(dest.size(), Rect::new_from_size((0, 0).into(), dest.size()));
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -140,8 +140,8 @@ fn test_full_copy_hflip() {
     {
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()));
-        let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @hflip);
+        let src_iter = surface_iter!(src.size(), Rect::new_from_size((0, 0).into(), src.size()));
+        let dest_iter = surface_iter!(dest.size(), Rect::new_from_size((0, 0).into(), dest.size()), @hflip);
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -165,8 +165,8 @@ fn test_full_copy_vflip() {
     {
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @vflip);
-        let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()));
+        let src_iter = surface_iter!(src.size(), Rect::new_from_size((0, 0).into(), src.size()), @vflip);
+        let dest_iter = surface_iter!(dest.size(), Rect::new_from_size((0, 0).into(), dest.size()));
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -175,8 +175,8 @@ fn test_full_copy_vflip() {
     {
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()));
-        let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @vflip);
+        let src_iter = surface_iter!(src.size(), Rect::new_from_size((0, 0).into(), src.size()));
+        let dest_iter = surface_iter!(dest.size(), Rect::new_from_size((0, 0).into(), dest.size()), @vflip);
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -200,8 +200,8 @@ fn test_full_copy_hflip_vflip() {
     {
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @hflip, @vflip);
-        let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()));
+        let src_iter = surface_iter!(src.size(), Rect::new_from_size((0, 0).into(), src.size()), @hflip, @vflip);
+        let dest_iter = surface_iter!(dest.size(), Rect::new_from_size((0, 0).into(), dest.size()));
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -210,8 +210,8 @@ fn test_full_copy_hflip_vflip() {
     {
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()));
-        let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @hflip, @vflip);
+        let src_iter = surface_iter!(src.size(), Rect::new_from_size((0, 0).into(), src.size()));
+        let dest_iter = surface_iter!(dest.size(), Rect::new_from_size((0, 0).into(), dest.size()), @hflip, @vflip);
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -220,8 +220,8 @@ fn test_full_copy_hflip_vflip() {
     {
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @hflip);
-        let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @vflip);
+        let src_iter = surface_iter!(src.size(), Rect::new_from_size((0, 0).into(), src.size()), @hflip);
+        let dest_iter = surface_iter!(dest.size(), Rect::new_from_size((0, 0).into(), dest.size()), @vflip);
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -230,8 +230,8 @@ fn test_full_copy_hflip_vflip() {
     {
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), Rect::new((0, 0).into(), src.size()), @vflip);
-        let dest_iter = surface_iter!(dest.size(), Rect::new((0, 0).into(), dest.size()), @hflip);
+        let src_iter = surface_iter!(src.size(), Rect::new_from_size((0, 0).into(), src.size()), @vflip);
+        let dest_iter = surface_iter!(dest.size(), Rect::new_from_size((0, 0).into(), dest.size()), @hflip);
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -254,8 +254,8 @@ fn test_partial_no_wrap() {
             ];
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into());
-        let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
+        let src_iter = surface_iter!(src.size(), ((1, 4), (4, 7)).into());
+        let dest_iter = surface_iter!(dest.size(), ((6, 3), (9, 6)).into());
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -274,8 +274,8 @@ fn test_partial_no_wrap() {
             ];
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into(), @hflip);
-        let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
+        let src_iter = surface_iter!(src.size(), ((1, 4), (4, 7)).into(), @hflip);
+        let dest_iter = surface_iter!(dest.size(), ((6, 3), (9, 6)).into());
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -294,8 +294,8 @@ fn test_partial_no_wrap() {
             ];
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into(), @vflip);
-        let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
+        let src_iter = surface_iter!(src.size(), ((1, 4), (4, 7)).into(), @vflip);
+        let dest_iter = surface_iter!(dest.size(), ((6, 3), (9, 6)).into());
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -314,8 +314,8 @@ fn test_partial_no_wrap() {
             ];
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into(), @hflip, @vflip);
-        let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
+        let src_iter = surface_iter!(src.size(), ((1, 4), (4, 7)).into(), @hflip, @vflip);
+        let dest_iter = surface_iter!(dest.size(), ((6, 3), (9, 6)).into());
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -338,8 +338,8 @@ fn test_partial_h_wrap() {
             ];
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), ((10, 4), 4, 4).into());
-        let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
+        let src_iter = surface_iter!(src.size(), ((10, 4), (13, 7)).into());
+        let dest_iter = surface_iter!(dest.size(), ((6, 3), (9, 6)).into());
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -358,8 +358,8 @@ fn test_partial_h_wrap() {
             ];
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into());
-        let dest_iter = surface_iter!(dest.size(), ((10, 3), 4, 4).into());
+        let src_iter = surface_iter!(src.size(), ((1, 4), (4, 7)).into());
+        let dest_iter = surface_iter!(dest.size(), ((10, 3), (13, 6)).into());
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -382,8 +382,8 @@ fn test_partial_v_wrap() {
             ];
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), ((1, 6), 4, 4).into());
-        let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
+        let src_iter = surface_iter!(src.size(), ((1, 6), (4, 9)).into());
+        let dest_iter = surface_iter!(dest.size(), ((6, 3), (9, 6)).into());
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -402,8 +402,8 @@ fn test_partial_v_wrap() {
             ];
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into());
-        let dest_iter = surface_iter!(dest.size(), ((6, 6), 4, 4).into());
+        let src_iter = surface_iter!(src.size(), ((1, 4), (4, 7)).into());
+        let dest_iter = surface_iter!(dest.size(), ((6, 6), (9, 9)).into());
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -427,8 +427,8 @@ fn test_partial_hv_wrap() {
             ];
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), ((10, 6), 4, 4).into());
-        let dest_iter = surface_iter!(dest.size(), ((6, 3), 4, 4).into());
+        let src_iter = surface_iter!(src.size(), ((10, 6), (13, 9)).into());
+        let dest_iter = surface_iter!(dest.size(), ((6, 3), (9, 6)).into());
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }
@@ -447,8 +447,8 @@ fn test_partial_hv_wrap() {
             ];
         let src = create_source();
         let mut dest = Surfy::new();
-        let src_iter = surface_iter!(src.size(), ((1, 4), 4, 4).into());
-        let dest_iter = surface_iter!(dest.size(), ((10, 6), 4, 4).into());
+        let src_iter = surface_iter!(src.size(), ((1, 4), (4, 7)).into());
+        let dest_iter = surface_iter!(dest.size(), ((10, 6), (13, 9)).into());
         copy_data(&src, &mut dest, src_iter, dest_iter);
         assert_eq!(&EXPECTED, dest.data());
     }

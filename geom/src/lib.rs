@@ -283,7 +283,9 @@ impl<T> Rect<T> where
     /// * `min`: The start position (inclusive).
     /// * `max`: The end position (inclusive).
     #[inline(always)]
-    pub fn new(min: Point<T>, max: Point<T>) -> Self {
+    pub fn new(min: impl Into<Point<T>>, max: impl Into<Point<T>>) -> Self {
+        let min: Point<T> = min.into();
+        let max: Point<T> = max.into();
         assert!(min.x <= max.x || min.y <= max.y, "Invalid min and max: {:?} and {:?}.", min, max);
         Self {
             min,
@@ -358,15 +360,87 @@ impl<T> Rect<T> where
     pub fn size(&self) -> Size<T> {
         Size::new(self.width(), self.height())
     }
+
+    /// Creates an intersection of this rectangle with the axes defined by the provided point.
+    ///
+    /// The [`Rect`] on which this method is called will be adjusted to be the top-left rectangle after the intersection.
+    ///
+    /// # Parameters
+    /// - `point`: A [`Point`] that specifies the X- and Y-axis for the intersection. The axes themselves will be part of the top-left rectangle after intersection.
+    ///
+    /// # Example
+    ///
+    /// ```example
+    ///    3     6     9           3     6     9
+    /// 12 +-----------+        12 +-----+ +---+
+    ///    |           |           |     | |   |
+    ///    |           |           |     | |   |
+    ///    |           |  ===>     |     | |   |
+    /// 16 |     x     |        16 +-----+ +---+
+    ///    |           |        17 +-----+ +---+
+    ///    |           |           |     | |   |
+    /// 19 +-----------+        19 +-----+ +---+
+    /// ```
+    pub fn intersect_point(&mut self, point: impl Into<Point<T>>) -> RectIntersection<T> {
+        let Point { x, y } = point.into();
+        let x_start = self.min.x;
+        let x_end = self.max.x;
+        let y_start = self.min.y;
+        let y_end = self.max.y;
+
+        // 3 4 5 6 7 8        3 4 5 6 7 8
+        // +-----|---+  ===>  +-----+ +-+
+        if x_start <= x && x < x_end {
+            self.max.x = x;
+            let remaining_x = x + T::one();
+            if y_start <= y && y < y_end {
+                self.max.y = y;
+                let remaining_y = y + T::one();
+                RectIntersection::Both {
+                    top_right: Rect::new(Point::new(remaining_x, y_start), Point::new(x_end, y)),
+                    bottom_left: Rect::new(Point::new(x_start, remaining_y), Point::new(x, y_end)),
+                    bottom_right: Rect::new(Point::new(remaining_x, remaining_y), Point::new(x_end, y_end)),
+                }
+            } else {
+                RectIntersection::Vertical(
+                    Rect::new(Point::new(remaining_x, y_start), Point::new(x_end, y_end))
+                )
+            }
+        } else {
+            if y_start <= y && y < y_end {
+                self.max.y = y;
+                let remaining_y = y + T::one();
+                RectIntersection::Horizontal(
+                    Rect::new(Point::new(x_start, remaining_y), Point::new(x_end, y_end)),
+                )
+            } else {
+                RectIntersection::None
+            }
+        }
+    }
 }
 
-impl<T> From<((T::RawValue, T::RawValue), (T::RawValue, T::RawValue))> for Rect<T> where
+impl<A, B, T> From<(A, B)> for Rect<T> where
+    A: Into<Point<T>>,
+    B: Into<Point<T>>,
     T: SpaceUnit,
 {
     #[inline(always)]
-    fn from(args: ((T::RawValue, T::RawValue), (T::RawValue, T::RawValue))) -> Self {
-        Self::new(args.0.into(), args.1.into())
+    fn from(args: (A, B)) -> Self {
+        Self::new(args.0, args.1)
     }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RectIntersection<T> {
+    None,
+    Vertical(Rect<T>),
+    Horizontal(Rect<T>),
+    Both {
+        top_right: Rect<T>,
+        bottom_left: Rect<T>,
+        bottom_right: Rect<T>,
+    },
 }
 
 /// Macro for generating simple [`SpaceUnit`] implementations.
@@ -456,5 +530,105 @@ macro_rules! space_unit {
                 self.0
             }
         }
+    }
+}
+
+#[cfg(test)]
+space_unit!(
+    /// A space unit for tests.
+    TestSpaceUnit,
+    u16
+);
+
+#[cfg(test)]
+mod test_rect {
+    use super::TestSpaceUnit;
+
+    type Rect = super::Rect<TestSpaceUnit>;
+    type RectIntersection = super::RectIntersection<TestSpaceUnit>;
+
+    #[test]
+    fn test_intersect_point_inside() {
+        let expected_rect: Rect = ((3, 14), (5, 24)).into();
+        let expected_intersection = RectIntersection::Both {
+            top_right: ((6, 14), (12, 24)).into(),
+            bottom_left: ((3, 25), (5, 30)).into(),
+            bottom_right: ((6, 25), (12, 30)).into(),
+        };
+
+        let mut rect: Rect = ((3, 14), (12, 30)).into();
+        let intersection = rect.intersect_point((5, 24));
+        assert_eq!(expected_rect, rect);
+        assert_eq!(expected_intersection, intersection);
+    }
+
+    #[test]
+    fn test_intersect_point_outside_before() {
+        let expected_rect: Rect = ((3, 14), (12, 30)).into();
+        let expected_intersection = RectIntersection::None;
+
+        let mut rect: Rect = ((3, 14), (12, 30)).into();
+        let intersection = rect.intersect_point((2, 12));
+        assert_eq!(expected_rect, rect);
+        assert_eq!(expected_intersection, intersection);
+    }
+
+    #[test]
+    fn test_intersect_point_outside_after() {
+        let expected_rect: Rect = ((3, 14), (12, 30)).into();
+        let expected_intersection = RectIntersection::None;
+
+        let mut rect: Rect = ((3, 14), (12, 30)).into();
+        let intersection = rect.intersect_point((14, 31));
+        assert_eq!(expected_rect, rect);
+        assert_eq!(expected_intersection, intersection);
+    }
+
+    #[test]
+    fn test_intersect_point_vertical() {
+        let expected_rect: Rect = ((3, 14), (5, 30)).into();
+        let expected_intersection = RectIntersection::Vertical(((6, 14), (12, 30)).into());
+
+        let mut rect: Rect = ((3, 14), (12, 30)).into();
+        let intersection = rect.intersect_point((5, 31));
+        assert_eq!(expected_rect, rect);
+        assert_eq!(expected_intersection, intersection);
+    }
+
+    #[test]
+    fn test_intersect_point_horizontal() {
+        let expected_rect: Rect = ((3, 14), (12, 24)).into();
+        let expected_intersection = RectIntersection::Horizontal(((3, 25), (12, 30)).into());
+
+        let mut rect: Rect = ((3, 14), (12, 30)).into();
+        let intersection = rect.intersect_point((2, 24));
+        assert_eq!(expected_rect, rect);
+        assert_eq!(expected_intersection, intersection);
+    }
+
+    #[test]
+    fn test_intersect_point_top_left() {
+        let expected_rect: Rect = ((3, 14), (3, 14)).into();
+        let expected_intersection = RectIntersection::Both {
+            top_right: ((4, 14), (12, 14)).into(),
+            bottom_left: ((3, 15), (3, 30)).into(),
+            bottom_right: ((4, 15), (12, 30)).into(),
+        };
+
+        let mut rect: Rect = ((3, 14), (12, 30)).into();
+        let intersection = rect.intersect_point((3, 14));
+        assert_eq!(expected_rect, rect);
+        assert_eq!(expected_intersection, intersection);
+    }
+
+    #[test]
+    fn test_intersect_point_bottom_right() {
+        let expected_rect: Rect = ((3, 14), (12, 30)).into();
+        let expected_intersection = RectIntersection::None;
+
+        let mut rect: Rect = ((3, 14), (12, 30)).into();
+        let intersection = rect.intersect_point((12, 30));
+        assert_eq!(expected_rect, rect);
+        assert_eq!(expected_intersection, intersection);
     }
 }

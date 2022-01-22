@@ -218,8 +218,7 @@ impl<T, X, Y> SurfaceIter<T, X, Y> where
         match self.x_iter.next() {
             Some(x) => {
                 let x_usize: usize = x.into();
-                let point = Point::<T>::new(x, self.last_y);
-                Some((point, self.row_offset + x_usize))
+                Some((Point::<T>::new(x, self.last_y), self.row_offset + x_usize))
             },
             None => {
                 match self.y_iter.next() {

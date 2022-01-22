@@ -331,16 +331,6 @@ impl<T> Rect<T> where
     }
 
     #[inline(always)]
-    pub fn min(&self) -> Point<T> {
-        self.min
-    }
-
-    #[inline(always)]
-    pub fn max(&self) -> Point<T> {
-        self.max
-    }
-
-    #[inline(always)]
     pub fn size(&self) -> Size<T> {
         Size::new(self.width(), self.height())
     }

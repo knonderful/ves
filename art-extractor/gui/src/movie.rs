@@ -4,7 +4,6 @@ use art_extractor_core::movie::{Movie, MovieFrame};
 use art_extractor_core::sprite::{Color, Palette, PaletteRef, Tile, TileRef};
 use art_extractor_core::surface::Surface;
 use ves_cache::SliceCache;
-use ves_geom::SpaceUnit;
 use crate::{egui, ToEgui};
 use crate::egui::{ColorImage, ImageData};
 

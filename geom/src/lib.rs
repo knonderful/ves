@@ -1,5 +1,22 @@
-use std::fmt::{Debug, Display};
-use std::ops::{Add, Div, Mul, RangeInclusive, Rem, Sub};
+//! A library for working with types in a 2-dimensional space.
+//!
+//! Every type is generic over `T`, where `T` is the so-called "space unit". The type of `T` should be specific to a certain space or
+//! domain.
+//!
+//! Even though it is possible to simply use some basic data type (e.g. `u32`) as a unit, this is not recommendable in cases for
+//! where geometrical "worlds" coexist in the same scope (like an application). For instance, imagine a game that has a top-down
+//! world map that can be navigated and a side-view for the levels. Objects and calculations between these worlds should never
+//! mix, which can happen easily when the unit type is too basic. A `Point<u32, u32>` from the world map might be used inside a
+//! level. Additionally, in case of a game there is another geometrical space: the output surface (usually a window or the entire
+//! screen). This is another geometrical space, again with its own unit.
+//!
+//! By wrapping the primitive unit type in an explicit type these spaces can be cleanly separated. Any conversion between spaces
+//! (e.g. translating a coordinate from the level view to the screen) must be performed explicitly, thus ruling out any
+//! accidental bugs. Additionally, from a code-view perspective the more advanced types are more explicit, making code easier to
+//! understand and reason about.
+
+use std::fmt::Debug;
+use std::ops::{Add, RangeInclusive, Sub};
 
 /// Returns the value zero (0) for a type.
 pub trait Zero {
@@ -55,28 +72,6 @@ impl_one!(i32);
 impl_one!(i64);
 impl_one!(isize);
 
-/// A unit that is used in a geometrical "space".
-///
-/// Even though it is possible to simply use some basic data type (e.g. `u32`) as a unit, this is not recommendable in cases for
-/// where geometrical "worlds" coexist in the same scope (like an application). For instance, imagine a game that has a top-down
-/// world map that can be navigated and a side-view for the levels. Objects and calculations between these worlds should never
-/// mix, which can happen easily when the unit type is too basic. A `Point<u32, u32>` from the world map might be used inside a
-/// level. Additionally, in case of a game there is another geometrical space: the output surface (usually a window or the entire
-/// screen). This is another geometrical space, again with its own unit.
-///
-/// By wrapping the primitive unit type in an explicit type these spaces can be cleanly separated. Any conversion between spaces
-/// (e.g. translating a coordinate from the level view to the screen) must be performed explicitly, thus ruling out any
-/// accidental bugs. Additionally, from a code-view perspective the more advanced types are more explicit, making code easier to
-/// understand and reason about.
-pub trait SpaceUnit:
-Copy + Add<Output=Self> + Sub<Output=Self> + Mul<Output=Self> + Div<Output=Self> + Rem<Output=Self> +
-Zero + One + From<Self::RawValue> + Ord + PartialOrd + Debug
-{
-    type RawValue;
-
-    fn raw(&self) -> Self::RawValue;
-}
-
 /// A finite range.
 ///
 /// This serves as an alterative to the [`core::ops::Range`] family of types that can not be used for iteration when the containing type
@@ -110,7 +105,7 @@ impl<T> FiniteRange<T> where
 }
 
 impl<T> From<(T, T)> for FiniteRange<T> where
-    T: PartialOrd + Display,
+    T: PartialOrd,
 {
     fn from(value: (T, T)) -> Self {
         FiniteRange::new(value.0, value.1)
@@ -167,8 +162,7 @@ pub struct Point<T> {
     pub y: T,
 }
 
-impl<T> Point<T> where
-    T: SpaceUnit,
+impl<T> Point<T>
 {
     /// Creates a new instance.
     ///
@@ -187,7 +181,6 @@ impl<T> Point<T> where
 impl<A, B, T> From<(A, B)> for Point<T> where
     A: Into<T>,
     B: Into<T>,
-    T: SpaceUnit,
 {
     #[inline(always)]
     fn from(coords: (A, B)) -> Self {
@@ -205,9 +198,7 @@ pub struct Size<T> {
     pub height: T,
 }
 
-impl<T> Size<T> where
-    T: SpaceUnit,
-{
+impl<T> Size<T> {
     /// Creates a new instance.
     ///
     /// # Parameters
@@ -220,7 +211,11 @@ impl<T> Size<T> where
             height: height.into(),
         }
     }
+}
 
+impl<T> Size<T> where
+    T: Copy,
+{
     /// Creates a new instance of a square.
     ///
     /// # Parameters
@@ -234,7 +229,7 @@ impl<T> Size<T> where
 }
 
 impl<T> Size<T> where
-    T: SpaceUnit,
+    T: Copy + Add<Output=T> + Sub<Output=T> + Zero + PartialOrd + Debug + One,
 {
     /// Creates a new instance.
     ///
@@ -258,7 +253,7 @@ pub struct Rect<T> {
 }
 
 impl<T> Rect<T> where
-    T: SpaceUnit,
+    T: Copy + PartialOrd + PartialEq + Debug,
 {
     /// Creates a new instance.
     ///
@@ -275,7 +270,11 @@ impl<T> Rect<T> where
             max,
         }
     }
+}
 
+impl<T> Rect<T> where
+    T: Copy + Add<Output=T> + Sub<Output=T> + PartialOrd + PartialEq + Debug + One,
+{
     /// Creates a new instance.
     ///
     /// # Parameters
@@ -289,7 +288,11 @@ impl<T> Rect<T> where
             (origin.x + size.width - T::one(), origin.y + size.height - T::one()),
         )
     }
+}
 
+impl<T> Rect<T> where
+    T: Copy,
+{
     #[inline(always)]
     pub fn min_x(&self) -> T {
         self.min.x
@@ -298,16 +301,6 @@ impl<T> Rect<T> where
     #[inline(always)]
     pub fn min_y(&self) -> T {
         self.min.y
-    }
-
-    #[inline(always)]
-    pub fn width(&self) -> T {
-        (self.max.x - self.min.x) + T::one()
-    }
-
-    #[inline(always)]
-    pub fn height(&self) -> T {
-        (self.max.y - self.min.y) + T::one()
     }
 
     #[inline(always)]
@@ -329,12 +322,30 @@ impl<T> Rect<T> where
     pub fn range_y(&self) -> RangeInclusive<T> {
         self.min_y()..=self.max_y()
     }
+}
+
+impl<T> Rect<T> where
+    T: Copy + Add<Output=T> + Sub<Output=T> + One,
+{
+    #[inline(always)]
+    pub fn width(&self) -> T {
+        (self.max.x - self.min.x) + T::one()
+    }
+
+    #[inline(always)]
+    pub fn height(&self) -> T {
+        (self.max.y - self.min.y) + T::one()
+    }
 
     #[inline(always)]
     pub fn size(&self) -> Size<T> {
         Size::new(self.width(), self.height())
     }
+}
 
+impl<T> Rect<T> where
+    T: Copy + Add<Output=T> + PartialOrd + PartialEq + Debug + One,
+{
     /// Creates an intersection of this rectangle with the axes defined by the provided point.
     ///
     /// The [`Rect`] on which this method is called will be adjusted to be the top-left rectangle after the intersection.
@@ -395,7 +406,7 @@ impl<T> Rect<T> where
 impl<A, B, T> From<(A, B)> for Rect<T> where
     A: Into<Point<T>>,
     B: Into<Point<T>>,
-    T: SpaceUnit,
+    T: Copy + PartialOrd + PartialEq + Debug,
 {
     #[inline(always)]
     fn from(args: (A, B)) -> Self {
@@ -415,11 +426,11 @@ pub enum RectIntersection<T> {
     },
 }
 
-/// Macro for generating simple [`SpaceUnit`] implementations.
+/// Macro for generating simple "space unit" implementations.
 ///
 /// # Parameters
 /// * `name`: Output type name.
-/// * `raw_type`: The [`SpaceUnit::RawValue`] type.
+/// * `raw_type`: The raw (inner) value type.
 #[macro_export]
 macro_rules! space_unit {
     ($(#[doc = $doc:expr])* $name:ident, $raw_type:ty) => {
@@ -494,11 +505,9 @@ macro_rules! space_unit {
             }
         }
 
-        impl $crate::SpaceUnit for $name {
-            type RawValue = $raw_type;
-
+        impl  $name {
             #[inline(always)]
-            fn raw(&self) -> Self::RawValue {
+            pub fn raw(&self) -> $raw_type {
                 self.0
             }
         }

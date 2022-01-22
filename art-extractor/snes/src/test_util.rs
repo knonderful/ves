@@ -4,7 +4,6 @@ use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
 use art_extractor_core::movie::MovieFrame;
 use art_extractor_core::sprite::{Color, Palette, PaletteRef, Tile, TileRef};
 use art_extractor_core::surface::{Surface, surface_iterate};
-use ves_geom::SpaceUnit;
 
 art_extractor_core::sized_surface!(ScreenSurface, Color, ArtworkSpaceUnit, 512, 256, Color::Transparent);
 

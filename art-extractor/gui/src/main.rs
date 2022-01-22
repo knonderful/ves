@@ -5,7 +5,6 @@ use std::time::Instant;
 use chrono::{DateTime, Local};
 use eframe::{egui, epi};
 use art_extractor_core::geom_art::ArtworkSpaceUnit;
-use ves_geom::SpaceUnit;
 use crate::movie::GuiMovie;
 
 #[derive(Debug, Eq, PartialEq, Clone)]

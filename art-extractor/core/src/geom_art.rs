@@ -1,7 +1,7 @@
 //! Module containing geometrical types for "artwork space".
 
 ves_geom::space_unit!(
-    /// The [`ves_geom::SpaceUnit`] for "artwork space".
+    /// The unit for "artwork space".
     ArtworkSpaceUnit,
     u32);
 

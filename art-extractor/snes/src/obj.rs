@@ -269,7 +269,6 @@ impl FromSnesData<(&[u8], &[u8])> for ObjNameTable {
 mod test_obj_name_table {
     use art_extractor_core::sprite::{Color, Palette, PaletteIndex};
     use art_extractor_core::surface::Surface;
-    use ves_geom::SpaceUnit;
     use bmp::Pixel;
     use crate::mesen::Frame;
     use super::{FromSnesData, ObjNameTable};

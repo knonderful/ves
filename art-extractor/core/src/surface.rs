@@ -2,10 +2,10 @@
 
 use std::fmt::Debug;
 use std::ops::{Add, Rem, Sub};
-use ves_geom::{SpaceUnit, Point, Rect, Size, FiniteRange, One};
+use ves_geom::{Point, Rect, Size, FiniteRange, One};
 
 /// A 2-dimensional surface.
-pub trait Surface<T: SpaceUnit> {
+pub trait Surface<T> {
     type DataType;
 
     /// The size.
@@ -185,7 +185,7 @@ pub struct SurfaceIter<T, X = Ascending, Y = Ascending> where
 }
 
 impl<T, X, Y> SurfaceIter<T, X, Y> where
-    T: SpaceUnit + Into<usize> + Debug,
+    T: Copy + Debug + Into<usize>,
     X: SurfaceAxisIterFactory<T>,
     Y: SurfaceAxisIterFactory<T>,
 {
@@ -209,7 +209,7 @@ impl<T, X, Y> SurfaceIter<T, X, Y> where
 }
 
 impl<T, X, Y> SurfaceIter<T, X, Y> where
-    T: SpaceUnit + Into<usize>,
+    T: Copy + Into<usize>,
     X: SurfaceAxisIterFactory<T>,
     Y: SurfaceAxisIterFactory<T>,
 {
@@ -240,7 +240,7 @@ impl<T, X, Y> SurfaceIter<T, X, Y> where
 }
 
 impl<T, X, Y> Iterator for SurfaceIter<T, X, Y> where
-    T: SpaceUnit + Into<usize>,
+    T: Copy + Into<usize>,
     X: SurfaceAxisIterFactory<T>,
     Y: SurfaceAxisIterFactory<T>,
 {
@@ -288,8 +288,9 @@ impl<T, X, Y> Iterator for SurfaceIter<T, X, Y> where
 ///     },
 /// ).unwrap();
 /// ```
-pub fn surface_iterate<T: SpaceUnit + Into<usize> + Debug, F>(surf_size: Size<T>, select_rect: Rect<T>, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
-    F: FnMut(Point<T>, usize)
+pub fn surface_iterate<T, F>(surf_size: Size<T>, select_rect: Rect<T>, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
+    T: Copy + PartialOrd + PartialEq + Add<Output=T> + Sub<Output=T> + Rem<Output=T> + Debug + Into<usize> + One,
+    F: FnMut(Point<T>, usize),
 {
     let x_wrap = select_rect.max_x() >= surf_size.width;
     let y_wrap = select_rect.max_y() >= surf_size.height;
@@ -408,8 +409,9 @@ mod test_fn_surface_iterate {
 ///     },
 /// ).unwrap();
 /// ```
-pub fn surface_iterate_2<T: SpaceUnit + Into<usize> + Debug, F>(a_surf_size: Size<T>, a_select_rect: Rect<T>, b_surf_size: Size<T>, b_select_origin: Point<T>, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
-    F: FnMut(Point<T>, usize, Point<T>, usize)
+pub fn surface_iterate_2<T, F>(a_surf_size: Size<T>, a_select_rect: Rect<T>, b_surf_size: Size<T>, b_select_origin: Point<T>, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
+    T: Copy + PartialOrd + PartialEq + Add<Output=T> + Sub<Output=T> + Rem<Output=T> + Debug + Into<usize> + One,
+    F: FnMut(Point<T>, usize, Point<T>, usize),
 {
     let b_select_rect = Rect::<T>::new_from_size(b_select_origin, a_select_rect.size());
     let src_x_wrap = a_select_rect.max_x() >= a_surf_size.width;

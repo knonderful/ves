@@ -436,7 +436,7 @@ macro_rules! space_unit {
     ($(#[doc = $doc:expr])* $name:ident, $raw_type:ty) => {
         $(#[doc = $doc])*
         #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-        #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
+        #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
         pub struct $name($raw_type);
 
         impl std::ops::Add for $name {
@@ -481,6 +481,12 @@ macro_rules! space_unit {
             #[inline(always)]
             fn rem(self, rhs: Self) -> Self::Output {
                 Self(self.0 % rhs.0)
+            }
+        }
+
+        impl core::fmt::Debug for $name {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                core::fmt::Debug::fmt(&self.0, f)
             }
         }
 

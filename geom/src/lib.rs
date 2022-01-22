@@ -176,30 +176,22 @@ impl<T> Point<T> where
     /// * `x`: The X-coordinate.
     /// * `y`: The Y-coordinate.
     #[inline(always)]
-    pub fn new(x: T, y: T) -> Self {
+    pub fn new(x: impl Into<T>, y: impl Into<T>) -> Self {
         Self {
-            x,
-            y,
+            x: x.into(),
+            y: y.into(),
         }
-    }
-
-    /// Creates a new instance.
-    ///
-    /// # Parameters
-    /// * `x`: The X-coordinate.
-    /// * `y`: The X-coordinate.
-    #[inline(always)]
-    pub fn new_raw(x: T::RawValue, y: T::RawValue) -> Self {
-        Self::new(x.into(), y.into())
     }
 }
 
-impl<T> From<(T::RawValue, T::RawValue)> for Point<T> where
+impl<A, B, T> From<(A, B)> for Point<T> where
+    A: Into<T>,
+    B: Into<T>,
     T: SpaceUnit,
 {
     #[inline(always)]
-    fn from(coords: (T::RawValue, T::RawValue)) -> Self {
-        Self::new_raw(coords.0, coords.1)
+    fn from(coords: (A, B)) -> Self {
+        Self::new(coords.0, coords.1)
     }
 }
 
@@ -297,7 +289,8 @@ impl<T> Rect<T> where
     /// * `origin`: The point of origin.
     /// * `size`: The size.
     #[inline(always)]
-    pub fn new_from_size(origin: Point<T>, size: Size<T>) -> Self {
+    pub fn new_from_size(origin: impl Into<Point<T>>, size: Size<T>) -> Self {
+        let origin: Point<T> = origin.into();
         Self::new(
             origin,
             Point::new(origin.x + size.width - T::one(), origin.y + size.height - T::one()),

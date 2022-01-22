@@ -76,7 +76,7 @@ fn copy_data(src_surf: &Surfy, dest_surf: &mut Surfy, (src_rect, hflip, vflip): 
 fn test_full_copy_no_flip() {
     let src = create_source();
     let mut dest = Surfy::new();
-    let src_spec = source_spec!(Rect::new_from_size((0, 0).into(), src.size()));
+    let src_spec = source_spec!(Rect::new_from_size((0, 0), src.size()));
     let dest_point = (0, 0).into();
     copy_data(&src, &mut dest, src_spec, dest_point);
 
@@ -99,7 +99,7 @@ fn test_full_copy_hflip() {
 
     let src = create_source();
     let mut dest = Surfy::new();
-    let src_spec = source_spec!(Rect::new_from_size((0, 0).into(), src.size()), @hflip);
+    let src_spec = source_spec!(Rect::new_from_size((0, 0), src.size()), @hflip);
     let dest_point = (0, 0).into();
     copy_data(&src, &mut dest, src_spec, dest_point);
 
@@ -122,7 +122,7 @@ fn test_full_copy_vflip() {
 
     let src = create_source();
     let mut dest = Surfy::new();
-    let src_spec = source_spec!(Rect::new_from_size((0, 0).into(), src.size()), @vflip);
+    let src_spec = source_spec!(Rect::new_from_size((0, 0), src.size()), @vflip);
     let dest_point = (0, 0).into();
     copy_data(&src, &mut dest, src_spec, dest_point);
 
@@ -145,7 +145,7 @@ fn test_full_copy_hflip_vflip() {
 
     let src = create_source();
     let mut dest = Surfy::new();
-    let src_spec = source_spec!(Rect::new_from_size((0, 0).into(), src.size()), @hflip, @vflip);
+    let src_spec = source_spec!(Rect::new_from_size((0, 0), src.size()), @hflip, @vflip);
     let dest_point = (0, 0).into();
     copy_data(&src, &mut dest, src_spec, dest_point);
 

@@ -218,7 +218,8 @@ impl<T, X, Y> SurfaceIter<T, X, Y> where
         match self.x_iter.next() {
             Some(x) => {
                 let x_usize: usize = x.into();
-                Some((Point::new(x, self.last_y), self.row_offset + x_usize))
+                let point = Point::<T>::new(x, self.last_y);
+                Some((point, self.row_offset + x_usize))
             },
             None => {
                 match self.y_iter.next() {
@@ -279,7 +280,7 @@ impl<T, X, Y> Iterator for SurfaceIter<T, X, Y> where
 ///
 /// surface_iterate(
 ///     Size::new_raw(10, 10), // a_surf_size
-///     Rect::new_from_size(Point::new_raw(2, 2), Size::new_raw(4, 4)), // a_select_rect
+///     Rect::new_from_size(Point::new(2, 2), Size::new_raw(4, 4)), // a_select_rect
 ///     false, // hflip
 ///     false, // vflip
 ///     |_pos, idx| { // func
@@ -396,9 +397,9 @@ mod test_fn_surface_iterate {
 ///
 /// surface_iterate_2(
 ///     Size::new_raw(10, 10), // a_surf_size
-///     Rect::new_from_size(Point::new_raw(2, 2), Size::new_raw(4, 4)), // a_select_rect
+///     Rect::new_from_size(Point::new(2, 2), Size::new_raw(4, 4)), // a_select_rect
 ///     Size::new_raw(100, 100), // b_surf_size
-///     Point::new_raw(80, 80), // b_select_origin
+///     Point::new(80, 80), // b_select_origin
 ///     false, // hflip
 ///     false, // vflip
 ///     |_pos_a, idx_a, _pos_b, idx_b| { // func

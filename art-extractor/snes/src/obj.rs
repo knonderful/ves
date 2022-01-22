@@ -255,7 +255,7 @@ impl ObjNameTable {
         let y: u32 = idx / Self::TILES_X;
         let x: u32 = idx % Self::TILES_X;
 
-        Rect::new_from_size(Point::new_raw(x * Self::TILE_WIDTH, (y_offset + y) * Self::TILE_HEIGHT), Size::new_square(size.pixel_size()))
+        Rect::new_from_size((x * Self::TILE_WIDTH, (y_offset + y) * Self::TILE_HEIGHT), Size::new_square(size.pixel_size()))
     }
 }
 
@@ -562,7 +562,7 @@ mod test_obj_data {
         assert_eq!(false, obj.h_flip);
         assert_eq!(true, obj.v_flip);
         assert_eq!(true, obj.size_large);
-        assert_eq!(Point::new_raw(357, 111), obj.position);
+        assert_eq!(Point::new(357, 111), obj.position);
 
         let obj = ObjData::from_snes_data((0b01110100, 0b01101000, 0b01000101, 0b01111110, 0b11000100)).unwrap();
         assert_eq!(ObjNameTableIndex::for_base(69), obj.obj_name_table_index);
@@ -570,7 +570,7 @@ mod test_obj_data {
         assert_eq!(true, obj.h_flip);
         assert_eq!(false, obj.v_flip);
         assert_eq!(false, obj.size_large);
-        assert_eq!(Point::new_raw(116, 104), obj.position);
+        assert_eq!(Point::new(116, 104), obj.position);
     }
 }
 
@@ -671,7 +671,7 @@ pub fn create_movie_frame(frame: &crate::mesen::Frame, palette_cache: &mut VecCa
         let mut tile = Tile::new(TileSurface::new(obj_size.size()));
         let src_rect = name_table.rect_for(obj.obj_name_table_index, obj_size);
         let dest_size = tile.surface().size();
-        let dest_point = Point::new(0.into(), 0.into());
+        let dest_point = Point::new(0, 0);
         let dest_data = tile.surface_mut().data_mut();
 
         art_extractor_core::surface::surface_iterate_2(

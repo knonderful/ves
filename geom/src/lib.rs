@@ -14,7 +14,6 @@ macro_rules! impl_zero {
                 0
             }
         }
-
     }
 }
 
@@ -42,7 +41,6 @@ macro_rules! impl_one {
                 1
             }
         }
-
     }
 }
 

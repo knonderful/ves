@@ -174,7 +174,7 @@ impl<T> Point<T> where
     ///
     /// # Parameters
     /// * `x`: The X-coordinate.
-    /// * `y`: The X-coordinate.
+    /// * `y`: The Y-coordinate.
     #[inline(always)]
     pub fn new(x: T, y: T) -> Self {
         Self {

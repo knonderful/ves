@@ -427,14 +427,14 @@ macro_rules! space_unit {
             }
         }
 
-        impl ves_geom::Zero for $name {
+        impl $crate::Zero for $name {
             #[inline(always)]
             fn zero() -> Self {
                 Self(0)
             }
         }
 
-        impl ves_geom::One for $name {
+        impl $crate::One for $name {
             #[inline(always)]
             fn one() -> Self {
                 Self(1)
@@ -448,7 +448,7 @@ macro_rules! space_unit {
             }
         }
 
-        impl ves_geom::SpaceUnit for $name {
+        impl $crate::SpaceUnit for $name {
             type RawValue = $raw_type;
 
             #[inline(always)]

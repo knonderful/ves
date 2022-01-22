@@ -343,6 +343,21 @@ impl<T> Rect<T> where
     pub fn range_y(&self) -> RangeInclusive<T> {
         self.min_y()..=self.max_y()
     }
+
+    #[inline(always)]
+    pub fn min(&self) -> Point<T> {
+        self.min
+    }
+
+    #[inline(always)]
+    pub fn max(&self) -> Point<T> {
+        self.max
+    }
+
+    #[inline(always)]
+    pub fn size(&self) -> Size<T> {
+        Size::new(self.width(), self.height())
+    }
 }
 
 impl<T> From<((T::RawValue, T::RawValue), (T::RawValue, T::RawValue))> for Rect<T> where

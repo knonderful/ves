@@ -59,7 +59,8 @@ macro_rules! sized_surface {
             type Input = ves_geom::Point<$space_unit_type>;
 
             #[inline(always)]
-            fn offset(&self, value: Self::Input) -> Option<usize> {
+            fn offset(&self, value: impl Into<Self::Input>) -> Option<usize> {
+                let value: Self::Input = value.into();
                 let size = self.size();
                 if value.x >= size.width || value.y >= size.height {
                     None

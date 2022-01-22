@@ -206,7 +206,7 @@ impl ObjNameTable {
                         let x: ArtworkSpaceUnit = (Self::TILE_WIDTH * tile_x).into();
                         let y: ArtworkSpaceUnit = (y_offset + tile_y.into()) * Self::TILE_HEIGHT.into() + pixel_y.into();
 
-                        let offset: usize = surface.offset(Point::new(x, y)).unwrap();
+                        let offset: usize = surface.offset((x, y)).unwrap();
                         let plus: usize = ArtworkSpaceUnit::from(Self::TILE_WIDTH).into();
                         let surface_row_data = &mut surface.data_mut()[offset..offset + plus];
                         Self::apply_planes_to_row(surface_row_data, plane_pair * 2, plane1, plane2)

@@ -250,7 +250,7 @@ impl<T> Size<T> where
     /// * `height`: The height.
     #[inline(always)]
     pub fn as_rect(&self) -> Rect<T> {
-        Rect::new_from_size(Point::new(T::zero(), T::zero()), *self)
+        Rect::new_from_size((T::zero(), T::zero()), *self)
     }
 }
 
@@ -293,7 +293,7 @@ impl<T> Rect<T> where
         let origin: Point<T> = origin.into();
         Self::new(
             origin,
-            Point::new(origin.x + size.width - T::one(), origin.y + size.height - T::one()),
+            (origin.x + size.width - T::one(), origin.y + size.height - T::one()),
         )
     }
 
@@ -386,13 +386,13 @@ impl<T> Rect<T> where
                 self.max.y = y;
                 let remaining_y = y + T::one();
                 RectIntersection::Both {
-                    top_right: Rect::new(Point::new(remaining_x, y_start), Point::new(x_end, y)),
-                    bottom_left: Rect::new(Point::new(x_start, remaining_y), Point::new(x, y_end)),
-                    bottom_right: Rect::new(Point::new(remaining_x, remaining_y), Point::new(x_end, y_end)),
+                    top_right: ((remaining_x, y_start), (x_end, y)).into(),
+                    bottom_left: ((x_start, remaining_y), (x, y_end)).into(),
+                    bottom_right: ((remaining_x, remaining_y), (x_end, y_end)).into(),
                 }
             } else {
                 RectIntersection::Vertical(
-                    Rect::new(Point::new(remaining_x, y_start), Point::new(x_end, y_end))
+                    ((remaining_x, y_start), (x_end, y_end)).into()
                 )
             }
         } else {
@@ -400,7 +400,7 @@ impl<T> Rect<T> where
                 self.max.y = y;
                 let remaining_y = y + T::one();
                 RectIntersection::Horizontal(
-                    Rect::new(Point::new(x_start, remaining_y), Point::new(x_end, y_end)),
+                    ((x_start, remaining_y), (x_end, y_end)).into(),
                 )
             } else {
                 RectIntersection::None

@@ -188,7 +188,8 @@ impl ToEgui for art_extractor_core::geom_art::Size {
 
     #[inline(always)]
     fn to_egui(&self) -> Self::Out {
-        egui::Vec2::new(self.width.into_f32(), self.height.into_f32())
+        // We have to convert from an inclusive (integer-based) to an exclusive (float-based) space, hence the +1
+        egui::Vec2::new(self.width.into_f32() + 1.0, self.height.into_f32() + 1.0)
     }
 }
 

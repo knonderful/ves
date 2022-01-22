@@ -388,8 +388,6 @@ impl<T> Rect<T> where
         let y_start = self.min.y;
         let y_end = self.max.y;
 
-        // 3 4 5 6 7 8        3 4 5 6 7 8
-        // +-----|---+  ===>  +-----+ +-+
         if x_start <= x && x < x_end {
             self.max.x = x;
             let remaining_x = x + T::one();

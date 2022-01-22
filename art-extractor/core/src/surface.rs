@@ -278,8 +278,8 @@ impl<T, X, Y> Iterator for SurfaceIter<T, X, Y> where
 /// ].iter();
 ///
 /// surface_iterate(
-///     Size::new_raw(10, 10), // a_surf_size
-///     Rect::new_from_size((2, 2), Size::new_raw(4, 4)), // a_select_rect
+///     Size::new(10, 10), // a_surf_size
+///     Rect::new_from_size((2, 2), Size::new(4, 4)), // a_select_rect
 ///     false, // hflip
 ///     false, // vflip
 ///     |_pos, idx| { // func
@@ -395,9 +395,9 @@ mod test_fn_surface_iterate {
 /// ].iter();
 ///
 /// surface_iterate_2(
-///     Size::new_raw(10, 10), // a_surf_size
-///     Rect::new_from_size((2, 2), Size::new_raw(4, 4)), // a_select_rect
-///     Size::new_raw(100, 100), // b_surf_size
+///     Size::new(10, 10), // a_surf_size
+///     Rect::new_from_size((2, 2), Size::new(4, 4)), // a_select_rect
+///     Size::new(100, 100), // b_surf_size
 ///     Point::new(80, 80), // b_select_origin
 ///     false, // hflip
 ///     false, // vflip

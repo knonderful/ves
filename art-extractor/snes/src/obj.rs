@@ -378,10 +378,10 @@ mod test_obj_size {
 
     #[test]
     fn test_size() {
-        assert_eq!(Size::new_raw(8, 8), ObjSize::Small.size());
-        assert_eq!(Size::new_raw(16, 16), ObjSize::Medium.size());
-        assert_eq!(Size::new_raw(32, 32), ObjSize::Large.size());
-        assert_eq!(Size::new_raw(64, 64), ObjSize::ExtraLarge.size());
+        assert_eq!(Size::new(8, 8), ObjSize::Small.size());
+        assert_eq!(Size::new(16, 16), ObjSize::Medium.size());
+        assert_eq!(Size::new(32, 32), ObjSize::Large.size());
+        assert_eq!(Size::new(64, 64), ObjSize::ExtraLarge.size());
     }
 }
 

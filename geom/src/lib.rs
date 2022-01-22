@@ -214,20 +214,11 @@ impl<T> Size<T> where
     /// * `width`: The width.
     /// * `height`: The height.
     #[inline(always)]
-    pub fn new(width: T, height: T) -> Self {
+    pub fn new(width: impl Into<T>, height: impl Into<T>) -> Self {
         Self {
-            width,
-            height,
+            width: width.into(),
+            height: height.into(),
         }
-    }
-    /// Creates a new instance.
-    ///
-    /// # Parameters
-    /// * `width`: The width.
-    /// * `height`: The height.
-    #[inline(always)]
-    pub fn new_raw(width: T::RawValue, height: T::RawValue) -> Self {
-        Self::new(width.into(), height.into())
     }
 
     /// Creates a new instance of a square.
@@ -235,7 +226,9 @@ impl<T> Size<T> where
     /// # Parameters
     /// * `side`: The length of a side in pixels.
     #[inline(always)]
-    pub fn new_square(side: T) -> Self {
+    pub fn new_square(side: impl Into<T>) -> Self {
+        // T is copy, but impl Into<T> isn't, so we need to take the T and then we can get around move problems
+        let side = side.into();
         Self::new(side, side)
     }
 }

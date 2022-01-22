@@ -41,7 +41,7 @@ macro_rules! sized_surface {
 
             #[inline(always)]
             fn size(&self) -> ves_geom::Size<$space_unit_type> {
-                ves_geom::Size::new_raw($width, $height)
+                ves_geom::Size::new($width, $height)
             }
 
             #[inline(always)]

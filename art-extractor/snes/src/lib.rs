@@ -24,7 +24,7 @@ pub fn create_movie(files: impl ExactSizeIterator<Item=impl AsRef<Path>>) -> any
 
     movie_frames.sort_unstable_by(|a, b| a.frame_number().cmp(&b.frame_number()) );
 
-    let movie = Movie::new(Size::new(512.into(), 256.into()), palettes.into_vec(), tiles.into_vec(), movie_frames, FrameRate::Ntsc);
+    let movie = Movie::new(Size::new(512, 256), palettes.into_vec(), tiles.into_vec(), movie_frames, FrameRate::Ntsc);
     Ok(movie)
 }
 

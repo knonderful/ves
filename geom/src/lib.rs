@@ -15,7 +15,7 @@
 //! accidental bugs. Additionally, from a code-view perspective the more advanced types are more explicit, making code easier to
 //! understand and reason about.
 
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 use std::ops::{Add, RangeInclusive, Sub};
 
 /// Returns the value zero (0) for a type.
@@ -154,12 +154,20 @@ impl<T> DoubleEndedIterator for FiniteRange<T> where
 
 /// A point in 2D space.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Point<T> {
     /// The X-coordinate.
     pub x: T,
     /// The Y-coordinate.
     pub y: T,
+}
+
+impl<T> Debug for Point<T> where
+    T: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("({:?}, {:?})", self.x, self.y))
+    }
 }
 
 impl<T> Point<T>
@@ -190,12 +198,20 @@ impl<A, B, T> From<(A, B)> for Point<T> where
 
 /// A size (or dimension) in 2D space.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Size<T> {
     /// The width.
     pub width: T,
     /// The height.
     pub height: T,
+}
+
+impl<T> Debug for Size<T> where
+    T: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{:?}x{:?}", self.width, self.height))
+    }
 }
 
 impl<T> Size<T> {
@@ -244,12 +260,20 @@ impl<T> Size<T> where
 
 /// A rectangle in 2D space.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Rect<T> {
     /// The start position (inclusive).
     pub min: Point<T>,
     /// The end position (inclusive).
     pub max: Point<T>,
+}
+
+impl<T> Debug for Rect<T> where
+    T: Debug,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("({:?}, {:?})", self.min, self.max))
+    }
 }
 
 impl<T> Rect<T> where

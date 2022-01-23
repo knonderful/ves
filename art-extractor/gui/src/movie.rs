@@ -160,14 +160,22 @@ impl Movie {
         }
     }
 
+    pub fn pause(&mut self) {
+        self.playback_state = PlaybackState::Paused;
+    }
+
     pub fn update(&mut self, ctx: &egui::Context, current_instant: Instant) -> bool {
-        match &self.playback_state {
-            PlaybackState::Paused => false,
-            PlaybackState::Playing(last_instant) => {
-                if current_instant >= *last_instant + self.frame_duration {
-                    self.next_frame(ctx)
-                } else {
-                    false
+        if self.current_frame.is_none() {
+            self.next_frame(ctx)
+        } else {
+            match &self.playback_state {
+                PlaybackState::Paused => false,
+                PlaybackState::Playing(last_frame_instant) => {
+                    if current_instant >= *last_frame_instant + self.frame_duration {
+                        self.next_frame(ctx)
+                    } else {
+                        false
+                    }
                 }
             }
         }
@@ -192,23 +200,108 @@ impl Movie {
         }
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui) {
-        if let Some(ref frame) = self.current_frame {
-            let screen_size = self.movie.screen_size();
-            let movie_frame_size = screen_size.to_egui() * ZOOM;
-            egui::ScrollArea::both()
-                .auto_shrink([false, false])
-                .always_show_scroll(true)
-                .show_viewport(ui, |ui, viewport| {
-                    // Make sure the movie window doesn't shrink too far
-                    ui.set_min_size(movie_frame_size);
-                    frame.show(ui, screen_size, viewport);
-                });
-        }
+    pub fn show(&mut self, ui: &mut egui::Ui, current_instant: Instant) {
+        // TODO: Context is cheap to clone. Still, this feels a bit weird. It is probably better to enqueue the messages somewhere and
+        //       not process them until update(). Especially since external entities might want to enqueue messages (like global hotkey
+        //       handlers).
+        let context_clone = ui.ctx().clone();
+        egui::TopBottomPanel::bottom("movie_controls").show(ui.ctx(), |ui| {
+            MovieControls::new(self.playback_state.clone(), |msg: MovieControlMessage| {
+                match msg {
+                    MovieControlMessage::Play => self.play(&context_clone, current_instant),
+                    MovieControlMessage::Pause => self.pause(),
+                    MovieControlMessage::SkipBackward(_) => println!("SkipBackward not yet supported."),
+                    MovieControlMessage::SkipForward(_) => println!("SkipForward not yet supported."),
+                    MovieControlMessage::Jump(msg) => match msg {
+                        JumpMessage::Start => {
+                            self.frame_iter = Self::create_frame_iter(&self.movie);
+                            // This will trigger the first frame on the next call to update()
+                            self.current_frame = None;
+                        }
+                        JumpMessage::End => println!("JumpMessage::End not yet supported."),
+                        JumpMessage::Position(_) => println!("JumpMessage::Position not yet supported."),
+                    }
+                }
+            }).show(ui);
+        });
+
+        egui::CentralPanel::default().show(ui.ctx(), |ui| {
+            if let Some(ref frame) = self.current_frame {
+                let screen_size = self.movie.screen_size();
+                let movie_frame_size = screen_size.to_egui() * ZOOM;
+                egui::ScrollArea::both()
+                    .auto_shrink([false, false])
+                    .always_show_scroll(true)
+                    .show_viewport(ui, |ui, viewport| {
+                        // Make sure the movie window doesn't shrink too far
+                        ui.set_min_size(movie_frame_size);
+                        frame.show(ui, screen_size, viewport);
+                    });
+            }
+        });
     }
 
     #[inline(always)]
     fn create_frame_iter(movie: &art_extractor_core::movie::Movie) -> Range<usize> {
         0..movie.frames().len()
+    }
+}
+
+#[derive(Clone, Debug)]
+enum JumpMessage {
+    Start,
+    End,
+    Position(usize),
+}
+
+#[derive(Clone, Debug)]
+enum MovieControlMessage {
+    Play,
+    Pause,
+    SkipBackward(usize),
+    SkipForward(usize),
+    Jump(JumpMessage),
+}
+
+struct MovieControls<Sink> {
+    playback_state: PlaybackState,
+    sink: Sink,
+}
+
+impl<Sink> MovieControls<Sink> {
+    fn new(playback_state: PlaybackState, sink: Sink) -> Self {
+        Self { playback_state, sink }
+    }
+}
+
+impl<Sink> MovieControls<Sink> where
+    Sink: FnMut(MovieControlMessage),
+{
+    fn add_button(&mut self, ui: &mut egui::Ui, icon: &'static str, on_click_fn: impl FnOnce(&mut Sink)) {
+        if ui.button(icon).clicked() {
+            on_click_fn(&mut self.sink);
+        }
+    }
+
+    fn add_button_simple(&mut self, ui: &mut egui::Ui, icon: &'static str, message: MovieControlMessage) {
+        self.add_button(ui, icon, |sink| sink(message));
+    }
+
+    fn show(&mut self, ui: &mut egui::Ui) {
+        ui.horizontal(|ui| {
+            self.add_button_simple(ui, "⏮", MovieControlMessage::Jump(JumpMessage::Start));
+            self.add_button_simple(ui, "⏪", MovieControlMessage::SkipBackward(1));
+            if let PlaybackState::Playing(_) = self.playback_state {
+                self.add_button_simple(ui, "⏸", MovieControlMessage::Pause);
+            } else {
+                self.add_button_simple(ui, "▶", MovieControlMessage::Play);
+            }
+            self.add_button(ui, "⏹", |sink| {
+                sink(MovieControlMessage::Pause);
+                sink(MovieControlMessage::Jump(JumpMessage::Start));
+            });
+            self.add_button_simple(ui, "⏩", MovieControlMessage::SkipForward(1));
+            self.add_button_simple(ui, "⏭", MovieControlMessage::Jump(JumpMessage::End));
+        });
     }
 }

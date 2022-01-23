@@ -127,7 +127,7 @@ impl epi::App for ArtDirectorApp {
                             ui.label("No movie loaded.");
                         }
                         Some(ref mut movie) => {
-                            movie.show(ui);
+                            movie.show(ui, current_instant);
                         }
                     }
                 }

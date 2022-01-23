@@ -28,7 +28,7 @@ impl Default for ArtDirectorApp {
     fn default() -> Self {
         Self {
             main_mode: MainMode::Movie,
-            show_log: true,
+            show_log: false,
             log: Default::default(),
             movie: None,
         }

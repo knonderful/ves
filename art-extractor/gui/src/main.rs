@@ -5,7 +5,7 @@ use std::time::Instant;
 use chrono::{DateTime, Local};
 use eframe::{egui, epi};
 use art_extractor_core::geom_art::ArtworkSpaceUnit;
-use crate::movie::GuiMovie;
+use crate::movie::Movie;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 enum MainMode {
@@ -21,7 +21,7 @@ struct ArtDirectorApp {
     main_mode: MainMode,
     show_log: bool,
     log: VecDeque<LogEntry>,
-    movie: Option<GuiMovie>,
+    movie: Option<Movie>,
 }
 
 impl Default for ArtDirectorApp {
@@ -68,7 +68,7 @@ impl epi::App for ArtDirectorApp {
             let file = std::fs::File::open(input_file).unwrap();
             match bincode::deserialize_from::<_, art_extractor_core::movie::Movie>(file) {
                 Ok(core_movie) => {
-                    let mut gui_movie = GuiMovie::new(core_movie);
+                    let mut gui_movie = Movie::new(core_movie);
                     gui_movie.play(ctx, current_instant);
                     self.movie = Some(gui_movie);
                     self.log("Successfully loaded test movie.");

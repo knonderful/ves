@@ -1,6 +1,5 @@
 use std::ops::{Index, Range};
 use std::time::{Duration, Instant};
-use art_extractor_core::movie::{Movie, MovieFrame};
 use art_extractor_core::sprite::{Color, Palette, PaletteRef, Tile, TileRef};
 use art_extractor_core::surface::Surface;
 use ves_cache::SliceCache;
@@ -13,18 +12,23 @@ struct GuiMovieFrameSprite {
     texture: egui::TextureHandle,
 }
 
-struct GuiMovieFrame {
+struct MovieFrame {
     sprites: Vec<GuiMovieFrameSprite>,
 }
 
 const ZOOM: f32 = 2.0;
 
-impl GuiMovieFrame {
+impl MovieFrame {
     /// Creates a new instance.
     ///
     /// This should normally only be called when a new movie frame is to be rendered. Otherwise this instance should be reused between
     /// renderings.
-    pub fn new(ctx: &egui::Context, palettes: &impl Index<PaletteRef, Output=Palette>, tiles: &impl Index<TileRef, Output=Tile>, movie_frame: &MovieFrame) -> Self {
+    pub fn new(
+        ctx: &egui::Context,
+        palettes: &impl Index<PaletteRef, Output=Palette>,
+        tiles: &impl Index<TileRef, Output=Tile>,
+        movie_frame: &art_extractor_core::movie::MovieFrame,
+    ) -> Self {
         let mut sprites = Vec::with_capacity(movie_frame.sprites().len());
         for sprite in movie_frame.sprites().iter().rev() {
             let palette = &palettes[sprite.palette()];
@@ -123,16 +127,16 @@ enum PlaybackState {
     Playing(Instant),
 }
 
-pub struct GuiMovie {
-    movie: Movie,
+pub struct Movie {
+    movie: art_extractor_core::movie::Movie,
     frame_iter: Range<usize>,
     frame_duration: Duration,
     playback_state: PlaybackState,
-    current_frame: Option<GuiMovieFrame>,
+    current_frame: Option<MovieFrame>,
 }
 
-impl GuiMovie {
-    pub fn new(movie: Movie) -> Self {
+impl Movie {
+    pub fn new(movie: art_extractor_core::movie::Movie) -> Self {
         let frame_iter = Self::create_frame_iter(&movie);
         let frame_duration = Duration::from_secs(1) / movie.frame_rate().fps();
         Self {
@@ -179,7 +183,7 @@ impl GuiMovie {
                 let palettes = SliceCache::new(self.movie.palettes());
                 let tiles = SliceCache::new(self.movie.tiles());
                 let movie_frame = &self.movie.frames()[frame_index];
-                let frame = GuiMovieFrame::new(ctx, &palettes, &tiles, movie_frame);
+                let frame = MovieFrame::new(ctx, &palettes, &tiles, movie_frame);
                 self.current_frame = Some(frame);
                 true
             }
@@ -202,7 +206,7 @@ impl GuiMovie {
     }
 
     #[inline(always)]
-    fn create_frame_iter(movie: &Movie) -> Range<usize> {
+    fn create_frame_iter(movie: &art_extractor_core::movie::Movie) -> Range<usize> {
         0..movie.frames().len()
     }
 }

@@ -4,11 +4,12 @@ use art_extractor_core::movie::{Movie, MovieFrame};
 use art_extractor_core::sprite::{Color, Palette, PaletteRef, Tile, TileRef};
 use art_extractor_core::surface::Surface;
 use ves_cache::SliceCache;
+use ves_geom::RectIntersection;
 use crate::{egui, ToEgui};
 use crate::egui::{ColorImage, ImageData};
 
 struct GuiMovieFrameSprite {
-    rect: egui::Rect,
+    rect: art_extractor_core::geom_art::Rect,
     texture: egui::TextureHandle,
 }
 
@@ -54,7 +55,7 @@ impl GuiMovieFrame {
             let color_image = ColorImage::from_rgba_unmultiplied([w, h], &raw_image);
 
             let texture = ctx.load_texture("something", ImageData::Color(color_image));
-            let rect = art_extractor_core::geom_art::Rect::new_from_size(sprite.position(), surf.size()).to_egui();
+            let rect = art_extractor_core::geom_art::Rect::new_from_size(sprite.position(), surf.size());
 
             let gui_sprite = GuiMovieFrameSprite {
                 rect,
@@ -67,41 +68,52 @@ impl GuiMovieFrame {
         Self { sprites }
     }
 
-    pub fn show(&self, ui: &mut egui::Ui, viewport: egui::Rect) {
+    pub fn show(&self, ui: &mut egui::Ui, screen_size: art_extractor_core::geom_art::Size, viewport: egui::Rect) {
         // TODO: The scaling is not pixel-perfect by default. This has to do with the texture filtering in the rendering component.
         //       Currently this requires a hack in egui_glow, since there is no way for the application code to control this.
+        // TODO: It seems like the UI adds spacing of an extra 8px when an image is exactly on the edge, causing the scrollbars to resize
+        //       when a sprite wraps around.
 
         let from_rect = egui::Rect::from_min_size(egui::Pos2::ZERO, ui.available_size());
         let to_rect = egui::Rect::from_min_size(egui::pos2(-viewport.left(), -viewport.top()), ZOOM * ui.available_size());
         let transform = egui::emath::RectTransform::from_to(from_rect, to_rect);
 
-        for sprite in &self.sprites {
-            let rect = transform.transform_rect(sprite.rect);
-            let image = egui::Image::new(&sprite.texture, rect.size());
+        let intersect_pos = screen_size.as_rect().max;
 
-            // TODO: Sprites may be partially outside of the viewport. In this case they need to "wrap around". In order to render this, we
-            //       should probably split the image up into sub-images and use the UV values to display only a part of the texture for each
-            //       image. This could be a method on Image (using a custom trait).
-            // Idea: (make this testable, since it's otherwise hard to confirm that it works)
-            // if rect.right() > viewport.right() {
-            //   let subimg1 = image.split_vertically(...); // clips "image"
-            //   if rect.bottom() > viewport.bottom() {
-            //     let subimg2 = subimg1.split_horizontally(...); // clips "subimg1"
-            //     ui.put(..., subimg2);
-            //   }
-            //   ui.put(..., subimg1);
-            // }
-            //
-            // if rect.bottom() > viewport.bottom() {
-            //   let subimg1 = image.split_horizontally(...); // clips "image" (possibly again, if it is already split in the previous "if")
-            //   ui.put(..., subimg1);
-            // }
-            //
-            // // Note: don't use "rect" directly for the first parameter, since the image may have been clipped
-            // ui.put(egui::Rect::from_min_size(rect.min, image.size()), image);
+        self.sprites.iter().for_each(|sprite| {
+            let egui_sprite_rect = sprite.rect.to_egui();
+            match sprite.rect.intersect_point(intersect_pos) {
+                // No intersections; this means the sprite fits entirely on the screen
+                RectIntersection::None => {
+                    let rect = transform.transform_rect(egui_sprite_rect);
+                    let image = egui::Image::new(&sprite.texture, rect.size());
+                    ui.put(rect, image);
+                }
+                // Treat all other cases generically
+                intersection => {
+                    intersection.for_each(|rect| {
+                        let egui_rect = rect.to_egui();
+                        let width = egui_sprite_rect.width();
+                        let height = egui_sprite_rect.height();
+                        let u_x = (egui_rect.min.x - egui_sprite_rect.min.x) / width;
+                        let u_y = (egui_rect.min.y - egui_sprite_rect.min.y) / height;
+                        let v_x = (egui_rect.max.x - egui_sprite_rect.min.x) / width;
+                        let v_y = (egui_rect.max.y - egui_sprite_rect.min.y) / height;
 
-            ui.put(rect, image);
-        }
+                        let egui_dest_rect = art_extractor_core::geom_art::Rect::new_from_size(
+                            (rect.min_x() % screen_size.width, rect.min_y() % screen_size.height),
+                            rect.size(),
+                        ).to_egui();
+
+                        let dest_rect = transform.transform_rect(egui_dest_rect);
+                        let image = egui::Image::new(&sprite.texture, dest_rect.size())
+                            .uv(egui::Rect::from_min_max(egui::pos2(u_x, u_y), egui::pos2(v_x, v_y)));
+
+                        ui.put(dest_rect, image);
+                    });
+                }
+            }
+        });
     }
 }
 
@@ -176,14 +188,15 @@ impl GuiMovie {
 
     pub fn show(&mut self, ui: &mut egui::Ui) {
         if let Some(ref frame) = self.current_frame {
-            let movie_frame_size = self.movie.screen_size().to_egui() * ZOOM;
+            let screen_size = self.movie.screen_size();
+            let movie_frame_size = screen_size.to_egui() * ZOOM;
             egui::ScrollArea::both()
                 .auto_shrink([false, false])
                 .always_show_scroll(true)
                 .show_viewport(ui, |ui, viewport| {
                     // Make sure the movie window doesn't shrink too far
                     ui.set_min_size(movie_frame_size);
-                    frame.show(ui, viewport);
+                    frame.show(ui, screen_size, viewport);
                 });
         }
     }

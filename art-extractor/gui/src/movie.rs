@@ -123,7 +123,9 @@ impl MovieFrame {
 
 #[derive(Clone, Debug)]
 enum PlaybackState {
+    /// The "paused" state.
     Paused,
+    /// The "playing" state. The argument is the instant that the last frame was set.
     Playing(Instant),
 }
 

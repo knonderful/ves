@@ -10,6 +10,8 @@ use crate::egui::{ColorImage, ImageData};
 struct GuiMovieFrameSprite {
     rect: art_extractor_core::geom_art::Rect,
     texture: egui::TextureHandle,
+    hflip: bool,
+    vflip: bool,
 }
 
 struct MovieFrame {
@@ -41,7 +43,7 @@ impl MovieFrame {
 
             art_extractor_core::surface::surface_iterate(
                 surf.size(), surf.size().as_rect(),
-                sprite.h_flip(), sprite.v_flip(), // TODO: We can do flipping with the mesh/Image instead of in the texture (using UV)
+                false, false, // We do flipping in the mesh/Image instead of in the texture (using UV)
                 |_, idx| {
                     let color = &palette[surf_data[idx]];
 
@@ -64,12 +66,30 @@ impl MovieFrame {
             let gui_sprite = GuiMovieFrameSprite {
                 rect,
                 texture,
+                hflip: sprite.h_flip(),
+                vflip: sprite.v_flip(),
             };
 
             sprites.push(gui_sprite);
         }
 
         Self { sprites }
+    }
+
+    fn correct_uv(rect: egui::Rect, hflip: bool, vflip: bool) -> egui::Rect {
+        if hflip {
+            if vflip {
+                egui::Rect::from_min_max(rect.max, rect.min)
+            } else {
+                egui::Rect::from_min_max(egui::pos2(rect.max.x, rect.min.y), egui::pos2(rect.min.x, rect.max.y))
+            }
+        } else {
+            if vflip {
+                egui::Rect::from_min_max(egui::pos2(rect.min.x, rect.max.y), egui::pos2(rect.max.x, rect.min.y))
+            } else {
+                rect
+            }
+        }
     }
 
     pub fn show(&self, ui: &mut egui::Ui, screen_size: art_extractor_core::geom_art::Size, viewport: egui::Rect) {
@@ -84,13 +104,17 @@ impl MovieFrame {
 
         let intersect_pos = screen_size.as_rect().max;
 
+        const DEFAULT_UV: egui::Rect = egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
+
         self.sprites.iter().for_each(|sprite| {
             let egui_sprite_rect = sprite.rect.to_egui();
             match sprite.rect.intersect_point(intersect_pos) {
                 // No intersections; this means the sprite fits entirely on the screen
                 RectIntersection::None => {
                     let rect = transform.transform_rect(egui_sprite_rect);
-                    let image = egui::Image::new(&sprite.texture, rect.size());
+                    let image = egui::Image::new(&sprite.texture, rect.size())
+                        .uv(Self::correct_uv(DEFAULT_UV, sprite.hflip, sprite.vflip));
+
                     ui.put(rect, image);
                 }
                 // Treat all other cases generically
@@ -110,8 +134,9 @@ impl MovieFrame {
                         ).to_egui();
 
                         let dest_rect = transform.transform_rect(egui_dest_rect);
+                        let uv = egui::Rect::from_min_max(egui::pos2(u_x, u_y), egui::pos2(v_x, v_y));
                         let image = egui::Image::new(&sprite.texture, dest_rect.size())
-                            .uv(egui::Rect::from_min_max(egui::pos2(u_x, u_y), egui::pos2(v_x, v_y)));
+                            .uv(Self::correct_uv(uv, sprite.hflip, sprite.vflip));
 
                         ui.put(dest_rect, image);
                     });

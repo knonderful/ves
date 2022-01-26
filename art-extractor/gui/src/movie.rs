@@ -227,6 +227,7 @@ pub struct Movie {
     frame_cursor: Cursor,
     frame_duration: Duration,
     playback_state: PlaybackState,
+    playback_repeat: bool,
     current_frame: Option<MovieFrame>,
 }
 
@@ -239,6 +240,7 @@ impl Movie {
             frame_cursor,
             frame_duration,
             playback_state: PlaybackState::Paused,
+            playback_repeat: false,
             current_frame: None,
         }
     }
@@ -278,10 +280,17 @@ impl Movie {
         let pos = if self.current_frame.is_none() {
             self.frame_cursor.position()
         } else {
-            *self.frame_cursor.next().get_or_insert_with(|| {
-                self.frame_cursor.reset();
-                self.frame_cursor.position
-            })
+            match self.frame_cursor.next() {
+                None => {
+                    if !self.playback_repeat {
+                        self.playback_state = PlaybackState::Paused;
+                        return false;
+                    }
+                    self.frame_cursor.reset();
+                    self.frame_cursor.position
+                }
+                Some(val) => val
+            }
         };
 
         let palettes = SliceCache::new(self.movie.palettes());
@@ -298,7 +307,7 @@ impl Movie {
         //       handlers).
         let context_clone = ui.ctx().clone();
         egui::TopBottomPanel::bottom("movie_controls").show(ui.ctx(), |ui| {
-            MovieControls::new(self.playback_state.clone(), |msg: MovieControlMessage| {
+            MovieControls::new(self.playback_state.clone(), self.playback_repeat, |msg: MovieControlMessage| {
                 match msg {
                     MovieControlMessage::Play => self.play(&context_clone, current_instant),
                     MovieControlMessage::Pause => self.pause(),
@@ -312,7 +321,8 @@ impl Movie {
                         }
                         JumpMessage::End => println!("JumpMessage::End not yet supported."),
                         JumpMessage::Position(_) => println!("JumpMessage::Position not yet supported."),
-                    }
+                    },
+                    MovieControlMessage::SetRepeat(val) => self.playback_repeat = val,
                 }
             }).show(ui);
         });
@@ -349,16 +359,18 @@ enum MovieControlMessage {
     SkipBackward(usize),
     SkipForward(usize),
     Jump(JumpMessage),
+    SetRepeat(bool),
 }
 
 struct MovieControls<Sink> {
     playback_state: PlaybackState,
+    playback_repeat: bool,
     sink: Sink,
 }
 
 impl<Sink> MovieControls<Sink> {
-    fn new(playback_state: PlaybackState, sink: Sink) -> Self {
-        Self { playback_state, sink }
+    fn new(playback_state: PlaybackState, playback_repeat: bool, sink: Sink) -> Self {
+        Self { playback_state, playback_repeat, sink }
     }
 }
 
@@ -390,6 +402,7 @@ impl<Sink> MovieControls<Sink> where
             });
             self.add_button_simple(ui, "⏩", MovieControlMessage::SkipForward(1));
             self.add_button_simple(ui, "⏭", MovieControlMessage::Jump(JumpMessage::End));
+            self.add_button_simple(ui, "🔁", MovieControlMessage::SetRepeat(!self.playback_repeat));
         });
     }
 }

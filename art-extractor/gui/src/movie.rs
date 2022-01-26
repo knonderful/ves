@@ -1,4 +1,4 @@
-use std::ops::{Index, Range};
+use std::ops::Index;
 use std::time::{Duration, Instant};
 use art_extractor_core::sprite::{Color, Palette, PaletteRef, Tile, TileRef};
 use art_extractor_core::surface::Surface;
@@ -154,9 +154,77 @@ enum PlaybackState {
     Playing(Instant),
 }
 
+/// A cursor represents a position in a range or slice.
+///
+/// The cursor can be moved forward and backward, but can never exceed the bounds of the range.
+struct Cursor {
+    length: usize,
+    position: usize,
+}
+
+impl Cursor {
+    /// Creates a new instance.
+    pub fn new(length: usize) -> Self {
+        assert_ne!(length, 0);
+        Self {
+            length,
+            position: 0,
+        }
+    }
+
+    /// Retrieves the current position.
+    pub fn position(&self) -> usize {
+        self.position
+    }
+
+    /// Resets the cursor to the initial position.
+    pub fn reset(&mut self) {
+        self.position = 0;
+    }
+
+    /// Moves the cursor backward at most the provided number of steps.
+    ///
+    /// # Parameters
+    /// * `count`: The maximum number of steps to move the cursor.
+    ///
+    /// # Returns
+    /// The number of steps that the cursor was actually moved.
+    #[allow(unused)]
+    pub fn move_backward(&mut self, count: usize) -> usize {
+        let distance = self.position.min(count);
+        self.position -= distance;
+        distance
+    }
+
+    /// Moves the cursor forward at most the provided number of steps.
+    ///
+    /// # Parameters
+    /// * `count`: The maximum number of steps to move the cursor.
+    ///
+    /// # Returns
+    /// The number of steps that the cursor was actually moved.
+    pub fn move_forward(&mut self, count: usize) -> usize {
+        let distance = ((self.length - 1) - self.position).min(count);
+        self.position += distance;
+        distance
+    }
+
+    /// Moves the cursor forward one step.
+    ///
+    /// # Returns
+    /// The new position of the cursor or `None` if the cursor is at the upper bound.
+    pub fn next(&mut self) -> Option<usize> {
+        if self.move_forward(1) == 0 {
+            None
+        } else {
+            Some(self.position)
+        }
+    }
+}
+
 pub struct Movie {
     movie: art_extractor_core::movie::Movie,
-    frame_iter: Range<usize>,
+    frame_cursor: Cursor,
     frame_duration: Duration,
     playback_state: PlaybackState,
     current_frame: Option<MovieFrame>,
@@ -164,11 +232,11 @@ pub struct Movie {
 
 impl Movie {
     pub fn new(movie: art_extractor_core::movie::Movie) -> Self {
-        let frame_iter = Self::create_frame_iter(&movie);
+        let frame_cursor = Cursor::new(movie.frames().len());
         let frame_duration = Duration::from_secs(1) / movie.frame_rate().fps();
         Self {
             movie,
-            frame_iter,
+            frame_cursor,
             frame_duration,
             playback_state: PlaybackState::Paused,
             current_frame: None,
@@ -207,22 +275,21 @@ impl Movie {
     }
 
     fn next_frame(&mut self, ctx: &egui::Context) -> bool {
-        let index_option = self.frame_iter.next().or_else(|| {
-            self.frame_iter = Self::create_frame_iter(&self.movie);
-            self.frame_iter.next()
-        });
+        let pos = if self.current_frame.is_none() {
+            self.frame_cursor.position()
+        } else {
+            *self.frame_cursor.next().get_or_insert_with(|| {
+                self.frame_cursor.reset();
+                self.frame_cursor.position
+            })
+        };
 
-        match index_option {
-            None => false,
-            Some(frame_index) => {
-                let palettes = SliceCache::new(self.movie.palettes());
-                let tiles = SliceCache::new(self.movie.tiles());
-                let movie_frame = &self.movie.frames()[frame_index];
-                let frame = MovieFrame::new(ctx, &palettes, &tiles, movie_frame);
-                self.current_frame = Some(frame);
-                true
-            }
-        }
+        let palettes = SliceCache::new(self.movie.palettes());
+        let tiles = SliceCache::new(self.movie.tiles());
+        let movie_frame = &self.movie.frames()[pos];
+        let frame = MovieFrame::new(ctx, &palettes, &tiles, movie_frame);
+        self.current_frame = Some(frame);
+        true
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, current_instant: Instant) {
@@ -239,7 +306,7 @@ impl Movie {
                     MovieControlMessage::SkipForward(_) => println!("SkipForward not yet supported."),
                     MovieControlMessage::Jump(msg) => match msg {
                         JumpMessage::Start => {
-                            self.frame_iter = Self::create_frame_iter(&self.movie);
+                            self.frame_cursor.reset();
                             // This will trigger the first frame on the next call to update()
                             self.current_frame = None;
                         }
@@ -265,17 +332,13 @@ impl Movie {
             }
         });
     }
-
-    #[inline(always)]
-    fn create_frame_iter(movie: &art_extractor_core::movie::Movie) -> Range<usize> {
-        0..movie.frames().len()
-    }
 }
 
 #[derive(Clone, Debug)]
 enum JumpMessage {
     Start,
     End,
+    #[allow(unused)]
     Position(usize),
 }
 

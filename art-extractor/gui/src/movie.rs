@@ -233,7 +233,7 @@ pub struct Movie {
     frame_duration: Duration,
     playback_state: PlaybackState,
     playback_repeat: bool,
-    current_frame: Option<MovieFrame>,
+    current_frame: Option<(usize, MovieFrame)>,
 }
 
 impl Movie {
@@ -250,11 +250,10 @@ impl Movie {
         }
     }
 
-    pub fn play(&mut self, ctx: &egui::Context, current_instant: Instant) {
+    pub fn play(&mut self, current_instant: Instant) {
         match self.playback_state {
             PlaybackState::Paused => {
                 self.playback_state = PlaybackState::Playing(current_instant);
-                self.next_frame(ctx);
             }
             PlaybackState::Playing(_) => {} // do nothing
         }
@@ -265,75 +264,82 @@ impl Movie {
     }
 
     pub fn update(&mut self, ctx: &egui::Context, current_instant: Instant) -> bool {
-        if self.current_frame.is_none() {
-            self.next_frame(ctx)
-        } else {
-            match &self.playback_state {
-                PlaybackState::Paused => false,
-                PlaybackState::Playing(last_frame_instant) => {
-                    if current_instant >= *last_frame_instant + self.frame_duration {
-                        self.next_frame(ctx)
-                    } else {
-                        false
+        // TODO: Process enqueued MovieControlMessages here, instead of directly in the show() call.
+
+        match &self.playback_state {
+            PlaybackState::Paused => { },
+            PlaybackState::Playing(last_frame_instant) => {
+                let mut delta = current_instant - *last_frame_instant;
+                let frame_duration = self.frame_duration;
+                // Skip frames until we've exhausted the delta
+                while delta >= frame_duration {
+                    if self.frame_cursor.next().is_none() {
+                        if !self.playback_repeat {
+                            self.pause();
+                            return false;
+                        }
+                        self.frame_cursor.reset();
                     }
+                    delta -= frame_duration;
                 }
+                self.playback_state = PlaybackState::Playing(current_instant - delta);
             }
         }
+
+        self.render_frame(ctx)
+        // true
     }
 
-    fn next_frame(&mut self, ctx: &egui::Context) -> bool {
-        let pos = if self.current_frame.is_none() {
-            self.frame_cursor.position()
-        } else {
-            match self.frame_cursor.next() {
-                None => {
-                    if !self.playback_repeat {
-                        self.playback_state = PlaybackState::Paused;
-                        return false;
-                    }
-                    self.frame_cursor.reset();
-                    self.frame_cursor.position
-                }
-                Some(val) => val
+    fn render_frame(&mut self, ctx: &egui::Context) -> bool {
+        let pos = self.frame_cursor.position();
+        // Only render the frame if the position has changed
+        if let Some((last_pos, _)) = &self.current_frame {
+            if pos == *last_pos {
+                return false;
             }
-        };
+        }
 
         let palettes = SliceCache::new(self.movie.palettes());
         let tiles = SliceCache::new(self.movie.tiles());
         let movie_frame = &self.movie.frames()[pos];
         let frame = MovieFrame::new(ctx, &palettes, &tiles, movie_frame);
-        self.current_frame = Some(frame);
+        self.current_frame = Some((pos, frame));
         true
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui, current_instant: Instant) {
-        // TODO: Context is cheap to clone. Still, this feels a bit weird. It is probably better to enqueue the messages somewhere and
-        //       not process them until update(). Especially since external entities might want to enqueue messages (like global hotkey
-        //       handlers).
-        let context_clone = ui.ctx().clone();
+        // TODO: It is probably better to enqueue the messages somewhere and not process them until update(). Especially since external
+        //       entities might want to enqueue messages (like global hotkey handlers).
         egui::TopBottomPanel::bottom("movie_controls").show(ui.ctx(), |ui| {
             MovieControls::new(self.playback_state.clone(), self.playback_repeat, |msg: MovieControlMessage| {
                 match msg {
-                    MovieControlMessage::Play => self.play(&context_clone, current_instant),
-                    MovieControlMessage::Pause => self.pause(),
-                    MovieControlMessage::SkipBackward(_) => println!("SkipBackward not yet supported."),
-                    MovieControlMessage::SkipForward(_) => println!("SkipForward not yet supported."),
-                    MovieControlMessage::Jump(msg) => match msg {
-                        JumpMessage::Start => {
-                            self.frame_cursor.reset();
-                            // This will trigger the first frame on the next call to update()
-                            self.current_frame = None;
+                    MovieControlMessage::Play => {
+                        self.play(current_instant);
+                    }
+                    MovieControlMessage::Pause => {
+                        self.pause();
+                    }
+                    MovieControlMessage::SkipBackward(count) => {
+                        self.frame_cursor.move_backward(count);
+                    }
+                    MovieControlMessage::SkipForward(count) => {
+                        self.frame_cursor.move_forward(count);
+                    }
+                    MovieControlMessage::Jump(msg) => {
+                        match msg {
+                            JumpMessage::Start => self.frame_cursor.reset(),
+                            JumpMessage::End => { self.frame_cursor.move_forward(usize::MAX); }
                         }
-                        JumpMessage::End => println!("JumpMessage::End not yet supported."),
-                        JumpMessage::Position(_) => println!("JumpMessage::Position not yet supported."),
-                    },
-                    MovieControlMessage::SetRepeat(val) => self.playback_repeat = val,
+                    }
+                    MovieControlMessage::SetRepeat(val) => {
+                        self.playback_repeat = val;
+                    }
                 }
             }).show(ui);
         });
 
         egui::CentralPanel::default().show(ui.ctx(), |ui| {
-            if let Some(ref frame) = self.current_frame {
+            if let Some((_, frame)) = &self.current_frame {
                 let screen_size = self.movie.screen_size();
                 let movie_frame_size = screen_size.to_egui() * ZOOM;
                 egui::ScrollArea::both()
@@ -353,8 +359,6 @@ impl Movie {
 enum JumpMessage {
     Start,
     End,
-    #[allow(unused)]
-    Position(usize),
 }
 
 #[derive(Clone, Debug)]
@@ -395,7 +399,10 @@ impl<Sink> MovieControls<Sink> where
     fn show(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             self.add_button_simple(ui, "⏮", MovieControlMessage::Jump(JumpMessage::Start));
-            self.add_button_simple(ui, "⏪", MovieControlMessage::SkipBackward(1));
+            self.add_button(ui, "<", |sink| {
+                sink(MovieControlMessage::Pause);
+                sink(MovieControlMessage::SkipBackward(1));
+            });
             if let PlaybackState::Playing(_) = self.playback_state {
                 self.add_button_simple(ui, "⏸", MovieControlMessage::Pause);
             } else {
@@ -405,7 +412,10 @@ impl<Sink> MovieControls<Sink> where
                 sink(MovieControlMessage::Pause);
                 sink(MovieControlMessage::Jump(JumpMessage::Start));
             });
-            self.add_button_simple(ui, "⏩", MovieControlMessage::SkipForward(1));
+            self.add_button(ui, ">", |sink| {
+                sink(MovieControlMessage::Pause);
+                sink(MovieControlMessage::SkipForward(1));
+            });
             self.add_button_simple(ui, "⏭", MovieControlMessage::Jump(JumpMessage::End));
             self.add_button_simple(ui, "🔁", MovieControlMessage::SetRepeat(!self.playback_repeat));
         });

@@ -169,6 +169,10 @@ struct Cursor {
 
 impl Cursor {
     /// Creates a new instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `length`: The number of positions.
     pub fn new(length: usize) -> Self {
         assert_ne!(length, 0);
         Self {
@@ -237,6 +241,11 @@ pub struct Movie {
 }
 
 impl Movie {
+    /// Creates a new instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `movie`: The movie.
     pub fn new(movie: art_extractor_core::movie::Movie) -> Self {
         let frame_cursor = Cursor::new(movie.frames().len());
         let frame_duration = Duration::from_secs(1) / movie.frame_rate().fps();

@@ -276,7 +276,7 @@ impl Movie {
         // TODO: Process enqueued MovieControlMessages here, instead of directly in the show() call.
 
         match &self.playback_state {
-            PlaybackState::Paused => { },
+            PlaybackState::Paused => {}
             PlaybackState::Playing(last_frame_instant) => {
                 let mut delta = current_instant - *last_frame_instant;
                 let frame_duration = self.frame_duration;

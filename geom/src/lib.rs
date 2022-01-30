@@ -594,9 +594,8 @@ mod test_rect {
             bottom_right: ((6, 25), (12, 30)).into(),
         };
 
-        let mut rect: Rect = ((3, 14), (12, 30)).into();
+        let rect: Rect = ((3, 14), (12, 30)).into();
         let intersection = rect.intersect_point((5, 24));
-        assert_eq!(expected_rect, rect);
         assert_eq!(expected_intersection, intersection);
     }
 
@@ -604,9 +603,8 @@ mod test_rect {
     fn test_intersect_point_outside_before() {
         let expected_intersection = RectIntersection::None;
 
-        let mut rect: Rect = ((3, 14), (12, 30)).into();
+        let rect: Rect = ((3, 14), (12, 30)).into();
         let intersection = rect.intersect_point((2, 12));
-        assert_eq!(expected_rect, rect);
         assert_eq!(expected_intersection, intersection);
     }
 
@@ -614,9 +612,8 @@ mod test_rect {
     fn test_intersect_point_outside_after() {
         let expected_intersection = RectIntersection::None;
 
-        let mut rect: Rect = ((3, 14), (12, 30)).into();
+        let rect: Rect = ((3, 14), (12, 30)).into();
         let intersection = rect.intersect_point((14, 31));
-        assert_eq!(expected_rect, rect);
         assert_eq!(expected_intersection, intersection);
     }
 
@@ -627,9 +624,8 @@ mod test_rect {
             right: ((6, 14), (12, 30)).into(),
         };
 
-        let mut rect: Rect = ((3, 14), (12, 30)).into();
+        let rect: Rect = ((3, 14), (12, 30)).into();
         let intersection = rect.intersect_point((5, 31));
-        assert_eq!(expected_rect, rect);
         assert_eq!(expected_intersection, intersection);
     }
 
@@ -640,9 +636,8 @@ mod test_rect {
             bottom: ((3, 25), (12, 30)).into(),
         };
 
-        let mut rect: Rect = ((3, 14), (12, 30)).into();
+        let rect: Rect = ((3, 14), (12, 30)).into();
         let intersection = rect.intersect_point((2, 24));
-        assert_eq!(expected_rect, rect);
         assert_eq!(expected_intersection, intersection);
     }
 
@@ -655,9 +650,8 @@ mod test_rect {
             bottom_right: ((4, 15), (12, 30)).into(),
         };
 
-        let mut rect: Rect = ((3, 14), (12, 30)).into();
+        let rect: Rect = ((3, 14), (12, 30)).into();
         let intersection = rect.intersect_point((3, 14));
-        assert_eq!(expected_rect, rect);
         assert_eq!(expected_intersection, intersection);
     }
 
@@ -665,9 +659,8 @@ mod test_rect {
     fn test_intersect_point_bottom_right() {
         let expected_intersection = RectIntersection::None;
 
-        let mut rect: Rect = ((3, 14), (12, 30)).into();
+        let rect: Rect = ((3, 14), (12, 30)).into();
         let intersection = rect.intersect_point((12, 30));
-        assert_eq!(expected_rect, rect);
         assert_eq!(expected_intersection, intersection);
     }
 }

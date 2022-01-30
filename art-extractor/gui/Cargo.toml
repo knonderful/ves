@@ -9,7 +9,7 @@ ves-cache = { path = "../../cache" }
 ves-geom = { path = "../../geom" }
 bincode = ">= 1.3, <2"
 # Using this (untagged) version of egui because we need access to Context::load_texture()
-#eframe = { git = "https://github.com/emilk/egui", rev = "87ae77aab0ffc7c7430ec850074b736f475ae3cf" }
-eframe = { path = "../../../egui/eframe" }
+# Additionally: hack to force NEAREST texture filtering for pixel-perfect rendering.
+eframe = { git = "https://github.com/knonderful/egui.git", rev = "78704fc57a5d74813245a94e120b67f8e438b9cd" }
 
 chrono = ">= 0.4, <1"

@@ -13,7 +13,10 @@
 use crate::geom_art::{ArtworkSpaceUnit, Point, Size};
 use crate::Surface;
 
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Color {
     Opaque(rgb::RGB8),
@@ -107,7 +110,10 @@ ref_type!(
 );
 
 /// A palette of colors.
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Palette {
     colors: Vec<Color>,
@@ -125,7 +131,9 @@ impl Palette {
     /// * `length`: The number of entries.
     /// * `default`: The default value.
     pub fn new_filled(length: usize, default: Color) -> Self {
-        Self { colors: vec![default; length] }
+        Self {
+            colors: vec![default; length],
+        }
     }
 }
 
@@ -136,16 +144,18 @@ impl Palette {
     }
 
     /// Gets an immutable iterator over all slots.
-    pub fn iter(&self) -> impl Iterator<Item=(PaletteIndex, &Color)> + '_ {
-        self.colors.iter()
+    pub fn iter(&self) -> impl Iterator<Item = (PaletteIndex, &Color)> + '_ {
+        self.colors
+            .iter()
             .enumerate()
             // Unwrap is OK here because we never add anything other than a PaletteIndex to the Vec
             .map(|(index, color)| (PaletteIndex::new(index.try_into().unwrap()), color))
     }
 
     /// Gets a mutable iterator over all slots.
-    pub fn iter_mut(&mut self) -> impl Iterator<Item=(PaletteIndex, &mut Color)> + '_ {
-        self.colors.iter_mut()
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (PaletteIndex, &mut Color)> + '_ {
+        self.colors
+            .iter_mut()
             .enumerate()
             // Unwrap is OK here because we never add anything other than a PaletteIndex to the Vec
             .map(|(index, color)| (PaletteIndex::new(index.try_into().unwrap()), color))
@@ -166,7 +176,10 @@ impl std::ops::IndexMut<PaletteIndex> for Palette {
     }
 }
 
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct TileSurface {
     data: Vec<PaletteIndex>,
@@ -200,7 +213,10 @@ impl Surface<ArtworkSpaceUnit> for TileSurface {
 }
 
 /// A tile. This is the smallest graphical element.
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Tile {
     /// The surface.
@@ -228,7 +244,10 @@ ref_type!(
 );
 
 /// A sprite. This is basically a [`Tile`] inside a container (like a [`Cel`]) with some extra properties like position and flipping flags.
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Sprite {
     /// The tile.
@@ -244,8 +263,20 @@ pub struct Sprite {
 }
 
 impl Sprite {
-    pub fn new(tile: TileRef, palette: PaletteRef, position: Point, h_flip: bool, v_flip: bool) -> Self {
-        Self { tile, palette, position, h_flip, v_flip }
+    pub fn new(
+        tile: TileRef,
+        palette: PaletteRef,
+        position: Point,
+        h_flip: bool,
+        v_flip: bool,
+    ) -> Self {
+        Self {
+            tile,
+            palette,
+            position,
+            h_flip,
+            v_flip,
+        }
     }
 
     /// Retrieves the [`TileRef`].
@@ -275,7 +306,10 @@ impl Sprite {
 }
 
 /// A cel. This is a composition of zero or more [`Sprite`]s that together form one image.
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Cel {
     /// The sprites.
@@ -288,7 +322,10 @@ ref_type!(
 );
 
 /// A single frame in an [`Animation`].
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct AnimationFrame {
     cel: CelRef,
@@ -296,7 +333,10 @@ pub struct AnimationFrame {
 }
 
 /// An animation. This is a sequence of [`AnimationFrame`]s.
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Animation {
     frames: Vec<AnimationFrame>,
@@ -304,7 +344,9 @@ pub struct Animation {
 
 /// Alternative to `std::panic::catch_unwind()` that is silent in its output.
 #[cfg(test)]
-fn catch_unwind_silent<F: FnOnce() -> R + std::panic::UnwindSafe, R>(f: F) -> std::thread::Result<R> {
+fn catch_unwind_silent<F: FnOnce() -> R + std::panic::UnwindSafe, R>(
+    f: F,
+) -> std::thread::Result<R> {
     let prev_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(|_| {}));
     let result = std::panic::catch_unwind(f);
@@ -360,7 +402,13 @@ mod test_palette {
         let mut pal = Palette::new_filled(4, color_default);
 
         assert_eq!(pal.len(), 4);
-        assert_eq_colors!(pal, color_default, color_default, color_default, color_default);
+        assert_eq_colors!(
+            pal,
+            color_default,
+            color_default,
+            color_default,
+            color_default
+        );
 
         let color0 = Color::new(0xAB, 0xCD, 0xEF);
         let color1 = Color::new(0xAB, 0xCD, 0xEF);

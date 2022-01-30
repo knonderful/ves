@@ -4,19 +4,24 @@
 //! screen (in contrast with tiles in a background that are layed out in a pre-defined raster).
 #![allow(dead_code)]
 
+use anyhow::{anyhow, bail, Result};
+use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
+use art_extractor_core::movie::MovieFrame;
+use art_extractor_core::sprite::{
+    Color, Palette, PaletteIndex, PaletteRef, Sprite, Tile, TileRef, TileSurface,
+};
+use art_extractor_core::surface::Surface;
 use std::borrow::Cow;
 use std::usize;
-use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
-use art_extractor_core::sprite::{Color, Palette, PaletteIndex, PaletteRef, Sprite, Tile, TileRef, TileSurface};
-use art_extractor_core::surface::Surface;
-use anyhow::{anyhow, bail, Result};
-use art_extractor_core::movie::MovieFrame;
 use ves_cache::VecCacheMut;
 
 /// A trait for constructing objects from (raw) SNES data.
 ///
 /// Generally the raw data for the SNES is little-endian.
-trait FromSnesData<T> where Self: Sized {
+trait FromSnesData<T>
+where
+    Self: Sized,
+{
     /// Creates an instance from the provided buffer.
     ///
     /// # Parameters
@@ -84,7 +89,11 @@ const OBJ_PALETTE_SIZE: usize = BYTES_PER_COLOR * OBJ_PALETTE_NR_COLORS;
 impl FromSnesData<&[u8]> for Palette {
     fn from_snes_data(data: &[u8]) -> Result<Self> {
         if data.len() != OBJ_PALETTE_SIZE {
-            bail!("Invalid data length. Expected {} but got {}.", OBJ_PALETTE_SIZE, data.len());
+            bail!(
+                "Invalid data length. Expected {} but got {}.",
+                OBJ_PALETTE_SIZE,
+                data.len()
+            );
         }
 
         let mut palette = Palette::new_filled(OBJ_PALETTE_NR_COLORS, Color::Transparent);
@@ -106,12 +115,15 @@ impl FromSnesData<&[u8]> for Palette {
 
 #[cfg(test)]
 mod test_palette {
-    use art_extractor_core::sprite::{Color, Palette};
     use crate::obj::FromSnesData;
+    use art_extractor_core::sprite::{Color, Palette};
 
     #[test]
     fn test_from_snes_data() {
-        const INPUT: [u8; 32] = [0, 0, 159, 75, 28, 59, 179, 37, 0, 0, 159, 75, 223, 99, 255, 115, 0, 0, 255, 127, 255, 127, 255, 127, 27, 115, 255, 127, 255, 127, 255, 127];
+        const INPUT: [u8; 32] = [
+            0, 0, 159, 75, 28, 59, 179, 37, 0, 0, 159, 75, 223, 99, 255, 115, 0, 0, 255, 127, 255,
+            127, 255, 127, 27, 115, 255, 127, 255, 127, 255, 127,
+        ];
         let palette = Palette::from_snes_data(&INPUT).unwrap();
 
         for (offset, color) in palette.iter().map(|(i, c)| (i.value() * 2, c)) {
@@ -132,7 +144,11 @@ impl FromSnesData<&[u8]> for Vec<Palette> {
     fn from_snes_data(data: &[u8]) -> Result<Self> {
         const EXPECTED_DATA_LEN: usize = OBJ_PALETTE_SIZE * OBJ_PALETTE_COUNT;
         if data.len() != EXPECTED_DATA_LEN {
-            bail!("Invalid data length. Expected {} but got {}.", EXPECTED_DATA_LEN, data.len());
+            bail!(
+                "Invalid data length. Expected {} but got {}.",
+                EXPECTED_DATA_LEN,
+                data.len()
+            );
         }
 
         let mut palettes: Vec<Palette> = Vec::with_capacity(OBJ_PALETTE_COUNT);
@@ -144,7 +160,14 @@ impl FromSnesData<&[u8]> for Vec<Palette> {
     }
 }
 
-art_extractor_core::sized_surface!(ObjNameTableSurface, PaletteIndex, ArtworkSpaceUnit, 128, 256, PaletteIndex::new(0));
+art_extractor_core::sized_surface!(
+    ObjNameTableSurface,
+    PaletteIndex,
+    ArtworkSpaceUnit,
+    128,
+    256,
+    PaletteIndex::new(0)
+);
 
 /// An `OBJ NAME` table. This table contains all the graphics data for objects. In VRAM the data is stored in two separate tables:
 /// `OBJ NAME BASE` and `OBJ NAME SELECT`. The SNES treats the concatenation of the two as one table for looking up sprite data. See
@@ -171,13 +194,24 @@ impl ObjNameTable {
     ///
     /// # Panics
     /// If the provided slice is not exactly 0x2000 bytes in size.
-    fn read_interleaved_chr(obj_name_base: &[u8], obj_name_select: &[u8]) -> Result<ObjNameTableSurface> {
+    fn read_interleaved_chr(
+        obj_name_base: &[u8],
+        obj_name_select: &[u8],
+    ) -> Result<ObjNameTableSurface> {
         const EXPECTED_LEN: usize = 0x2000;
         if obj_name_base.len() != EXPECTED_LEN {
-            bail!("Expected OBJ NAME BASE length {}, but found {}", EXPECTED_LEN, obj_name_base.len());
+            bail!(
+                "Expected OBJ NAME BASE length {}, but found {}",
+                EXPECTED_LEN,
+                obj_name_base.len()
+            );
         }
         if obj_name_select.len() != EXPECTED_LEN {
-            bail!("Expected OBJ NAME SELECT length {}, but found {}", EXPECTED_LEN, obj_name_select.len());
+            bail!(
+                "Expected OBJ NAME SELECT length {}, but found {}",
+                EXPECTED_LEN,
+                obj_name_select.len()
+            );
         }
 
         let mut surface = ObjNameTableSurface::new();
@@ -188,7 +222,11 @@ impl ObjNameTable {
         Ok(surface)
     }
 
-    fn read_name_table_into_surface(surface: &mut ObjNameTableSurface, obj_name_data: &[u8], y_offset: ArtworkSpaceUnit) {
+    fn read_name_table_into_surface(
+        surface: &mut ObjNameTableSurface,
+        obj_name_data: &[u8],
+        y_offset: ArtworkSpaceUnit,
+    ) {
         use art_extractor_core::surface::Offset;
 
         let mut data_iter = obj_name_data.iter();
@@ -197,14 +235,14 @@ impl ObjNameTable {
         for tile_y in 0..Self::TILES_Y {
             // Horizontal tile iteration
             for tile_x in 0..Self::TILES_X {
-
                 // We have to read 2 planes at a time and we have 4 planes in total (4bpp), so we need 2 iterations
                 for plane_pair in 0..2 {
                     for pixel_y in 0..Self::TILE_HEIGHT {
                         let plane1 = *data_iter.next().unwrap();
                         let plane2 = *data_iter.next().unwrap();
                         let x: ArtworkSpaceUnit = (Self::TILE_WIDTH * tile_x).into();
-                        let y: ArtworkSpaceUnit = (y_offset + tile_y.into()) * Self::TILE_HEIGHT.into() + pixel_y.into();
+                        let y: ArtworkSpaceUnit =
+                            (y_offset + tile_y.into()) * Self::TILE_HEIGHT.into() + pixel_y.into();
 
                         let offset: usize = surface.offset((x, y)).unwrap();
                         let plus: usize = ArtworkSpaceUnit::from(Self::TILE_WIDTH).into();
@@ -226,7 +264,12 @@ impl ObjNameTable {
     /// * `bit_offset`: The bit-offset at which to apply the data inside the `PaletteIndex` values.
     /// * `plane1`: The byte containing the bit values for the least-significant value of the row.
     /// * `plane2`: The byte containing the bit values for the most-significant value of the row.
-    fn apply_planes_to_row(target_row_data: &mut [PaletteIndex], bit_offset: u8, mut plane1: u8, mut plane2: u8) {
+    fn apply_planes_to_row(
+        target_row_data: &mut [PaletteIndex],
+        bit_offset: u8,
+        mut plane1: u8,
+        mut plane2: u8,
+    ) {
         // Iterate from right to left, since the right-most pixel is the lsb of the source byte
         for pixel in target_row_data.iter_mut().rev() {
             // Apply the two planes to the current pixel
@@ -245,33 +288,34 @@ impl ObjNameTable {
 
     /// Retrieves the [`Rect`] into the [`Surface`] for the provided [`ObjNameTableIndex`] and [`ObjSize`].
     fn rect_for(&self, index: ObjNameTableIndex, size: ObjSize) -> Rect {
-        let y_offset = if index.is_base {
-            0u32
-        } else {
-            Self::TILES_Y
-        };
+        let y_offset = if index.is_base { 0u32 } else { Self::TILES_Y };
 
         let idx = u32::from(index.index);
         let y: u32 = idx / Self::TILES_X;
         let x: u32 = idx % Self::TILES_X;
 
-        Rect::new_from_size((x * Self::TILE_WIDTH, (y_offset + y) * Self::TILE_HEIGHT), Size::new_square(size.pixel_size()))
+        Rect::new_from_size(
+            (x * Self::TILE_WIDTH, (y_offset + y) * Self::TILE_HEIGHT),
+            Size::new_square(size.pixel_size()),
+        )
     }
 }
 
 impl FromSnesData<(&[u8], &[u8])> for ObjNameTable {
     fn from_snes_data(data: (&[u8], &[u8])) -> Result<Self> {
-        Ok(Self { surface: Self::read_interleaved_chr(data.0, data.1)? })
+        Ok(Self {
+            surface: Self::read_interleaved_chr(data.0, data.1)?,
+        })
     }
 }
 
 #[cfg(test)]
 mod test_obj_name_table {
+    use super::{FromSnesData, ObjNameTable};
+    use crate::mesen::Frame;
     use art_extractor_core::sprite::{Color, Palette, PaletteIndex};
     use art_extractor_core::surface::Surface;
     use bmp::Pixel;
-    use crate::mesen::Frame;
-    use super::{FromSnesData, ObjNameTable};
 
     #[test]
     fn test_apply_planes_to_row() {
@@ -289,7 +333,8 @@ mod test_obj_name_table {
             0b00000010u8,
             0b00001111u8,
             0b00000110u8, // least-significant bits of plane1-4
-        ].map(PaletteIndex::from);
+        ]
+        .map(PaletteIndex::from);
 
         let mut actual = [PaletteIndex::new(0); 8];
         ObjNameTable::apply_planes_to_row(&mut actual, 0, plane1, plane2);
@@ -306,23 +351,33 @@ mod test_obj_name_table {
         let file = std::fs::File::open(json_path.as_path()).unwrap();
         let frame: Frame = serde_json::from_reader(file).unwrap();
 
-        let obj_name_table: ObjNameTable = FromSnesData::from_snes_data((frame.obj_name_base_table.as_slice(), frame.obj_name_select_table.as_slice())).unwrap();
-        let palettes: Vec<Palette> = FromSnesData::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
+        let obj_name_table: ObjNameTable = FromSnesData::from_snes_data((
+            frame.obj_name_base_table.as_slice(),
+            frame.obj_name_select_table.as_slice(),
+        ))
+        .unwrap();
+        let palettes: Vec<Palette> =
+            FromSnesData::from_snes_data(&frame.cgram.as_slice()[0x100..]).unwrap();
 
         let transparent = Pixel::new(255, 0, 255);
         let palette = &palettes[5];
-        let actual = crate::test_util::create_bitmap(obj_name_table.surface.size(), |index, pos, img| {
-            let pixel = obj_name_table.surface.data()[index];
-            let color = palette[pixel];
-            match color {
-                Color::Opaque(color) => {
-                    img.set_pixel(pos.x.raw(), pos.y.raw(), Pixel::new(color.r, color.g, color.b));
+        let actual =
+            crate::test_util::create_bitmap(obj_name_table.surface.size(), |index, pos, img| {
+                let pixel = obj_name_table.surface.data()[index];
+                let color = palette[pixel];
+                match color {
+                    Color::Opaque(color) => {
+                        img.set_pixel(
+                            pos.x.raw(),
+                            pos.y.raw(),
+                            Pixel::new(color.r, color.g, color.b),
+                        );
+                    }
+                    Color::Transparent => {
+                        img.set_pixel(pos.x.raw(), pos.y.raw(), transparent);
+                    }
                 }
-                Color::Transparent => {
-                    img.set_pixel(pos.x.raw(), pos.y.raw(), transparent);
-                }
-            }
-        });
+            });
 
         // actual.save(format!("{}/../../target/out.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR JUST LOOKING
         // actual.save(format!("{}/resources/test/expected_obj_table.bmp", env!("CARGO_MANIFEST_DIR"))).unwrap(); // FOR UPDATING
@@ -366,14 +421,15 @@ impl ObjSize {
             ObjSize::Medium => Self::MEDIUM_SIZE,
             ObjSize::Large => Self::LARGE_SIZE,
             ObjSize::ExtraLarge => Self::EXTRA_LARGE_SIZE,
-        }.into()
+        }
+        .into()
     }
 }
 
 #[cfg(test)]
 mod test_obj_size {
-    use art_extractor_core::geom_art::Size;
     use super::ObjSize;
+    use art_extractor_core::geom_art::Size;
 
     #[test]
     fn test_size() {
@@ -413,7 +469,7 @@ impl FromSnesData<u8> for ObjSizeSelect {
             3 => Ok(ML),
             4 => Ok(MXL),
             5 => Ok(LXL),
-            _ => Err(anyhow!("Unexpected OBJ SIZE SELECT value: {}.", data))
+            _ => Err(anyhow!("Unexpected OBJ SIZE SELECT value: {}.", data)),
         }
     }
 }
@@ -468,12 +524,24 @@ mod test_obj_size_select {
     fn test_from_snes_data() {
         assert_eq!(ObjSizeSelect::SM, ObjSizeSelect::from_snes_data(0).unwrap());
         assert_eq!(ObjSizeSelect::SL, ObjSizeSelect::from_snes_data(1).unwrap());
-        assert_eq!(ObjSizeSelect::SXL, ObjSizeSelect::from_snes_data(2).unwrap());
+        assert_eq!(
+            ObjSizeSelect::SXL,
+            ObjSizeSelect::from_snes_data(2).unwrap()
+        );
         assert_eq!(ObjSizeSelect::ML, ObjSizeSelect::from_snes_data(3).unwrap());
-        assert_eq!(ObjSizeSelect::MXL, ObjSizeSelect::from_snes_data(4).unwrap());
-        assert_eq!(ObjSizeSelect::LXL, ObjSizeSelect::from_snes_data(5).unwrap());
+        assert_eq!(
+            ObjSizeSelect::MXL,
+            ObjSizeSelect::from_snes_data(4).unwrap()
+        );
+        assert_eq!(
+            ObjSizeSelect::LXL,
+            ObjSizeSelect::from_snes_data(5).unwrap()
+        );
         for i in 6..=255 {
-            assert_eq!(format!("Unexpected OBJ SIZE SELECT value: {}.", i), ObjSizeSelect::from_snes_data(i).err().unwrap().to_string());
+            assert_eq!(
+                format!("Unexpected OBJ SIZE SELECT value: {}.", i),
+                ObjSizeSelect::from_snes_data(i).err().unwrap().to_string()
+            );
         }
     }
 }
@@ -492,11 +560,17 @@ struct ObjNameTableIndex {
 
 impl ObjNameTableIndex {
     fn for_base(index: u8) -> Self {
-        Self { is_base: true, index }
+        Self {
+            is_base: true,
+            index,
+        }
     }
 
     fn for_select(index: u8) -> Self {
-        Self { is_base: false, index }
+        Self {
+            is_base: false,
+            index,
+        }
     }
 }
 
@@ -544,18 +618,27 @@ impl FromSnesData<(u8, u8, u8, u8, u8)> for ObjData {
         let position = (pos_x, pos_y).into();
         let size_large = high & 0b10 != 0;
 
-        Ok(Self { obj_name_table_index: name, palette: color, h_flip, v_flip, position, size_large })
+        Ok(Self {
+            obj_name_table_index: name,
+            palette: color,
+            h_flip,
+            v_flip,
+            position,
+            size_large,
+        })
     }
 }
 
 #[cfg(test)]
 mod test_obj_data {
-    use art_extractor_core::geom_art::Point;
     use crate::obj::{FromSnesData, ObjData, ObjNameTableIndex};
+    use art_extractor_core::geom_art::Point;
 
     #[test]
     fn test_from_snes_data() {
-        let obj = ObjData::from_snes_data((0b01100101, 0b01101111, 0b01011101, 0b10100101, 0b11100011)).unwrap();
+        let obj =
+            ObjData::from_snes_data((0b01100101, 0b01101111, 0b01011101, 0b10100101, 0b11100011))
+                .unwrap();
         assert_eq!(ObjNameTableIndex::for_select(93), obj.obj_name_table_index);
         assert_eq!(2, obj.palette);
         assert_eq!(false, obj.h_flip);
@@ -563,7 +646,9 @@ mod test_obj_data {
         assert_eq!(true, obj.size_large);
         assert_eq!(Point::new(357, 111), obj.position);
 
-        let obj = ObjData::from_snes_data((0b01110100, 0b01101000, 0b01000101, 0b01111110, 0b11000100)).unwrap();
+        let obj =
+            ObjData::from_snes_data((0b01110100, 0b01101000, 0b01000101, 0b01111110, 0b11000100))
+                .unwrap();
         assert_eq!(ObjNameTableIndex::for_base(69), obj.obj_name_table_index);
         assert_eq!(7, obj.palette);
         assert_eq!(true, obj.h_flip);
@@ -584,7 +669,11 @@ impl FromSnesData<&[u8]> for OamTable {
     fn from_snes_data(data: &[u8]) -> Result<Self> {
         const EXPECTED_SIZE: usize = 0x220;
         if data.len() != EXPECTED_SIZE {
-            bail!("Invalid data length. Expected {} but got {}.", EXPECTED_SIZE, data.len());
+            bail!(
+                "Invalid data length. Expected {} but got {}.",
+                EXPECTED_SIZE,
+                data.len()
+            );
         }
 
         let mut low_iter = data[0x00..0x200].iter();
@@ -625,8 +714,8 @@ impl OamTable {
 
 #[cfg(test)]
 mod test_oam_table {
-    use crate::obj::{FromSnesData, OamTable};
     use crate::mesen::Frame;
+    use crate::obj::{FromSnesData, OamTable};
 
     #[test]
     fn test_from_snes_data() {
@@ -650,11 +739,18 @@ mod test_oam_table {
 ///
 /// # Returns
 /// The [`MovieFrame`] or an error if the provided [`crate::mesen::Frame`] contains invalid data.
-pub fn create_movie_frame(frame: &crate::mesen::Frame, palette_cache: &mut VecCacheMut<Palette, PaletteRef>, tile_cache: &mut VecCacheMut<Tile, TileRef>) -> Result<MovieFrame> {
+pub fn create_movie_frame(
+    frame: &crate::mesen::Frame,
+    palette_cache: &mut VecCacheMut<Palette, PaletteRef>,
+    tile_cache: &mut VecCacheMut<Tile, TileRef>,
+) -> Result<MovieFrame> {
     let obj_size_select: ObjSizeSelect = FromSnesData::from_snes_data(frame.obj_size_select)?;
     let oam: OamTable = FromSnesData::from_snes_data(frame.oam.as_slice())?;
     let palettes: Vec<Palette> = FromSnesData::from_snes_data(&frame.cgram.as_slice()[0x100..])?;
-    let name_table: ObjNameTable = FromSnesData::from_snes_data((frame.obj_name_base_table.as_slice(), frame.obj_name_select_table.as_slice()))?;
+    let name_table: ObjNameTable = FromSnesData::from_snes_data((
+        frame.obj_name_base_table.as_slice(),
+        frame.obj_name_select_table.as_slice(),
+    ))?;
     let src_size = name_table.surface().size();
     let src_data = name_table.surface().data();
 
@@ -674,13 +770,17 @@ pub fn create_movie_frame(frame: &crate::mesen::Frame, palette_cache: &mut VecCa
         let dest_data = tile.surface_mut().data_mut();
 
         art_extractor_core::surface::surface_iterate_2(
-            src_size, src_rect,
-            dest_size, dest_point,
-            false, false,
+            src_size,
+            src_rect,
+            dest_size,
+            dest_point,
+            false,
+            false,
             |_src_pos, src_idx, _dest_pos, dest_idx| {
                 dest_data[dest_idx] = src_data[src_idx];
             },
-        ).map_err(|msg| anyhow::Error::msg(msg))?;
+        )
+        .map_err(|msg| anyhow::Error::msg(msg))?;
 
         // Build the Palette
         let palette = &palettes[usize::from(obj.palette)];
@@ -688,7 +788,13 @@ pub fn create_movie_frame(frame: &crate::mesen::Frame, palette_cache: &mut VecCa
         let tile_ref = tile_cache.offer(Cow::Owned(tile));
         let palette_ref = palette_cache.offer(Cow::Borrowed(palette));
 
-        let sprite = Sprite::new(tile_ref.into(), palette_ref.into(), obj.position, obj.h_flip, obj.v_flip);
+        let sprite = Sprite::new(
+            tile_ref.into(),
+            palette_ref.into(),
+            obj.position,
+            obj.h_flip,
+            obj.v_flip,
+        );
         sprites.push(sprite);
     }
 

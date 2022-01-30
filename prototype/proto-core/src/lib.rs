@@ -6,4 +6,4 @@ mod gfx;
 #[macro_use]
 extern crate libretro_backend;
 
-libretro_core!( libretro_core::LibretroProtoCore );
+libretro_core!(libretro_core::LibretroProtoCore);

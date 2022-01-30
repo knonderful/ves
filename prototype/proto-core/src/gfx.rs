@@ -75,13 +75,16 @@ impl Rectangle2D {
 
     /// Returns a new [Rectangle2D] with the provided position as an origin.
     pub fn moved(&self, origin: Position2D) -> Self {
-        Self { origin, dimensions: self.dimensions }
+        Self {
+            origin,
+            dimensions: self.dimensions,
+        }
     }
 
     pub fn end(&self) -> Position2D {
         Position2D::new(
             self.origin.x + self.dimensions.width - 1,
-            self.origin.y + self.dimensions.height - 1
+            self.origin.y + self.dimensions.height - 1,
         )
     }
 }
@@ -140,7 +143,6 @@ pub trait SurfaceValueSet {
 
     fn set_value(&mut self, position: Position2D, value: &Self::ValueType);
 }
-
 
 /// Describes a type as being linearly stored in a data buffer.
 pub trait LinearlyStored {
@@ -293,10 +295,7 @@ impl BoundsWrapper {
     }
 
     fn wrap_pos(&self, pos: Position2D) -> Position2D {
-        Position2D::new(
-            self.wrap_x(pos.x),
-            self.wrap_y(pos.y)
-        )
+        Position2D::new(self.wrap_x(pos.x), self.wrap_y(pos.y))
     }
 }
 

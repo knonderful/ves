@@ -1,4 +1,4 @@
-use crate::gpu::{OamTableIndex, OamTableEntry, OcmTableIndex};
+use crate::gpu::{OamTableEntry, OamTableIndex, OcmTableIndex};
 use crate::mem::RomBlock;
 
 /// The interface that must be implemented by a core.

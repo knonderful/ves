@@ -1,8 +1,8 @@
 use libretro_backend::{AudioVideoInfo, CoreInfo, GameData, LoadGameResult, RuntimeHandle};
 
 use crate::core::CoreAndGame;
-use std::path::Path;
 use crate::gfx::{Rgba8888, Unit2D};
+use std::path::Path;
 
 const SCREEN_WIDTH: Unit2D = 320;
 const SCREEN_HEIGHT: Unit2D = 240;
@@ -35,8 +35,7 @@ impl Default for LibretroProtoCore {
 
 impl libretro_backend::Core for LibretroProtoCore {
     fn info() -> CoreInfo {
-        CoreInfo::new("ves-proto", "0.0.1")
-            .supports_roms_with_extension("wasm")
+        CoreInfo::new("ves-proto", "0.0.1").supports_roms_with_extension("wasm")
     }
 
     fn on_load_game(&mut self, game_data: GameData) -> LoadGameResult {
@@ -44,8 +43,12 @@ impl libretro_backend::Core for LibretroProtoCore {
             if let Ok(core_and_game) = CoreAndGame::from_path(Path::new(path)) {
                 self.core_and_game.replace(core_and_game);
                 self.game_data.replace(game_data);
-                let av_info = AudioVideoInfo::new()
-                    .video(SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32, 60.0, libretro_backend::PixelFormat::ARGB8888);
+                let av_info = AudioVideoInfo::new().video(
+                    SCREEN_WIDTH as u32,
+                    SCREEN_HEIGHT as u32,
+                    60.0,
+                    libretro_backend::PixelFormat::ARGB8888,
+                );
                 return LoadGameResult::Success(av_info);
             }
         }

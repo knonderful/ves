@@ -1,16 +1,18 @@
-use std::path::Path;
+use crate::mesen::Frame;
 use art_extractor_core::geom_art::Size;
 use art_extractor_core::movie::{FrameRate, Movie};
+use std::path::Path;
 use ves_cache::VecCacheMut;
-use crate::mesen::Frame;
 
-#[cfg(test)]
-pub(crate) mod test_util;
 mod mesen;
 mod obj;
+#[cfg(test)]
+pub(crate) mod test_util;
 
 /// Creates a [`Movie`] from the provided Mesen-S export files.
-pub fn create_movie(files: impl ExactSizeIterator<Item=impl AsRef<Path>>) -> anyhow::Result<Movie> {
+pub fn create_movie(
+    files: impl ExactSizeIterator<Item = impl AsRef<Path>>,
+) -> anyhow::Result<Movie> {
     let mut palettes = VecCacheMut::new();
     let mut tiles = VecCacheMut::new();
 
@@ -22,18 +24,24 @@ pub fn create_movie(files: impl ExactSizeIterator<Item=impl AsRef<Path>>) -> any
         movie_frames.push(movie_frame);
     }
 
-    movie_frames.sort_unstable_by(|a, b| a.frame_number().cmp(&b.frame_number()) );
+    movie_frames.sort_unstable_by(|a, b| a.frame_number().cmp(&b.frame_number()));
 
-    let movie = Movie::new(Size::new(512, 256), palettes.into_vec(), tiles.into_vec(), movie_frames, FrameRate::Ntsc);
+    let movie = Movie::new(
+        Size::new(512, 256),
+        palettes.into_vec(),
+        tiles.into_vec(),
+        movie_frames,
+        FrameRate::Ntsc,
+    );
     Ok(movie)
 }
 
 #[cfg(test)]
 mod test_create_movie {
-    use std::fs::File;
-    use art_extractor_core::movie::Movie;
-    use ves_cache::SliceCache;
     use super::create_movie;
+    use art_extractor_core::movie::Movie;
+    use std::fs::File;
+    use ves_cache::SliceCache;
 
     #[test]
     fn test_full() {
@@ -55,20 +63,39 @@ mod test_create_movie {
         if DEBUG_OUT {
             for frame in actual_movie.frames() {
                 let actual = crate::test_util::bmp_from_movie_frame(&frame, &palettes, &tiles);
-                actual.save(format!("{}/../../target/movie_frame_{}.bmp", env!("CARGO_MANIFEST_DIR"), frame.frame_number())).unwrap();
+                actual
+                    .save(format!(
+                        "{}/../../target/movie_frame_{}.bmp",
+                        env!("CARGO_MANIFEST_DIR"),
+                        frame.frame_number()
+                    ))
+                    .unwrap();
             }
 
-            let bincode_file = File::create(format!("{}/../../target/movie_{}_frames.bincode", env!("CARGO_MANIFEST_DIR"), NR_OF_FRAMES)).unwrap();
+            let bincode_file = File::create(format!(
+                "{}/../../target/movie_{}_frames.bincode",
+                env!("CARGO_MANIFEST_DIR"),
+                NR_OF_FRAMES
+            ))
+            .unwrap();
             bincode::serialize_into(bincode_file, &actual_movie).unwrap();
 
-            let json_file = File::create(format!("{}/../../target/movie_{}_frames.json", env!("CARGO_MANIFEST_DIR"), NR_OF_FRAMES)).unwrap();
+            let json_file = File::create(format!(
+                "{}/../../target/movie_{}_frames.json",
+                env!("CARGO_MANIFEST_DIR"),
+                NR_OF_FRAMES
+            ))
+            .unwrap();
             serde_json::to_writer(json_file, &actual_movie).unwrap();
             // Alternatively:
             // serde_json::to_writer_pretty(json_file, &movie).unwrap();
         }
 
         let mut expected_movie_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        expected_movie_path.push(format!("resources/test/expected/movie_{}_frames.bincode", NR_OF_FRAMES));
+        expected_movie_path.push(format!(
+            "resources/test/expected/movie_{}_frames.bincode",
+            NR_OF_FRAMES
+        ));
         let expected_movie_file = File::open(expected_movie_path).unwrap();
         let expected_movie: Movie = bincode::deserialize_from(expected_movie_file).unwrap();
 

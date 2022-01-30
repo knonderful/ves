@@ -4,10 +4,10 @@ use crate::geom_art::Size;
 use crate::sprite::{Palette, Sprite, Tile};
 use crate::surface::Surface;
 
-pub mod surface;
-pub mod sprite;
 pub mod geom_art;
 pub mod movie;
+pub mod sprite;
+pub mod surface;
 
 /// Macro for creating [`surface::Surface`] implementations that do no require any allocation.
 ///

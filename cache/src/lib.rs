@@ -29,7 +29,6 @@ impl FromIndex for usize {
     }
 }
 
-
 /// An immutable slice-based cache.
 ///
 /// # Generic types
@@ -44,7 +43,10 @@ pub struct SliceCache<'a, T, K = usize> {
 
 impl<'a, T, K> SliceCache<'a, T, K> {
     pub fn new(values: &'a [T]) -> Self {
-        Self { values, _phantom: Default::default() }
+        Self {
+            values,
+            _phantom: Default::default(),
+        }
     }
 
     /// Return the values.
@@ -53,7 +55,8 @@ impl<'a, T, K> SliceCache<'a, T, K> {
     }
 }
 
-impl<T, K> Index<K> for SliceCache<'_, T, K> where
+impl<T, K> Index<K> for SliceCache<'_, T, K>
+where
     K: AsIndex,
 {
     type Output = T;
@@ -98,7 +101,8 @@ impl<T, K> VecCacheMut<T, K> {
     }
 }
 
-impl<T, K> VecCacheMut<T, K> where
+impl<T, K> VecCacheMut<T, K>
+where
     T: PartialEq + Hash + Clone,
     K: Copy + AsIndex + FromIndex,
 {
@@ -116,7 +120,8 @@ impl<T, K> VecCacheMut<T, K> where
 
         if let Some(indices) = self.hashes.get_mut(&hash) {
             // We've seen this hash before, so we need to compare with the existing values of this hash
-            indices.iter()
+            indices
+                .iter()
                 // Look up the value for this index
                 .map(|i| (i, &self.values[i.as_index()]))
                 // Compare the value
@@ -143,7 +148,8 @@ impl<T, K> VecCacheMut<T, K> where
     }
 }
 
-impl<T, K> Index<K> for VecCacheMut<T, K> where
+impl<T, K> Index<K> for VecCacheMut<T, K>
+where
     K: AsIndex,
 {
     type Output = T;
@@ -155,9 +161,9 @@ impl<T, K> Index<K> for VecCacheMut<T, K> where
 
 #[cfg(test)]
 mod test_vec_cache_mut {
+    use crate::VecCacheMut;
     use std::borrow::Cow;
     use std::hash::{Hash, Hasher};
-    use crate::VecCacheMut;
 
     #[derive(Copy, Clone, Debug, Eq, PartialEq)]
     struct Val {

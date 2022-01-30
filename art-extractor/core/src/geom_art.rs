@@ -3,7 +3,8 @@
 ves_geom::space_unit!(
     /// The unit for "artwork space".
     ArtworkSpaceUnit,
-    u32);
+    u32
+);
 
 impl Into<usize> for ArtworkSpaceUnit {
     #[inline(always)]

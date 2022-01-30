@@ -45,10 +45,22 @@ mod test_frame {
         let frame: Frame = serde_json::from_str(TEST_JSON).unwrap();
         assert_eq!(frame.frame_nr, 123);
         assert_eq!(frame.obj_size_select, 2);
-        assert_eq!(frame.cgram, vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]);
-        assert_eq!(frame.oam, vec![10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]);
-        assert_eq!(frame.obj_name_base_table, vec![20, 21, 22, 23, 24, 25, 26, 27, 28, 29]);
-        assert_eq!(frame.obj_name_select_table, vec![30, 31, 32, 33, 34, 35, 36, 37, 38, 39]);
+        assert_eq!(
+            frame.cgram,
+            vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        );
+        assert_eq!(
+            frame.oam,
+            vec![10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
+        );
+        assert_eq!(
+            frame.obj_name_base_table,
+            vec![20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+        );
+        assert_eq!(
+            frame.obj_name_select_table,
+            vec![30, 31, 32, 33, 34, 35, 36, 37, 38, 39]
+        );
     }
 
     fn hash_value(hashable: &impl std::hash::Hash) -> u64 {
@@ -74,6 +86,9 @@ mod test_frame {
         assert_eq!(frame.obj_name_base_table.len(), 0x2000);
         assert_eq!(frame.obj_name_select_table.len(), 0x2000);
         // A quick and dirty check that depends on internal implementations of slice and DefaultHasher, but it's better than just checking the length
-        assert_eq!(hash_value(&frame.obj_name_base_table.as_slice()), 7240137848684959837);
+        assert_eq!(
+            hash_value(&frame.obj_name_base_table.as_slice()),
+            7240137848684959837
+        );
     }
 }

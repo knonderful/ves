@@ -1,4 +1,7 @@
-use crate::gfx::{Unit2D, SliceBackedSurface, Rectangle2D, SliceBackedSurfaceMut, Rgb888, Rgba8888, RectangleIterator, Surface, SurfaceValueSet, SurfaceValueGet};
+use crate::gfx::{
+    Rectangle2D, RectangleIterator, Rgb888, Rgba8888, SliceBackedSurface, SliceBackedSurfaceMut,
+    Surface, SurfaceValueGet, SurfaceValueSet, Unit2D,
+};
 use proto_common::gpu::{OamTableEntry, OamTableIndex, OcmTableIndex};
 
 /// The width of a character in pixels.
@@ -13,7 +16,12 @@ const OBJ_CHAR_TABLE_HEIGHT: Unit2D = 16;
 const OBJ_ATTR_MEM_SIZE: usize = 32usize;
 
 // TODO: Replace FrameBufferPixel with another pixel type that only stores the NECESSARY data (basically the indices, not the RGBA)
-crate::linear_pixel_buffer!(OcmSurfaceBuffer, Rgb888, OBJ_CHAR_TABLE_WIDTH, OBJ_CHAR_TABLE_HEIGHT);
+crate::linear_pixel_buffer!(
+    OcmSurfaceBuffer,
+    Rgb888,
+    OBJ_CHAR_TABLE_WIDTH,
+    OBJ_CHAR_TABLE_HEIGHT
+);
 
 /// A character table.
 #[derive(Default)]
@@ -60,7 +68,11 @@ impl OcmTable {
     /// * `oam_entry`: The [`OamTableEntry`] that describes the object.
     pub fn obj_rectangle(&self, oam_entry: &OamTableEntry) -> Rectangle2D {
         let char_table_index = oam_entry.char_table_index();
-        let origin = (char_table_index.x() as Unit2D * CHAR_WIDTH, char_table_index.y() as Unit2D * CHAR_HEIGHT).into();
+        let origin = (
+            char_table_index.x() as Unit2D * CHAR_WIDTH,
+            char_table_index.y() as Unit2D * CHAR_HEIGHT,
+        )
+            .into();
         // TODO: Support different sized sprites here
         Rectangle2D::new(origin, (CHAR_WIDTH, CHAR_HEIGHT).into())
     }
@@ -95,11 +107,13 @@ impl OamTable {
         for sprite_opt in self.data.iter() {
             if let Some(sprite) = sprite_opt {
                 let sprite_rect = ocm_table.obj_rectangle(&sprite);
-                let src_iter = RectangleIterator::new_with_rectangle(ocm_surface.dimensions(), sprite_rect);
+                let src_iter =
+                    RectangleIterator::new_with_rectangle(ocm_surface.dimensions(), sprite_rect);
 
                 let (x, y) = sprite.position();
                 let dest_rect = Rectangle2D::new((x as _, y as _).into(), sprite_rect.dimensions);
-                let dest_iter = RectangleIterator::new_with_rectangle(surface.dimensions(), dest_rect);
+                let dest_iter =
+                    RectangleIterator::new_with_rectangle(surface.dimensions(), dest_rect);
 
                 src_iter.zip(dest_iter).for_each(|(src_pos, dest_pos)| {
                     let src_value = ocm_surface.get_value(src_pos);

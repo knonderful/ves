@@ -1,6 +1,9 @@
 use crate::{Palette, Size, Sprite, Tile};
 
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum FrameRate {
     Ntsc,
@@ -17,7 +20,10 @@ impl FrameRate {
     }
 }
 
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Movie {
     screen_size: Size,
@@ -29,8 +35,20 @@ pub struct Movie {
 
 impl Movie {
     /// Creates a new instance.
-    pub fn new(screen_size: Size, palettes: Vec<Palette>, tiles: Vec<Tile>, frames: Vec<MovieFrame>, frame_rate: FrameRate) -> Self {
-        Self { screen_size, palettes, tiles, frames, frame_rate }
+    pub fn new(
+        screen_size: Size,
+        palettes: Vec<Palette>,
+        tiles: Vec<Tile>,
+        frames: Vec<MovieFrame>,
+        frame_rate: FrameRate,
+    ) -> Self {
+        Self {
+            screen_size,
+            palettes,
+            tiles,
+            frames,
+            frame_rate,
+        }
     }
 
     /// Retrieves the screen size.
@@ -59,7 +77,10 @@ impl Movie {
     }
 }
 
-#[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde_support",
+    derive(serde::Serialize, serde::Deserialize)
+)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MovieFrame {
     frame_number: u64,
@@ -69,7 +90,10 @@ pub struct MovieFrame {
 impl MovieFrame {
     /// Creates a new instance.
     pub fn new(frame_number: u64, sprites: Vec<Sprite>) -> Self {
-        Self { frame_number, sprites }
+        Self {
+            frame_number,
+            sprites,
+        }
     }
 
     /// Retrieves the frame number.

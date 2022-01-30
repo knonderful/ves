@@ -1,6 +1,6 @@
+use clap::{Args, Parser, Subcommand};
 use std::fs::File;
 use std::path::PathBuf;
-use clap::{Parser, Args, Subcommand};
 
 /// Tool for generating input for Art Extractor from SNES data.
 #[derive(Parser, Debug)]
@@ -40,7 +40,8 @@ struct MovieCreateArgs {
 }
 
 fn create_movie(in_paths: &[impl AsRef<str>], out_path: &str) -> anyhow::Result<()> {
-    let iter = in_paths.iter()
+    let iter = in_paths
+        .iter()
         .map(|in_path| {
             let mut path = PathBuf::new();
             path.push(in_path.as_ref());
@@ -51,7 +52,12 @@ fn create_movie(in_paths: &[impl AsRef<str>], out_path: &str) -> anyhow::Result<
         // all, in which case this output is more or less bogus.
         .enumerate()
         .map(|(i, path)| {
-            println!("Processing file {}/{}: {}", i, in_paths.len(), path.display());
+            println!(
+                "Processing file {}/{}: {}",
+                i,
+                in_paths.len(),
+                path.display()
+            );
             path
         });
 
@@ -68,11 +74,9 @@ fn main() -> anyhow::Result<()> {
     let cli_args: SnesCli = SnesCli::parse();
 
     match cli_args.command {
-        CliCommand::Movie(cmd) => {
-            match cmd.command {
-                MovieCommand::Create(args) => create_movie(&args.in_paths, &args.out_path)?
-            }
-        }
+        CliCommand::Movie(cmd) => match cmd.command {
+            MovieCommand::Create(args) => create_movie(&args.in_paths, &args.out_path)?,
+        },
     }
 
     Ok(())

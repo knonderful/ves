@@ -31,7 +31,7 @@ macro_rules! impl_zero {
                 0
             }
         }
-    }
+    };
 }
 
 impl_zero!(u8);
@@ -58,7 +58,7 @@ macro_rules! impl_one {
                 1
             }
         }
-    }
+    };
 }
 
 impl_one!(u8);
@@ -85,7 +85,8 @@ pub struct FiniteRange<T> {
     exhausted: bool,
 }
 
-impl<T> FiniteRange<T> where
+impl<T> FiniteRange<T>
+where
     T: PartialOrd,
 {
     /// Creates a new instance.
@@ -100,11 +101,16 @@ impl<T> FiniteRange<T> where
         if start > end {
             panic!("Invalid range.");
         }
-        Self { start, end, exhausted: false }
+        Self {
+            start,
+            end,
+            exhausted: false,
+        }
     }
 }
 
-impl<T> From<(T, T)> for FiniteRange<T> where
+impl<T> From<(T, T)> for FiniteRange<T>
+where
     T: PartialOrd,
 {
     fn from(value: (T, T)) -> Self {
@@ -112,8 +118,9 @@ impl<T> From<(T, T)> for FiniteRange<T> where
     }
 }
 
-impl<T> Iterator for FiniteRange<T> where
-    T: Copy + PartialOrd + PartialEq + One + Add<Output=T>,
+impl<T> Iterator for FiniteRange<T>
+where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output = T>,
 {
     type Item = T;
 
@@ -133,8 +140,9 @@ impl<T> Iterator for FiniteRange<T> where
     }
 }
 
-impl<T> DoubleEndedIterator for FiniteRange<T> where
-    T: Copy + PartialOrd + PartialEq + One + Add<Output=T> + Sub<Output=T>,
+impl<T> DoubleEndedIterator for FiniteRange<T>
+where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output = T> + Sub<Output = T>,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.end == self.start {
@@ -162,7 +170,8 @@ pub struct Point<T> {
     pub y: T,
 }
 
-impl<T> Debug for Point<T> where
+impl<T> Debug for Point<T>
+where
     T: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -170,8 +179,7 @@ impl<T> Debug for Point<T> where
     }
 }
 
-impl<T> Point<T>
-{
+impl<T> Point<T> {
     /// Creates a new instance.
     ///
     /// # Parameters
@@ -186,7 +194,8 @@ impl<T> Point<T>
     }
 }
 
-impl<A, B, T> From<(A, B)> for Point<T> where
+impl<A, B, T> From<(A, B)> for Point<T>
+where
     A: Into<T>,
     B: Into<T>,
 {
@@ -206,7 +215,8 @@ pub struct Size<T> {
     pub height: T,
 }
 
-impl<T> Debug for Size<T> where
+impl<T> Debug for Size<T>
+where
     T: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -229,7 +239,8 @@ impl<T> Size<T> {
     }
 }
 
-impl<T> Size<T> where
+impl<T> Size<T>
+where
     T: Copy,
 {
     /// Creates a new instance of a square.
@@ -244,8 +255,9 @@ impl<T> Size<T> where
     }
 }
 
-impl<T> Size<T> where
-    T: Copy + Add<Output=T> + Sub<Output=T> + Zero + PartialOrd + Debug + One,
+impl<T> Size<T>
+where
+    T: Copy + Add<Output = T> + Sub<Output = T> + Zero + PartialOrd + Debug + One,
 {
     /// Creates a new instance.
     ///
@@ -268,7 +280,8 @@ pub struct Rect<T> {
     pub max: Point<T>,
 }
 
-impl<T> Debug for Rect<T> where
+impl<T> Debug for Rect<T>
+where
     T: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -276,7 +289,8 @@ impl<T> Debug for Rect<T> where
     }
 }
 
-impl<T> Rect<T> where
+impl<T> Rect<T>
+where
     T: Copy + PartialOrd + PartialEq + Debug,
 {
     /// Creates a new instance.
@@ -288,16 +302,19 @@ impl<T> Rect<T> where
     pub fn new(min: impl Into<Point<T>>, max: impl Into<Point<T>>) -> Self {
         let min: Point<T> = min.into();
         let max: Point<T> = max.into();
-        assert!(min.x <= max.x || min.y <= max.y, "Invalid min and max: {:?} and {:?}.", min, max);
-        Self {
+        assert!(
+            min.x <= max.x || min.y <= max.y,
+            "Invalid min and max: {:?} and {:?}.",
             min,
-            max,
-        }
+            max
+        );
+        Self { min, max }
     }
 }
 
-impl<T> Rect<T> where
-    T: Copy + Add<Output=T> + Sub<Output=T> + PartialOrd + PartialEq + Debug + One,
+impl<T> Rect<T>
+where
+    T: Copy + Add<Output = T> + Sub<Output = T> + PartialOrd + PartialEq + Debug + One,
 {
     /// Creates a new instance.
     ///
@@ -309,12 +326,16 @@ impl<T> Rect<T> where
         let origin: Point<T> = origin.into();
         Self::new(
             origin,
-            (origin.x + size.width - T::one(), origin.y + size.height - T::one()),
+            (
+                origin.x + size.width - T::one(),
+                origin.y + size.height - T::one(),
+            ),
         )
     }
 }
 
-impl<T> Rect<T> where
+impl<T> Rect<T>
+where
     T: Copy,
 {
     #[inline(always)]
@@ -348,8 +369,9 @@ impl<T> Rect<T> where
     }
 }
 
-impl<T> Rect<T> where
-    T: Copy + Add<Output=T> + Sub<Output=T> + One,
+impl<T> Rect<T>
+where
+    T: Copy + Add<Output = T> + Sub<Output = T> + One,
 {
     #[inline(always)]
     pub fn width(&self) -> T {
@@ -367,8 +389,9 @@ impl<T> Rect<T> where
     }
 }
 
-impl<T> Rect<T> where
-    T: Copy + Add<Output=T> + PartialOrd + PartialEq + Debug + One,
+impl<T> Rect<T>
+where
+    T: Copy + Add<Output = T> + PartialOrd + PartialEq + Debug + One,
 {
     /// Creates an intersection of this rectangle with the axes defined by the provided point.
     ///
@@ -425,7 +448,8 @@ impl<T> Rect<T> where
     }
 }
 
-impl<A, B, T> From<(A, B)> for Rect<T> where
+impl<A, B, T> From<(A, B)> for Rect<T>
+where
     A: Into<Point<T>>,
     B: Into<Point<T>>,
     T: Copy + PartialOrd + PartialEq + Debug,
@@ -467,7 +491,12 @@ impl<T> RectIntersection<T> {
                 func(top);
                 func(bottom);
             }
-            RectIntersection::Both { top_left, top_right, bottom_left, bottom_right } => {
+            RectIntersection::Both {
+                top_left,
+                top_right,
+                bottom_left,
+                bottom_right,
+            } => {
                 func(top_left);
                 func(top_right);
                 func(bottom_left);

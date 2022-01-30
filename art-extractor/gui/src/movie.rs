@@ -1,11 +1,11 @@
-use std::ops::Index;
-use std::time::{Duration, Instant};
+use crate::egui::{ColorImage, ImageData};
+use crate::{egui, ToEgui};
 use art_extractor_core::sprite::{Color, Palette, PaletteRef, Tile, TileRef};
 use art_extractor_core::surface::Surface;
+use std::ops::Index;
+use std::time::{Duration, Instant};
 use ves_cache::SliceCache;
 use ves_geom::RectIntersection;
-use crate::{egui, ToEgui};
-use crate::egui::{ColorImage, ImageData};
 
 struct GuiMovieFrameSprite {
     rect: art_extractor_core::geom_art::Rect,
@@ -27,8 +27,8 @@ impl MovieFrame {
     /// renderings.
     pub fn new(
         ctx: &egui::Context,
-        palettes: &impl Index<PaletteRef, Output=Palette>,
-        tiles: &impl Index<TileRef, Output=Tile>,
+        palettes: &impl Index<PaletteRef, Output = Palette>,
+        tiles: &impl Index<TileRef, Output = Tile>,
         movie_frame: &art_extractor_core::movie::MovieFrame,
     ) -> Self {
         let mut sprites = Vec::with_capacity(movie_frame.sprites().len());
@@ -42,8 +42,10 @@ impl MovieFrame {
             let mut raw_image_idx: usize = 0;
 
             art_extractor_core::surface::surface_iterate(
-                surf.size(), surf.size().as_rect(),
-                false, false, // We do flipping in the mesh/Image instead of in the texture (using UV)
+                surf.size(),
+                surf.size().as_rect(),
+                false, // We do flipping in the mesh/Image instead of in the texture (using UV)
+                false,
                 |_, idx| {
                     let color = &palette[surf_data[idx]];
 
@@ -54,14 +56,17 @@ impl MovieFrame {
 
                     raw_image[raw_image_idx..raw_image_idx + 4].copy_from_slice(&col_data);
                     raw_image_idx += 4;
-                }).unwrap();
+                },
+            )
+            .unwrap();
 
             let w: usize = surf.size().width.raw().try_into().unwrap();
             let h: usize = surf.size().height.raw().try_into().unwrap();
             let color_image = ColorImage::from_rgba_unmultiplied([w, h], &raw_image);
 
             let texture = ctx.load_texture("something", ImageData::Color(color_image));
-            let rect = art_extractor_core::geom_art::Rect::new_from_size(sprite.position(), surf.size());
+            let rect =
+                art_extractor_core::geom_art::Rect::new_from_size(sprite.position(), surf.size());
 
             let gui_sprite = GuiMovieFrameSprite {
                 rect,
@@ -81,18 +86,29 @@ impl MovieFrame {
             if vflip {
                 egui::Rect::from_min_max(rect.max, rect.min)
             } else {
-                egui::Rect::from_min_max(egui::pos2(rect.max.x, rect.min.y), egui::pos2(rect.min.x, rect.max.y))
+                egui::Rect::from_min_max(
+                    egui::pos2(rect.max.x, rect.min.y),
+                    egui::pos2(rect.min.x, rect.max.y),
+                )
             }
         } else {
             if vflip {
-                egui::Rect::from_min_max(egui::pos2(rect.min.x, rect.max.y), egui::pos2(rect.max.x, rect.min.y))
+                egui::Rect::from_min_max(
+                    egui::pos2(rect.min.x, rect.max.y),
+                    egui::pos2(rect.max.x, rect.min.y),
+                )
             } else {
                 rect
             }
         }
     }
 
-    pub fn show(&self, ui: &mut egui::Ui, screen_size: art_extractor_core::geom_art::Size, viewport: egui::Rect) {
+    pub fn show(
+        &self,
+        ui: &mut egui::Ui,
+        screen_size: art_extractor_core::geom_art::Size,
+        viewport: egui::Rect,
+    ) {
         // TODO: The scaling is not pixel-perfect by default. This has to do with the texture filtering in the rendering component.
         //       Currently this requires a hack in egui_glow, since there is no way for the application code to control this.
         // TODO: It seems like the UI adds spacing of an extra 8px when an image is exactly on the edge, causing the scrollbars to resize
@@ -104,12 +120,16 @@ impl MovieFrame {
         //       Unfortunately, this is not very good for pixel-perfect rendering. We could set the pixels_per_point to 1 for the entire
         //       application, which would work, but then the UI of the application would not scale with what the user is "used to". Instead,
         //       here we correct our calculations by dividing by pixels_per_point.
-        let to_rect = egui::Rect::from_min_size(egui::pos2(-viewport.left(), -viewport.top()), (ZOOM / ui.ctx().pixels_per_point()) * ui.available_size());
+        let to_rect = egui::Rect::from_min_size(
+            egui::pos2(-viewport.left(), -viewport.top()),
+            (ZOOM / ui.ctx().pixels_per_point()) * ui.available_size(),
+        );
         let transform = egui::emath::RectTransform::from_to(from_rect, to_rect);
 
         let intersect_pos = screen_size.as_rect().max;
 
-        const DEFAULT_UV: egui::Rect = egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
+        const DEFAULT_UV: egui::Rect =
+            egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
 
         self.sprites.iter().for_each(|sprite| {
             let egui_sprite_rect = sprite.rect.to_egui();
@@ -134,12 +154,17 @@ impl MovieFrame {
                         let v_y = (egui_rect.max.y - egui_sprite_rect.min.y) / height;
 
                         let egui_dest_rect = art_extractor_core::geom_art::Rect::new_from_size(
-                            (rect.min_x() % screen_size.width, rect.min_y() % screen_size.height),
+                            (
+                                rect.min_x() % screen_size.width,
+                                rect.min_y() % screen_size.height,
+                            ),
                             rect.size(),
-                        ).to_egui();
+                        )
+                        .to_egui();
 
                         let dest_rect = transform.transform_rect(egui_dest_rect);
-                        let uv = egui::Rect::from_min_max(egui::pos2(u_x, u_y), egui::pos2(v_x, v_y));
+                        let uv =
+                            egui::Rect::from_min_max(egui::pos2(u_x, u_y), egui::pos2(v_x, v_y));
                         let image = egui::Image::new(&sprite.texture, dest_rect.size())
                             .uv(Self::correct_uv(uv, sprite.hflip, sprite.vflip));
 
@@ -320,8 +345,10 @@ impl Movie {
         // TODO: It is probably better to enqueue the messages somewhere and not process them until update(). Especially since external
         //       entities might want to enqueue messages (like global hotkey handlers).
         egui::TopBottomPanel::bottom("movie_controls").show(ui.ctx(), |ui| {
-            MovieControls::new(self.playback_state.clone(), self.playback_repeat, |msg: MovieControlMessage| {
-                match msg {
+            MovieControls::new(
+                self.playback_state.clone(),
+                self.playback_repeat,
+                |msg: MovieControlMessage| match msg {
                     MovieControlMessage::Play => {
                         self.play(current_instant);
                     }
@@ -334,17 +361,18 @@ impl Movie {
                     MovieControlMessage::SkipForward(count) => {
                         self.frame_cursor.move_forward(count);
                     }
-                    MovieControlMessage::Jump(msg) => {
-                        match msg {
-                            JumpMessage::Start => self.frame_cursor.reset(),
-                            JumpMessage::End => { self.frame_cursor.move_forward(usize::MAX); }
+                    MovieControlMessage::Jump(msg) => match msg {
+                        JumpMessage::Start => self.frame_cursor.reset(),
+                        JumpMessage::End => {
+                            self.frame_cursor.move_forward(usize::MAX);
                         }
-                    }
+                    },
                     MovieControlMessage::SetRepeat(val) => {
                         self.playback_repeat = val;
                     }
-                }
-            }).show(ui);
+                },
+            )
+            .show(ui);
         });
 
         egui::CentralPanel::default().show(ui.ctx(), |ui| {
@@ -388,20 +416,35 @@ struct MovieControls<Sink> {
 
 impl<Sink> MovieControls<Sink> {
     fn new(playback_state: PlaybackState, playback_repeat: bool, sink: Sink) -> Self {
-        Self { playback_state, playback_repeat, sink }
+        Self {
+            playback_state,
+            playback_repeat,
+            sink,
+        }
     }
 }
 
-impl<Sink> MovieControls<Sink> where
+impl<Sink> MovieControls<Sink>
+where
     Sink: FnMut(MovieControlMessage),
 {
-    fn add_button(&mut self, ui: &mut egui::Ui, icon: &'static str, on_click_fn: impl FnOnce(&mut Sink)) {
+    fn add_button(
+        &mut self,
+        ui: &mut egui::Ui,
+        icon: &'static str,
+        on_click_fn: impl FnOnce(&mut Sink),
+    ) {
         if ui.button(icon).clicked() {
             on_click_fn(&mut self.sink);
         }
     }
 
-    fn add_button_simple(&mut self, ui: &mut egui::Ui, icon: &'static str, message: MovieControlMessage) {
+    fn add_button_simple(
+        &mut self,
+        ui: &mut egui::Ui,
+        icon: &'static str,
+        message: MovieControlMessage,
+    ) {
         self.add_button(ui, icon, |sink| sink(message));
     }
 
@@ -426,7 +469,11 @@ impl<Sink> MovieControls<Sink> where
                 sink(MovieControlMessage::SkipForward(1));
             });
             self.add_button_simple(ui, "⏭", MovieControlMessage::Jump(JumpMessage::End));
-            self.add_button_simple(ui, "🔁", MovieControlMessage::SetRepeat(!self.playback_repeat));
+            self.add_button_simple(
+                ui,
+                "🔁",
+                MovieControlMessage::SetRepeat(!self.playback_repeat),
+            );
         });
     }
 }

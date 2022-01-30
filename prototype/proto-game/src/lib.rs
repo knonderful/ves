@@ -16,23 +16,22 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 static ROM_DATA: RomData = RomData::create();
 
 #[link(wasm_import_module = "logger")]
-extern {
+extern "C" {
     #[link_name = "info"]
     fn logger_info(ptr: *const u8, len: usize);
 }
 
 #[link(wasm_import_module = "ocm")]
-extern {
+extern "C" {
     #[link_name = "load"]
     fn ocm_load(index: u8, rom_block: u64);
 }
 
 #[link(wasm_import_module = "oam")]
-extern {
+extern "C" {
     #[link_name = "set"]
     fn oam_set(index: u8, oam_entry: u32);
 }
-
 
 #[no_mangle]
 pub fn create_instance() -> Box<CoreAndGame> {
@@ -64,15 +63,12 @@ pub struct Game {
 
 impl GameInterface for Game {
     fn new() -> Self {
-        Self {
-            frame_count: 0,
-        }
+        Self { frame_count: 0 }
     }
 
     fn step(&mut self, core: &mut dyn CoreInterface) {
         if self.frame_count == 0 {
             core.log_info("Initializing.");
-
 
             core.log_info("Loading ROM data into object character table.");
             let ocm_index = OcmTableIndex::new(0, 0);

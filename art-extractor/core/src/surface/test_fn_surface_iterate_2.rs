@@ -1,8 +1,8 @@
 //! Unit tests for `surface_iterate_2()`.
 
-use crate::geom_art::{ArtworkSpaceUnit, Point, Rect};
-use super::Surface;
 use super::surface_iterate_2;
+use super::Surface;
+use crate::geom_art::{ArtworkSpaceUnit, Point, Rect};
 
 crate::sized_surface!(Surfy, u8, ArtworkSpaceUnit, 12, 8, 0);
 
@@ -13,25 +13,25 @@ macro_rules! data {
     }
 
 const SOURCE_DATA: [u8; 12 * 8] = data![
-        0 0 0 1 1 1 1 1 0 0 0 0
-        0 0 1 1 1 1 1 1 1 1 1 0
-        0 0 2 2 2 3 3 2 3 0 0 0
-        0 2 3 2 3 3 3 2 3 3 3 0
-        0 2 3 2 2 3 3 3 2 3 3 3
-        0 2 2 3 3 3 3 2 2 2 2 0
-        0 0 0 3 3 3 3 3 3 3 0 0
-        0 0 1 1 4 1 1 1 1 0 0 0
-    ];
+    0 0 0 1 1 1 1 1 0 0 0 0
+    0 0 1 1 1 1 1 1 1 1 1 0
+    0 0 2 2 2 3 3 2 3 0 0 0
+    0 2 3 2 3 3 3 2 3 3 3 0
+    0 2 3 2 2 3 3 3 2 3 3 3
+    0 2 2 3 3 3 3 2 2 2 2 0
+    0 0 0 3 3 3 3 3 3 3 0 0
+    0 0 1 1 4 1 1 1 1 0 0 0
+];
 const EMPTY_DATA: [u8; 12 * 8] = data![
-        0 0 0 0 0 0 0 0 0 0 0 0
-        0 0 0 0 0 0 0 0 0 0 0 0
-        0 0 0 0 0 0 0 0 0 0 0 0
-        0 0 0 0 0 0 0 0 0 0 0 0
-        0 0 0 0 0 0 0 0 0 0 0 0
-        0 0 0 0 0 0 0 0 0 0 0 0
-        0 0 0 0 0 0 0 0 0 0 0 0
-        0 0 0 0 0 0 0 0 0 0 0 0
-    ];
+    0 0 0 0 0 0 0 0 0 0 0 0
+    0 0 0 0 0 0 0 0 0 0 0 0
+    0 0 0 0 0 0 0 0 0 0 0 0
+    0 0 0 0 0 0 0 0 0 0 0 0
+    0 0 0 0 0 0 0 0 0 0 0 0
+    0 0 0 0 0 0 0 0 0 0 0 0
+    0 0 0 0 0 0 0 0 0 0 0 0
+    0 0 0 0 0 0 0 0 0 0 0 0
+];
 
 fn create_source() -> Surfy {
     let mut src = Surfy::new();
@@ -43,32 +43,44 @@ fn create_source() -> Surfy {
 }
 
 macro_rules! source_spec {
-        ($rect:expr, @hflip, @vflip) => {
-            ($rect, true, true)
-        };
-        ($rect:expr, @hflip) => {
-            ($rect, true, false)
-        };
-        ($rect:expr, @vflip) => {
-            ($rect, false, true)
-        };
-        ($rect:expr) => {
-            ($rect, false, false)
-        };
-    }
+    ($rect:expr, @hflip, @vflip) => {
+        ($rect, true, true)
+    };
+    ($rect:expr, @hflip) => {
+        ($rect, true, false)
+    };
+    ($rect:expr, @vflip) => {
+        ($rect, false, true)
+    };
+    ($rect:expr) => {
+        ($rect, false, false)
+    };
+}
 
-fn copy_data(src_surf: &Surfy, dest_surf: &mut Surfy, (src_rect, hflip, vflip): (Rect, bool, bool), dest_point: Point) {
+fn copy_data(
+    src_surf: &Surfy,
+    dest_surf: &mut Surfy,
+    (src_rect, hflip, vflip): (Rect, bool, bool),
+    dest_point: Point,
+) {
     let src_size = src_surf.size();
     let dest_size = dest_surf.size();
 
     let src = src_surf.data();
     let dest = dest_surf.data_mut();
 
-    surface_iterate_2(src_size, src_rect, dest_size, dest_point, hflip, vflip,
-                      |_src_pos, src_idx, _dest_pos, dest_idx| {
-                          dest[dest_idx] = src[src_idx];
-                      },
-    ).unwrap();
+    surface_iterate_2(
+        src_size,
+        src_rect,
+        dest_size,
+        dest_point,
+        hflip,
+        vflip,
+        |_src_pos, src_idx, _dest_pos, dest_idx| {
+            dest[dest_idx] = src[src_idx];
+        },
+    )
+    .unwrap();
 }
 
 /// Test with a copy of the entire source surface without any flipping.
@@ -87,15 +99,15 @@ fn test_full_copy_no_flip() {
 #[test]
 fn test_full_copy_hflip() {
     const EXPECTED: [u8; 12 * 8] = data![
-            0 0 0 0 1 1 1 1 1 0 0 0
-            0 1 1 1 1 1 1 1 1 1 0 0
-            0 0 0 3 2 3 3 2 2 2 0 0
-            0 3 3 3 2 3 3 3 2 3 2 0
-            3 3 3 2 3 3 3 2 2 3 2 0
-            0 2 2 2 2 3 3 3 3 2 2 0
-            0 0 3 3 3 3 3 3 3 0 0 0
-            0 0 0 1 1 1 1 4 1 1 0 0
-        ];
+        0 0 0 0 1 1 1 1 1 0 0 0
+        0 1 1 1 1 1 1 1 1 1 0 0
+        0 0 0 3 2 3 3 2 2 2 0 0
+        0 3 3 3 2 3 3 3 2 3 2 0
+        3 3 3 2 3 3 3 2 2 3 2 0
+        0 2 2 2 2 3 3 3 3 2 2 0
+        0 0 3 3 3 3 3 3 3 0 0 0
+        0 0 0 1 1 1 1 4 1 1 0 0
+    ];
 
     let src = create_source();
     let mut dest = Surfy::new();
@@ -110,15 +122,15 @@ fn test_full_copy_hflip() {
 #[test]
 fn test_full_copy_vflip() {
     const EXPECTED: [u8; 12 * 8] = data![
-            0 0 1 1 4 1 1 1 1 0 0 0
-            0 0 0 3 3 3 3 3 3 3 0 0
-            0 2 2 3 3 3 3 2 2 2 2 0
-            0 2 3 2 2 3 3 3 2 3 3 3
-            0 2 3 2 3 3 3 2 3 3 3 0
-            0 0 2 2 2 3 3 2 3 0 0 0
-            0 0 1 1 1 1 1 1 1 1 1 0
-            0 0 0 1 1 1 1 1 0 0 0 0
-        ];
+        0 0 1 1 4 1 1 1 1 0 0 0
+        0 0 0 3 3 3 3 3 3 3 0 0
+        0 2 2 3 3 3 3 2 2 2 2 0
+        0 2 3 2 2 3 3 3 2 3 3 3
+        0 2 3 2 3 3 3 2 3 3 3 0
+        0 0 2 2 2 3 3 2 3 0 0 0
+        0 0 1 1 1 1 1 1 1 1 1 0
+        0 0 0 1 1 1 1 1 0 0 0 0
+    ];
 
     let src = create_source();
     let mut dest = Surfy::new();
@@ -133,15 +145,15 @@ fn test_full_copy_vflip() {
 #[test]
 fn test_full_copy_hflip_vflip() {
     const EXPECTED: [u8; 12 * 8] = data![
-            0 0 0 1 1 1 1 4 1 1 0 0
-            0 0 3 3 3 3 3 3 3 0 0 0
-            0 2 2 2 2 3 3 3 3 2 2 0
-            3 3 3 2 3 3 3 2 2 3 2 0
-            0 3 3 3 2 3 3 3 2 3 2 0
-            0 0 0 3 2 3 3 2 2 2 0 0
-            0 1 1 1 1 1 1 1 1 1 0 0
-            0 0 0 0 1 1 1 1 1 0 0 0
-        ];
+        0 0 0 1 1 1 1 4 1 1 0 0
+        0 0 3 3 3 3 3 3 3 0 0 0
+        0 2 2 2 2 3 3 3 3 2 2 0
+        3 3 3 2 3 3 3 2 2 3 2 0
+        0 3 3 3 2 3 3 3 2 3 2 0
+        0 0 0 3 2 3 3 2 2 2 0 0
+        0 1 1 1 1 1 1 1 1 1 0 0
+        0 0 0 0 1 1 1 1 1 0 0 0
+    ];
 
     let src = create_source();
     let mut dest = Surfy::new();
@@ -158,15 +170,15 @@ fn test_partial_no_wrap() {
     // No flipping
     {
         const EXPECTED: [u8; 12 * 8] = data![
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 2 3 2 2 0 0
-                0 0 0 0 0 0 2 2 3 3 0 0
-                0 0 0 0 0 0 0 0 3 3 0 0
-                0 0 0 0 0 0 0 1 1 4 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-            ];
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 2 3 2 2 0 0
+            0 0 0 0 0 0 2 2 3 3 0 0
+            0 0 0 0 0 0 0 0 3 3 0 0
+            0 0 0 0 0 0 0 1 1 4 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+        ];
 
         let src = create_source();
         let mut dest = Surfy::new();
@@ -180,15 +192,15 @@ fn test_partial_no_wrap() {
     // H-flip
     {
         const EXPECTED: [u8; 12 * 8] = data![
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 2 2 3 2 0 0
-                0 0 0 0 0 0 3 3 2 2 0 0
-                0 0 0 0 0 0 3 3 0 0 0 0
-                0 0 0 0 0 0 4 1 1 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-            ];
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 2 2 3 2 0 0
+            0 0 0 0 0 0 3 3 2 2 0 0
+            0 0 0 0 0 0 3 3 0 0 0 0
+            0 0 0 0 0 0 4 1 1 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+        ];
 
         let src = create_source();
         let mut dest = Surfy::new();
@@ -202,15 +214,15 @@ fn test_partial_no_wrap() {
     // V-flip
     {
         const EXPECTED: [u8; 12 * 8] = data![
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 1 1 4 0 0
-                0 0 0 0 0 0 0 0 3 3 0 0
-                0 0 0 0 0 0 2 2 3 3 0 0
-                0 0 0 0 0 0 2 3 2 2 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-            ];
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 1 1 4 0 0
+            0 0 0 0 0 0 0 0 3 3 0 0
+            0 0 0 0 0 0 2 2 3 3 0 0
+            0 0 0 0 0 0 2 3 2 2 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+        ];
 
         let src = create_source();
         let mut dest = Surfy::new();
@@ -224,15 +236,15 @@ fn test_partial_no_wrap() {
     // H-flip and v-flip
     {
         const EXPECTED: [u8; 12 * 8] = data![
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 4 1 1 0 0 0
-                0 0 0 0 0 0 3 3 0 0 0 0
-                0 0 0 0 0 0 3 3 2 2 0 0
-                0 0 0 0 0 0 2 2 3 2 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-            ];
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 4 1 1 0 0 0
+            0 0 0 0 0 0 3 3 0 0 0 0
+            0 0 0 0 0 0 3 3 2 2 0 0
+            0 0 0 0 0 0 2 2 3 2 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+        ];
 
         let src = create_source();
         let mut dest = Surfy::new();
@@ -250,15 +262,15 @@ fn test_partial_h_wrap() {
     // H-wrap on src
     {
         const EXPECTED: [u8; 12 * 8] = data![
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 3 3 0 2 0 0
-                0 0 0 0 0 0 2 0 0 2 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-            ];
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 3 3 0 2 0 0
+            0 0 0 0 0 0 2 0 0 2 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+        ];
 
         let src = create_source();
         let mut dest = Surfy::new();
@@ -272,15 +284,15 @@ fn test_partial_h_wrap() {
     // H-wrap on dest
     {
         const EXPECTED: [u8; 12 * 8] = data![
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                2 2 0 0 0 0 0 0 0 0 2 3
-                3 3 0 0 0 0 0 0 0 0 2 2
-                3 3 0 0 0 0 0 0 0 0 0 0
-                1 4 0 0 0 0 0 0 0 0 0 1
-                0 0 0 0 0 0 0 0 0 0 0 0
-            ];
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            2 2 0 0 0 0 0 0 0 0 2 3
+            3 3 0 0 0 0 0 0 0 0 2 2
+            3 3 0 0 0 0 0 0 0 0 0 0
+            1 4 0 0 0 0 0 0 0 0 0 1
+            0 0 0 0 0 0 0 0 0 0 0 0
+        ];
 
         let src = create_source();
         let mut dest = Surfy::new();
@@ -298,15 +310,15 @@ fn test_partial_v_wrap() {
     // V-wrap on src
     {
         const EXPECTED: [u8; 12 * 8] = data![
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 3 3 0 0
-                0 0 0 0 0 0 0 1 1 4 0 0
-                0 0 0 0 0 0 0 0 1 1 0 0
-                0 0 0 0 0 0 0 1 1 1 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-            ];
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 3 3 0 0
+            0 0 0 0 0 0 0 1 1 4 0 0
+            0 0 0 0 0 0 0 0 1 1 0 0
+            0 0 0 0 0 0 0 1 1 1 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+        ];
 
         let src = create_source();
         let mut dest = Surfy::new();
@@ -320,15 +332,15 @@ fn test_partial_v_wrap() {
     // V-wrap on dest
     {
         const EXPECTED: [u8; 12 * 8] = data![
-                0 0 0 0 0 0 0 0 3 3 0 0
-                0 0 0 0 0 0 0 1 1 4 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 2 3 2 2 0 0
-                0 0 0 0 0 0 2 2 3 3 0 0
-            ];
+            0 0 0 0 0 0 0 0 3 3 0 0
+            0 0 0 0 0 0 0 1 1 4 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 2 3 2 2 0 0
+            0 0 0 0 0 0 2 2 3 3 0 0
+        ];
 
         let src = create_source();
         let mut dest = Surfy::new();
@@ -346,15 +358,15 @@ fn test_partial_hv_wrap() {
     // H-wrap and v-wrap on src
     {
         const EXPECTED: [u8; 12 * 8] = data![
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 1 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-            ];
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 1 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+        ];
 
         let src = create_source();
         let mut dest = Surfy::new();
@@ -368,15 +380,15 @@ fn test_partial_hv_wrap() {
     // H-wrap and v-wrap on dest
     {
         const EXPECTED: [u8; 12 * 8] = data![
-                3 3 0 0 0 0 0 0 0 0 0 0
-                1 4 0 0 0 0 0 0 0 0 0 1
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                0 0 0 0 0 0 0 0 0 0 0 0
-                2 2 0 0 0 0 0 0 0 0 2 3
-                3 3 0 0 0 0 0 0 0 0 2 2
-            ];
+            3 3 0 0 0 0 0 0 0 0 0 0
+            1 4 0 0 0 0 0 0 0 0 0 1
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            0 0 0 0 0 0 0 0 0 0 0 0
+            2 2 0 0 0 0 0 0 0 0 2 3
+            3 3 0 0 0 0 0 0 0 0 2 2
+        ];
 
         let src = create_source();
         let mut dest = Surfy::new();

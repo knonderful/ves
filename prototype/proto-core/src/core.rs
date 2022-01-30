@@ -1,15 +1,15 @@
 mod gpu;
 
-use proto_common::gpu::{OamTableEntry, OcmTableIndex, OamTableIndex};
-use std::path::Path;
-use wasmtime::{Store, Linker, Module, Func, Caller, Extern, Trap, Memory};
+use crate::core::gpu::{OamTable, OcmTable};
+use crate::gfx::{RectangleIterator, Rgba8888, SliceBackedSurfaceMut, Surface, SurfaceValueSet};
 use anyhow::Result;
-use std::rc::Rc;
-use std::cell::RefCell;
-use crate::gfx::{Surface, Rgba8888, RectangleIterator, SliceBackedSurfaceMut, SurfaceValueSet};
-use proto_common::mem::RomBlock;
 use proto_common::api::CoreInterface;
-use crate::core::gpu::{OcmTable, OamTable};
+use proto_common::gpu::{OamTableEntry, OamTableIndex, OcmTableIndex};
+use proto_common::mem::RomBlock;
+use std::cell::RefCell;
+use std::path::Path;
+use std::rc::Rc;
+use wasmtime::{Caller, Extern, Func, Linker, Memory, Module, Store, Trap};
 
 #[derive(Default)]
 struct CoreState {
@@ -64,7 +64,12 @@ fn get_slice(mem: &Memory, ptr: u32, len: u32) -> std::result::Result<&[u8], Tra
         mem.data_unchecked()
             .get(ptr as u32 as usize..)
             .and_then(|arr| arr.get(..len as usize))
-            .ok_or_else(|| Trap::new(format!("Could not get slice with pointer {} and length {}.", ptr, len)))
+            .ok_or_else(|| {
+                Trap::new(format!(
+                    "Could not get slice with pointer {} and length {}.",
+                    ptr, len
+                ))
+            })
     }
 }
 
@@ -96,7 +101,8 @@ impl CoreAndGame {
         {
             let core_clone = core.clone();
             linker.func("oam", "set", move |index: u32, oam_entry: u32| {
-                core_clone.borrow_mut()
+                core_clone
+                    .borrow_mut()
                     .oam_set((index as u8).into(), oam_entry.into());
             })?;
         }
@@ -104,29 +110,35 @@ impl CoreAndGame {
         {
             let core_clone = core.clone();
             linker.func("ocm", "load", move |index: u32, rom_block: u64| {
-                core_clone.borrow_mut()
+                core_clone
+                    .borrow_mut()
                     .ocm_load((index as u8).into(), rom_block.into());
             })?;
         }
 
         {
             let core_clone = core.clone();
-            linker.func("logger", "info", move |caller: Caller<'_>, ptr: u32, len: u32| {
-                let mem = get_memory(&caller)?;
-                let message = get_str(get_slice(&mem, ptr, len)?)?;
+            linker.func(
+                "logger",
+                "info",
+                move |caller: Caller<'_>, ptr: u32, len: u32| {
+                    let mem = get_memory(&caller)?;
+                    let message = get_str(get_slice(&mem, ptr, len)?)?;
 
-                core_clone.borrow_mut()
-                    .log_info(message);
+                    core_clone.borrow_mut().log_info(message);
 
-                Ok(())
-            })?;
+                    Ok(())
+                },
+            )?;
         }
 
         let instance = linker.instantiate(&module)?;
 
         let create_instance = instance
             .get_func("create_instance")
-            .ok_or(anyhow::format_err!("failed to find `create_instance` function export"))?
+            .ok_or(anyhow::format_err!(
+                "failed to find `create_instance` function export"
+            ))?
             .get0::<u32>()?;
 
         let instance_ptr = create_instance()?;
@@ -185,7 +197,11 @@ impl RomData {
         let payload = module
             .custom_sections()
             .find(|sect| sect.name() == ROM_DATA)
-            .ok_or(anyhow::Error::msg(format!("Could not find rom data (custom section '{}') in {}.", ROM_DATA, path.as_ref().display())))?
+            .ok_or(anyhow::Error::msg(format!(
+                "Could not find rom data (custom section '{}') in {}.",
+                ROM_DATA,
+                path.as_ref().display()
+            )))?
             .payload();
         Ok(Self::new(Vec::from(payload)))
     }

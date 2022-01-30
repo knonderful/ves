@@ -1,11 +1,11 @@
 mod movie;
 
-use std::collections::VecDeque;
-use std::time::Instant;
+use crate::movie::Movie;
+use art_extractor_core::geom_art::ArtworkSpaceUnit;
 use chrono::{DateTime, Local};
 use eframe::{egui, epi};
-use art_extractor_core::geom_art::ArtworkSpaceUnit;
-use crate::movie::Movie;
+use std::collections::VecDeque;
+use std::time::Instant;
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 enum MainMode {
@@ -89,7 +89,8 @@ impl epi::App for ArtDirectorApp {
                 ui.with_layout(egui::Layout::right_to_left(), |ui| {
                     egui::global_dark_light_mode_switch(ui);
 
-                    let log_toggle = ui.add(egui::Button::new("📋").frame(false))
+                    let log_toggle = ui
+                        .add(egui::Button::new("📋").frame(false))
                         .on_hover_text("Toggle application log");
                     if log_toggle.clicked() {
                         self.show_log = !self.show_log;
@@ -99,39 +100,40 @@ impl epi::App for ArtDirectorApp {
         });
 
         if self.show_log {
-            egui::TopBottomPanel::bottom("application_log").height_range(100.0..=100.0).show(ctx, |ui| {
-                egui::ScrollArea::both().stick_to_bottom().show(ui, |ui| {
-                    egui::Grid::new("log_grid").striped(true).max_col_width(f32::INFINITY).show(ui, |ui| {
-                        for entry in self.log.iter() {
-                            ui.label(entry.timestamp.format("%H:%M:%S").to_string());
-                            ui.label(entry.message.as_str());
-                            ui.end_row();
-                        }
+            egui::TopBottomPanel::bottom("application_log")
+                .height_range(100.0..=100.0)
+                .show(ctx, |ui| {
+                    egui::ScrollArea::both().stick_to_bottom().show(ui, |ui| {
+                        egui::Grid::new("log_grid")
+                            .striped(true)
+                            .max_col_width(f32::INFINITY)
+                            .show(ui, |ui| {
+                                for entry in self.log.iter() {
+                                    ui.label(entry.timestamp.format("%H:%M:%S").to_string());
+                                    ui.label(entry.message.as_str());
+                                    ui.end_row();
+                                }
+                            });
                     });
-                });
 
-                // egui::ScrollArea::vertical().stick_to_bottom().show(ui, |ui| {
-                //     // The '&mut log.as_str()' makes it a read-only TextBuffer
-                //     ui.add(egui::TextEdit::multiline(&mut log.as_str())
-                //         .text_style(LOG_FONT)
-                //         .desired_width(f32::INFINITY));
-                // });
-            });
+                    // egui::ScrollArea::vertical().stick_to_bottom().show(ui, |ui| {
+                    //     // The '&mut log.as_str()' makes it a read-only TextBuffer
+                    //     ui.add(egui::TextEdit::multiline(&mut log.as_str())
+                    //         .text_style(LOG_FONT)
+                    //         .desired_width(f32::INFINITY));
+                    // });
+                });
         }
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            match self.main_mode {
-                MainMode::Movie => {
-                    match self.movie {
-                        None => {
-                            ui.label("No movie loaded.");
-                        }
-                        Some(ref mut movie) => {
-                            movie.show(ui, current_instant);
-                        }
-                    }
+        egui::CentralPanel::default().show(ctx, |ui| match self.main_mode {
+            MainMode::Movie => match self.movie {
+                None => {
+                    ui.label("No movie loaded.");
                 }
-            }
+                Some(ref mut movie) => {
+                    movie.show(ui, current_instant);
+                }
+            },
         });
 
         // Resize the native window to be just the size we need it to be:
@@ -182,7 +184,6 @@ impl ToEgui for art_extractor_core::geom_art::Rect {
     }
 }
 
-
 impl ToEgui for art_extractor_core::geom_art::Size {
     type Out = egui::Vec2;
 
@@ -191,7 +192,6 @@ impl ToEgui for art_extractor_core::geom_art::Size {
         egui::Vec2::new(self.width.into_f32(), self.height.into_f32())
     }
 }
-
 
 fn main() {
     let options = eframe::NativeOptions::default();

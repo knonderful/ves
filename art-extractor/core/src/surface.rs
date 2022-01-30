@@ -2,7 +2,7 @@
 
 use std::fmt::Debug;
 use std::ops::{Add, Rem, Sub};
-use ves_geom::{Point, Rect, Size, FiniteRange, One};
+use ves_geom::{FiniteRange, One, Point, Rect, Size};
 
 /// A 2-dimensional surface.
 pub trait Surface<T> {
@@ -29,7 +29,7 @@ pub trait Offset {
 
 /// An [`Iterator`] factory for index offsets of a [`Surface`] axis (x or y).
 pub trait SurfaceAxisIterFactory<T> {
-    type IterType: Iterator<Item=T>;
+    type IterType: Iterator<Item = T>;
 
     /// Creates a new [`Iterator`].
     ///
@@ -43,7 +43,8 @@ pub trait SurfaceAxisIterFactory<T> {
     fn new_iter(min: T, max: T, limit: T) -> Result<Self::IterType, String>;
 }
 
-fn check_min_max<T>(min: T, max: T) -> Result<(), String> where
+fn check_min_max<T>(min: T, max: T) -> Result<(), String>
+where
     T: Copy + PartialEq + PartialOrd,
 {
     if min == max {
@@ -58,8 +59,9 @@ fn check_min_max<T>(min: T, max: T) -> Result<(), String> where
 /// A [`SurfaceAxisIterFactory`] with ascending iteration order and in which bounds are not checked.
 struct AscendingUnchecked;
 
-impl<T> SurfaceAxisIterFactory<T> for AscendingUnchecked where
-    T: Copy + PartialOrd + PartialEq + One + Add<Output=T>,
+impl<T> SurfaceAxisIterFactory<T> for AscendingUnchecked
+where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output = T>,
 {
     type IterType = FiniteRange<T>;
 
@@ -72,8 +74,9 @@ impl<T> SurfaceAxisIterFactory<T> for AscendingUnchecked where
 /// A [`SurfaceAxisIterFactory`] with descending iteration order and in which bounds are not checked.
 struct DescendingUnchecked;
 
-impl<T> SurfaceAxisIterFactory<T> for DescendingUnchecked where
-    T: Copy + PartialOrd + PartialEq + One + Add<Output=T> + Sub<Output=T>,
+impl<T> SurfaceAxisIterFactory<T> for DescendingUnchecked
+where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output = T> + Sub<Output = T>,
 {
     type IterType = std::iter::Rev<FiniteRange<T>>;
 
@@ -82,7 +85,8 @@ impl<T> SurfaceAxisIterFactory<T> for DescendingUnchecked where
     }
 }
 
-fn check_limit<T>(max: T, limit: T) -> Result<(), String> where
+fn check_limit<T>(max: T, limit: T) -> Result<(), String>
+where
     T: Copy + PartialEq + PartialOrd,
 {
     if max >= limit {
@@ -95,8 +99,9 @@ fn check_limit<T>(max: T, limit: T) -> Result<(), String> where
 /// A [`SurfaceAxisIterFactory`] with descending iteration order.
 pub struct Ascending;
 
-impl<T> SurfaceAxisIterFactory<T> for Ascending where
-    T: Copy + PartialOrd + PartialEq + One + Add<Output=T>,
+impl<T> SurfaceAxisIterFactory<T> for Ascending
+where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output = T>,
 {
     type IterType = FiniteRange<T>;
 
@@ -109,8 +114,9 @@ impl<T> SurfaceAxisIterFactory<T> for Ascending where
 /// A [`SurfaceAxisIterFactory`] with descending iteration order.
 pub struct Descending;
 
-impl<T> SurfaceAxisIterFactory<T> for Descending where
-    T: Copy + PartialOrd + PartialEq + One + Add<Output=T> + Sub<Output=T>,
+impl<T> SurfaceAxisIterFactory<T> for Descending
+where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output = T> + Sub<Output = T>,
 {
     type IterType = std::iter::Rev<FiniteRange<T>>;
 
@@ -131,9 +137,10 @@ impl<T, I> Modularizer<T, I> {
     }
 }
 
-impl<T, I> Iterator for Modularizer<T, I> where
-    T: Rem<Output=T> + Copy,
-    I: Iterator<Item=T>,
+impl<T, I> Iterator for Modularizer<T, I>
+where
+    T: Rem<Output = T> + Copy,
+    I: Iterator<Item = T>,
 {
     type Item = T;
 
@@ -142,36 +149,36 @@ impl<T, I> Iterator for Modularizer<T, I> where
     }
 }
 
-
 /// A [`SurfaceAxisIterFactory`] with ascending iteration order. This implementation will wrap-around on axis boundaries.
 pub struct AscendingWrap;
 
-impl<T> SurfaceAxisIterFactory<T> for AscendingWrap where
-    T: Copy + PartialOrd + PartialEq + One + Add<Output=T> + Rem<Output=T>,
+impl<T> SurfaceAxisIterFactory<T> for AscendingWrap
+where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output = T> + Rem<Output = T>,
 {
     type IterType = Modularizer<T, FiniteRange<T>>;
 
     fn new_iter(min: T, max: T, limit: T) -> Result<Self::IterType, String> {
-        AscendingUnchecked::new_iter(min, max, limit)
-            .map(|iter| Modularizer::new(iter, limit))
+        AscendingUnchecked::new_iter(min, max, limit).map(|iter| Modularizer::new(iter, limit))
     }
 }
 
 /// A [`SurfaceAxisIterFactory`] with descending iteration order. This implementation will wrap-around on axis boundaries.
 pub struct DescendingWrap;
 
-impl<T> SurfaceAxisIterFactory<T> for DescendingWrap where
-    T: Copy + PartialOrd + PartialEq + One + Add<Output=T> + Sub<Output=T> + Rem<Output=T>,
+impl<T> SurfaceAxisIterFactory<T> for DescendingWrap
+where
+    T: Copy + PartialOrd + PartialEq + One + Add<Output = T> + Sub<Output = T> + Rem<Output = T>,
 {
     type IterType = Modularizer<T, std::iter::Rev<FiniteRange<T>>>;
 
     fn new_iter(min: T, max: T, limit: T) -> Result<Self::IterType, String> {
-        DescendingUnchecked::new_iter(min, max, limit)
-            .map(|iter| Modularizer::new(iter, limit))
+        DescendingUnchecked::new_iter(min, max, limit).map(|iter| Modularizer::new(iter, limit))
     }
 }
 
-pub struct SurfaceIter<T, X = Ascending, Y = Ascending> where
+pub struct SurfaceIter<T, X = Ascending, Y = Ascending>
+where
     X: SurfaceAxisIterFactory<T>,
     Y: SurfaceAxisIterFactory<T>,
 {
@@ -184,7 +191,8 @@ pub struct SurfaceIter<T, X = Ascending, Y = Ascending> where
     last_y: T,
 }
 
-impl<T, X, Y> SurfaceIter<T, X, Y> where
+impl<T, X, Y> SurfaceIter<T, X, Y>
+where
     T: Copy + Debug + Into<usize>,
     X: SurfaceAxisIterFactory<T>,
     Y: SurfaceAxisIterFactory<T>,
@@ -194,21 +202,40 @@ impl<T, X, Y> SurfaceIter<T, X, Y> where
         let height = size_surf.height;
         let x_min = rect_view.min_x();
         let x_max = rect_view.max_x();
-        let x_iter = X::new_iter(x_min, x_max, width)
-            .map_err(|msg| format!("Could not create iterator for X-axis (min: {:?}, max: {:?}, limit: {:?}): {}", x_min, x_max, width, msg))?;
+        let x_iter = X::new_iter(x_min, x_max, width).map_err(|msg| {
+            format!(
+                "Could not create iterator for X-axis (min: {:?}, max: {:?}, limit: {:?}): {}",
+                x_min, x_max, width, msg
+            )
+        })?;
         let y_min = rect_view.min_y();
         let y_max = rect_view.max_y();
-        let mut y_iter = Y::new_iter(y_min, y_max, height)
-            .map_err(|msg| format!("Could not create iterator for Y-axis (min: {:?}, max: {:?}, limit: {:?}): {}", y_min, y_max, height, msg))?;
-        let last_y = y_iter.next().ok_or_else(|| "Expected at least one item in Y-iterator.")?;
+        let mut y_iter = Y::new_iter(y_min, y_max, height).map_err(|msg| {
+            format!(
+                "Could not create iterator for Y-axis (min: {:?}, max: {:?}, limit: {:?}): {}",
+                y_min, y_max, height, msg
+            )
+        })?;
+        let last_y = y_iter
+            .next()
+            .ok_or_else(|| "Expected at least one item in Y-iterator.")?;
         let y_usize: usize = last_y.into();
         let width_usize: usize = width.into();
         let row_offset = y_usize * width_usize;
-        Ok(Self { width, x_min, x_max, x_iter, y_iter, row_offset, last_y })
+        Ok(Self {
+            width,
+            x_min,
+            x_max,
+            x_iter,
+            y_iter,
+            row_offset,
+            last_y,
+        })
     }
 }
 
-impl<T, X, Y> SurfaceIter<T, X, Y> where
+impl<T, X, Y> SurfaceIter<T, X, Y>
+where
     T: Copy + Into<usize>,
     X: SurfaceAxisIterFactory<T>,
     Y: SurfaceAxisIterFactory<T>,
@@ -219,7 +246,7 @@ impl<T, X, Y> SurfaceIter<T, X, Y> where
             Some(x) => {
                 let x_usize: usize = x.into();
                 Some((Point::<T>::new(x, self.last_y), self.row_offset + x_usize))
-            },
+            }
             None => {
                 match self.y_iter.next() {
                     None => None,
@@ -239,7 +266,8 @@ impl<T, X, Y> SurfaceIter<T, X, Y> where
     }
 }
 
-impl<T, X, Y> Iterator for SurfaceIter<T, X, Y> where
+impl<T, X, Y> Iterator for SurfaceIter<T, X, Y>
+where
     T: Copy + Into<usize>,
     X: SurfaceAxisIterFactory<T>,
     Y: SurfaceAxisIterFactory<T>,
@@ -288,8 +316,23 @@ impl<T, X, Y> Iterator for SurfaceIter<T, X, Y> where
 ///     },
 /// ).unwrap();
 /// ```
-pub fn surface_iterate<T, F>(surf_size: Size<T>, select_rect: Rect<T>, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
-    T: Copy + PartialOrd + PartialEq + Add<Output=T> + Sub<Output=T> + Rem<Output=T> + Debug + Into<usize> + One,
+pub fn surface_iterate<T, F>(
+    surf_size: Size<T>,
+    select_rect: Rect<T>,
+    hflip: bool,
+    vflip: bool,
+    mut func: F,
+) -> Result<(), String>
+where
+    T: Copy
+        + PartialOrd
+        + PartialEq
+        + Add<Output = T>
+        + Sub<Output = T>
+        + Rem<Output = T>
+        + Debug
+        + Into<usize>
+        + One,
     F: FnMut(Point<T>, usize),
 {
     let x_wrap = select_rect.max_x() >= surf_size.width;
@@ -309,22 +352,54 @@ pub fn surface_iterate<T, F>(surf_size: Size<T>, select_rect: Rect<T>, hflip: bo
     //
     // NB: This table is generated by `test_module_fns::generate_surface_iterate_table()`.
     match (hflip, vflip, x_wrap, y_wrap) {
-        (false, false, false, false) => { process!(Ascending, Ascending); }
-        (false, false, false, true) => { process!(Ascending, AscendingWrap); }
-        (false, false, true, false) => { process!(AscendingWrap, Ascending); }
-        (false, false, true, true) => { process!(AscendingWrap, AscendingWrap); }
-        (false, true, false, false) => { process!(Ascending, Descending); }
-        (false, true, false, true) => { process!(Ascending, DescendingWrap); }
-        (false, true, true, false) => { process!(AscendingWrap, Descending); }
-        (false, true, true, true) => { process!(AscendingWrap, DescendingWrap); }
-        (true, false, false, false) => { process!(Descending, Ascending); }
-        (true, false, false, true) => { process!(Descending, AscendingWrap); }
-        (true, false, true, false) => { process!(DescendingWrap, Ascending); }
-        (true, false, true, true) => { process!(DescendingWrap, AscendingWrap); }
-        (true, true, false, false) => { process!(Descending, Descending); }
-        (true, true, false, true) => { process!(Descending, DescendingWrap); }
-        (true, true, true, false) => { process!(DescendingWrap, Descending); }
-        (true, true, true, true) => { process!(DescendingWrap, DescendingWrap); }
+        (false, false, false, false) => {
+            process!(Ascending, Ascending);
+        }
+        (false, false, false, true) => {
+            process!(Ascending, AscendingWrap);
+        }
+        (false, false, true, false) => {
+            process!(AscendingWrap, Ascending);
+        }
+        (false, false, true, true) => {
+            process!(AscendingWrap, AscendingWrap);
+        }
+        (false, true, false, false) => {
+            process!(Ascending, Descending);
+        }
+        (false, true, false, true) => {
+            process!(Ascending, DescendingWrap);
+        }
+        (false, true, true, false) => {
+            process!(AscendingWrap, Descending);
+        }
+        (false, true, true, true) => {
+            process!(AscendingWrap, DescendingWrap);
+        }
+        (true, false, false, false) => {
+            process!(Descending, Ascending);
+        }
+        (true, false, false, true) => {
+            process!(Descending, AscendingWrap);
+        }
+        (true, false, true, false) => {
+            process!(DescendingWrap, Ascending);
+        }
+        (true, false, true, true) => {
+            process!(DescendingWrap, AscendingWrap);
+        }
+        (true, true, false, false) => {
+            process!(Descending, Descending);
+        }
+        (true, true, false, true) => {
+            process!(Descending, DescendingWrap);
+        }
+        (true, true, true, false) => {
+            process!(DescendingWrap, Descending);
+        }
+        (true, true, true, true) => {
+            process!(DescendingWrap, DescendingWrap);
+        }
     }
 
     Ok(())
@@ -357,10 +432,16 @@ mod test_fn_surface_iterate {
             for vflip in BOOLS {
                 for x_wrap in BOOLS {
                     for y_wrap in BOOLS {
-                        println!("({}, {}, {}, {}) => {{ process!({}{}, {}{}); }}",
-                                 hflip, vflip, x_wrap, y_wrap,
-                                 direction(hflip), wrapping(x_wrap),
-                                 direction(vflip), wrapping(y_wrap),
+                        println!(
+                            "({}, {}, {}, {}) => {{ process!({}{}, {}{}); }}",
+                            hflip,
+                            vflip,
+                            x_wrap,
+                            y_wrap,
+                            direction(hflip),
+                            wrapping(x_wrap),
+                            direction(vflip),
+                            wrapping(y_wrap),
                         );
                     }
                 }
@@ -409,8 +490,25 @@ mod test_fn_surface_iterate {
 ///     },
 /// ).unwrap();
 /// ```
-pub fn surface_iterate_2<T, F>(a_surf_size: Size<T>, a_select_rect: Rect<T>, b_surf_size: Size<T>, b_select_origin: Point<T>, hflip: bool, vflip: bool, mut func: F) -> Result<(), String> where
-    T: Copy + PartialOrd + PartialEq + Add<Output=T> + Sub<Output=T> + Rem<Output=T> + Debug + Into<usize> + One,
+pub fn surface_iterate_2<T, F>(
+    a_surf_size: Size<T>,
+    a_select_rect: Rect<T>,
+    b_surf_size: Size<T>,
+    b_select_origin: Point<T>,
+    hflip: bool,
+    vflip: bool,
+    mut func: F,
+) -> Result<(), String>
+where
+    T: Copy
+        + PartialOrd
+        + PartialEq
+        + Add<Output = T>
+        + Sub<Output = T>
+        + Rem<Output = T>
+        + Debug
+        + Into<usize>
+        + One,
     F: FnMut(Point<T>, usize, Point<T>, usize),
 {
     let b_select_rect = Rect::<T>::new_from_size(b_select_origin, a_select_rect.size());
@@ -421,8 +519,10 @@ pub fn surface_iterate_2<T, F>(a_surf_size: Size<T>, a_select_rect: Rect<T>, b_s
 
     macro_rules! process {
         ($src_x_type:ty, $src_y_type:ty, $dest_x_type:ty, $dest_y_type:ty) => {
-            let a_iter = SurfaceIter::<T, $src_x_type, $src_y_type>::new(a_surf_size, a_select_rect)?;
-            let b_iter = SurfaceIter::<T, $dest_x_type, $dest_y_type>::new(b_surf_size, b_select_rect)?;
+            let a_iter =
+                SurfaceIter::<T, $src_x_type, $src_y_type>::new(a_surf_size, a_select_rect)?;
+            let b_iter =
+                SurfaceIter::<T, $dest_x_type, $dest_y_type>::new(b_surf_size, b_select_rect)?;
             for (a_tuple, b_tuple) in a_iter.zip(b_iter) {
                 func(a_tuple.0, a_tuple.1, b_tuple.0, b_tuple.1);
             }
@@ -435,71 +535,206 @@ pub fn surface_iterate_2<T, F>(a_surf_size: Size<T>, a_select_rect: Rect<T>, b_s
     // * Going through several `if`s that is required for the following table.
     //
     // NB: This table is generated by `test_module_fns::generate_surface_iterate_2_table()`.
-    match (hflip, vflip, src_x_wrap, src_y_wrap, dest_x_wrap, dest_y_wrap) {
-        (false, false, false, false, false, false) => { process!(Ascending, Ascending, Ascending, Ascending); }
-        (false, false, false, false, false, true) => { process!(Ascending, Ascending, Ascending, AscendingWrap); }
-        (false, false, false, false, true, false) => { process!(Ascending, Ascending, AscendingWrap, Ascending); }
-        (false, false, false, false, true, true) => { process!(Ascending, Ascending, AscendingWrap, AscendingWrap); }
-        (false, false, false, true, false, false) => { process!(Ascending, AscendingWrap, Ascending, Ascending); }
-        (false, false, false, true, false, true) => { process!(Ascending, AscendingWrap, Ascending, AscendingWrap); }
-        (false, false, false, true, true, false) => { process!(Ascending, AscendingWrap, AscendingWrap, Ascending); }
-        (false, false, false, true, true, true) => { process!(Ascending, AscendingWrap, AscendingWrap, AscendingWrap); }
-        (false, false, true, false, false, false) => { process!(AscendingWrap, Ascending, Ascending, Ascending); }
-        (false, false, true, false, false, true) => { process!(AscendingWrap, Ascending, Ascending, AscendingWrap); }
-        (false, false, true, false, true, false) => { process!(AscendingWrap, Ascending, AscendingWrap, Ascending); }
-        (false, false, true, false, true, true) => { process!(AscendingWrap, Ascending, AscendingWrap, AscendingWrap); }
-        (false, false, true, true, false, false) => { process!(AscendingWrap, AscendingWrap, Ascending, Ascending); }
-        (false, false, true, true, false, true) => { process!(AscendingWrap, AscendingWrap, Ascending, AscendingWrap); }
-        (false, false, true, true, true, false) => { process!(AscendingWrap, AscendingWrap, AscendingWrap, Ascending); }
-        (false, false, true, true, true, true) => { process!(AscendingWrap, AscendingWrap, AscendingWrap, AscendingWrap); }
-        (false, true, false, false, false, false) => { process!(Ascending, Descending, Ascending, Ascending); }
-        (false, true, false, false, false, true) => { process!(Ascending, Descending, Ascending, AscendingWrap); }
-        (false, true, false, false, true, false) => { process!(Ascending, Descending, AscendingWrap, Ascending); }
-        (false, true, false, false, true, true) => { process!(Ascending, Descending, AscendingWrap, AscendingWrap); }
-        (false, true, false, true, false, false) => { process!(Ascending, DescendingWrap, Ascending, Ascending); }
-        (false, true, false, true, false, true) => { process!(Ascending, DescendingWrap, Ascending, AscendingWrap); }
-        (false, true, false, true, true, false) => { process!(Ascending, DescendingWrap, AscendingWrap, Ascending); }
-        (false, true, false, true, true, true) => { process!(Ascending, DescendingWrap, AscendingWrap, AscendingWrap); }
-        (false, true, true, false, false, false) => { process!(AscendingWrap, Descending, Ascending, Ascending); }
-        (false, true, true, false, false, true) => { process!(AscendingWrap, Descending, Ascending, AscendingWrap); }
-        (false, true, true, false, true, false) => { process!(AscendingWrap, Descending, AscendingWrap, Ascending); }
-        (false, true, true, false, true, true) => { process!(AscendingWrap, Descending, AscendingWrap, AscendingWrap); }
-        (false, true, true, true, false, false) => { process!(AscendingWrap, DescendingWrap, Ascending, Ascending); }
-        (false, true, true, true, false, true) => { process!(AscendingWrap, DescendingWrap, Ascending, AscendingWrap); }
-        (false, true, true, true, true, false) => { process!(AscendingWrap, DescendingWrap, AscendingWrap, Ascending); }
-        (false, true, true, true, true, true) => { process!(AscendingWrap, DescendingWrap, AscendingWrap, AscendingWrap); }
-        (true, false, false, false, false, false) => { process!(Descending, Ascending, Ascending, Ascending); }
-        (true, false, false, false, false, true) => { process!(Descending, Ascending, Ascending, AscendingWrap); }
-        (true, false, false, false, true, false) => { process!(Descending, Ascending, AscendingWrap, Ascending); }
-        (true, false, false, false, true, true) => { process!(Descending, Ascending, AscendingWrap, AscendingWrap); }
-        (true, false, false, true, false, false) => { process!(Descending, AscendingWrap, Ascending, Ascending); }
-        (true, false, false, true, false, true) => { process!(Descending, AscendingWrap, Ascending, AscendingWrap); }
-        (true, false, false, true, true, false) => { process!(Descending, AscendingWrap, AscendingWrap, Ascending); }
-        (true, false, false, true, true, true) => { process!(Descending, AscendingWrap, AscendingWrap, AscendingWrap); }
-        (true, false, true, false, false, false) => { process!(DescendingWrap, Ascending, Ascending, Ascending); }
-        (true, false, true, false, false, true) => { process!(DescendingWrap, Ascending, Ascending, AscendingWrap); }
-        (true, false, true, false, true, false) => { process!(DescendingWrap, Ascending, AscendingWrap, Ascending); }
-        (true, false, true, false, true, true) => { process!(DescendingWrap, Ascending, AscendingWrap, AscendingWrap); }
-        (true, false, true, true, false, false) => { process!(DescendingWrap, AscendingWrap, Ascending, Ascending); }
-        (true, false, true, true, false, true) => { process!(DescendingWrap, AscendingWrap, Ascending, AscendingWrap); }
-        (true, false, true, true, true, false) => { process!(DescendingWrap, AscendingWrap, AscendingWrap, Ascending); }
-        (true, false, true, true, true, true) => { process!(DescendingWrap, AscendingWrap, AscendingWrap, AscendingWrap); }
-        (true, true, false, false, false, false) => { process!(Descending, Descending, Ascending, Ascending); }
-        (true, true, false, false, false, true) => { process!(Descending, Descending, Ascending, AscendingWrap); }
-        (true, true, false, false, true, false) => { process!(Descending, Descending, AscendingWrap, Ascending); }
-        (true, true, false, false, true, true) => { process!(Descending, Descending, AscendingWrap, AscendingWrap); }
-        (true, true, false, true, false, false) => { process!(Descending, DescendingWrap, Ascending, Ascending); }
-        (true, true, false, true, false, true) => { process!(Descending, DescendingWrap, Ascending, AscendingWrap); }
-        (true, true, false, true, true, false) => { process!(Descending, DescendingWrap, AscendingWrap, Ascending); }
-        (true, true, false, true, true, true) => { process!(Descending, DescendingWrap, AscendingWrap, AscendingWrap); }
-        (true, true, true, false, false, false) => { process!(DescendingWrap, Descending, Ascending, Ascending); }
-        (true, true, true, false, false, true) => { process!(DescendingWrap, Descending, Ascending, AscendingWrap); }
-        (true, true, true, false, true, false) => { process!(DescendingWrap, Descending, AscendingWrap, Ascending); }
-        (true, true, true, false, true, true) => { process!(DescendingWrap, Descending, AscendingWrap, AscendingWrap); }
-        (true, true, true, true, false, false) => { process!(DescendingWrap, DescendingWrap, Ascending, Ascending); }
-        (true, true, true, true, false, true) => { process!(DescendingWrap, DescendingWrap, Ascending, AscendingWrap); }
-        (true, true, true, true, true, false) => { process!(DescendingWrap, DescendingWrap, AscendingWrap, Ascending); }
-        (true, true, true, true, true, true) => { process!(DescendingWrap, DescendingWrap, AscendingWrap, AscendingWrap); }
+    match (
+        hflip,
+        vflip,
+        src_x_wrap,
+        src_y_wrap,
+        dest_x_wrap,
+        dest_y_wrap,
+    ) {
+        (false, false, false, false, false, false) => {
+            process!(Ascending, Ascending, Ascending, Ascending);
+        }
+        (false, false, false, false, false, true) => {
+            process!(Ascending, Ascending, Ascending, AscendingWrap);
+        }
+        (false, false, false, false, true, false) => {
+            process!(Ascending, Ascending, AscendingWrap, Ascending);
+        }
+        (false, false, false, false, true, true) => {
+            process!(Ascending, Ascending, AscendingWrap, AscendingWrap);
+        }
+        (false, false, false, true, false, false) => {
+            process!(Ascending, AscendingWrap, Ascending, Ascending);
+        }
+        (false, false, false, true, false, true) => {
+            process!(Ascending, AscendingWrap, Ascending, AscendingWrap);
+        }
+        (false, false, false, true, true, false) => {
+            process!(Ascending, AscendingWrap, AscendingWrap, Ascending);
+        }
+        (false, false, false, true, true, true) => {
+            process!(Ascending, AscendingWrap, AscendingWrap, AscendingWrap);
+        }
+        (false, false, true, false, false, false) => {
+            process!(AscendingWrap, Ascending, Ascending, Ascending);
+        }
+        (false, false, true, false, false, true) => {
+            process!(AscendingWrap, Ascending, Ascending, AscendingWrap);
+        }
+        (false, false, true, false, true, false) => {
+            process!(AscendingWrap, Ascending, AscendingWrap, Ascending);
+        }
+        (false, false, true, false, true, true) => {
+            process!(AscendingWrap, Ascending, AscendingWrap, AscendingWrap);
+        }
+        (false, false, true, true, false, false) => {
+            process!(AscendingWrap, AscendingWrap, Ascending, Ascending);
+        }
+        (false, false, true, true, false, true) => {
+            process!(AscendingWrap, AscendingWrap, Ascending, AscendingWrap);
+        }
+        (false, false, true, true, true, false) => {
+            process!(AscendingWrap, AscendingWrap, AscendingWrap, Ascending);
+        }
+        (false, false, true, true, true, true) => {
+            process!(AscendingWrap, AscendingWrap, AscendingWrap, AscendingWrap);
+        }
+        (false, true, false, false, false, false) => {
+            process!(Ascending, Descending, Ascending, Ascending);
+        }
+        (false, true, false, false, false, true) => {
+            process!(Ascending, Descending, Ascending, AscendingWrap);
+        }
+        (false, true, false, false, true, false) => {
+            process!(Ascending, Descending, AscendingWrap, Ascending);
+        }
+        (false, true, false, false, true, true) => {
+            process!(Ascending, Descending, AscendingWrap, AscendingWrap);
+        }
+        (false, true, false, true, false, false) => {
+            process!(Ascending, DescendingWrap, Ascending, Ascending);
+        }
+        (false, true, false, true, false, true) => {
+            process!(Ascending, DescendingWrap, Ascending, AscendingWrap);
+        }
+        (false, true, false, true, true, false) => {
+            process!(Ascending, DescendingWrap, AscendingWrap, Ascending);
+        }
+        (false, true, false, true, true, true) => {
+            process!(Ascending, DescendingWrap, AscendingWrap, AscendingWrap);
+        }
+        (false, true, true, false, false, false) => {
+            process!(AscendingWrap, Descending, Ascending, Ascending);
+        }
+        (false, true, true, false, false, true) => {
+            process!(AscendingWrap, Descending, Ascending, AscendingWrap);
+        }
+        (false, true, true, false, true, false) => {
+            process!(AscendingWrap, Descending, AscendingWrap, Ascending);
+        }
+        (false, true, true, false, true, true) => {
+            process!(AscendingWrap, Descending, AscendingWrap, AscendingWrap);
+        }
+        (false, true, true, true, false, false) => {
+            process!(AscendingWrap, DescendingWrap, Ascending, Ascending);
+        }
+        (false, true, true, true, false, true) => {
+            process!(AscendingWrap, DescendingWrap, Ascending, AscendingWrap);
+        }
+        (false, true, true, true, true, false) => {
+            process!(AscendingWrap, DescendingWrap, AscendingWrap, Ascending);
+        }
+        (false, true, true, true, true, true) => {
+            process!(AscendingWrap, DescendingWrap, AscendingWrap, AscendingWrap);
+        }
+        (true, false, false, false, false, false) => {
+            process!(Descending, Ascending, Ascending, Ascending);
+        }
+        (true, false, false, false, false, true) => {
+            process!(Descending, Ascending, Ascending, AscendingWrap);
+        }
+        (true, false, false, false, true, false) => {
+            process!(Descending, Ascending, AscendingWrap, Ascending);
+        }
+        (true, false, false, false, true, true) => {
+            process!(Descending, Ascending, AscendingWrap, AscendingWrap);
+        }
+        (true, false, false, true, false, false) => {
+            process!(Descending, AscendingWrap, Ascending, Ascending);
+        }
+        (true, false, false, true, false, true) => {
+            process!(Descending, AscendingWrap, Ascending, AscendingWrap);
+        }
+        (true, false, false, true, true, false) => {
+            process!(Descending, AscendingWrap, AscendingWrap, Ascending);
+        }
+        (true, false, false, true, true, true) => {
+            process!(Descending, AscendingWrap, AscendingWrap, AscendingWrap);
+        }
+        (true, false, true, false, false, false) => {
+            process!(DescendingWrap, Ascending, Ascending, Ascending);
+        }
+        (true, false, true, false, false, true) => {
+            process!(DescendingWrap, Ascending, Ascending, AscendingWrap);
+        }
+        (true, false, true, false, true, false) => {
+            process!(DescendingWrap, Ascending, AscendingWrap, Ascending);
+        }
+        (true, false, true, false, true, true) => {
+            process!(DescendingWrap, Ascending, AscendingWrap, AscendingWrap);
+        }
+        (true, false, true, true, false, false) => {
+            process!(DescendingWrap, AscendingWrap, Ascending, Ascending);
+        }
+        (true, false, true, true, false, true) => {
+            process!(DescendingWrap, AscendingWrap, Ascending, AscendingWrap);
+        }
+        (true, false, true, true, true, false) => {
+            process!(DescendingWrap, AscendingWrap, AscendingWrap, Ascending);
+        }
+        (true, false, true, true, true, true) => {
+            process!(DescendingWrap, AscendingWrap, AscendingWrap, AscendingWrap);
+        }
+        (true, true, false, false, false, false) => {
+            process!(Descending, Descending, Ascending, Ascending);
+        }
+        (true, true, false, false, false, true) => {
+            process!(Descending, Descending, Ascending, AscendingWrap);
+        }
+        (true, true, false, false, true, false) => {
+            process!(Descending, Descending, AscendingWrap, Ascending);
+        }
+        (true, true, false, false, true, true) => {
+            process!(Descending, Descending, AscendingWrap, AscendingWrap);
+        }
+        (true, true, false, true, false, false) => {
+            process!(Descending, DescendingWrap, Ascending, Ascending);
+        }
+        (true, true, false, true, false, true) => {
+            process!(Descending, DescendingWrap, Ascending, AscendingWrap);
+        }
+        (true, true, false, true, true, false) => {
+            process!(Descending, DescendingWrap, AscendingWrap, Ascending);
+        }
+        (true, true, false, true, true, true) => {
+            process!(Descending, DescendingWrap, AscendingWrap, AscendingWrap);
+        }
+        (true, true, true, false, false, false) => {
+            process!(DescendingWrap, Descending, Ascending, Ascending);
+        }
+        (true, true, true, false, false, true) => {
+            process!(DescendingWrap, Descending, Ascending, AscendingWrap);
+        }
+        (true, true, true, false, true, false) => {
+            process!(DescendingWrap, Descending, AscendingWrap, Ascending);
+        }
+        (true, true, true, false, true, true) => {
+            process!(DescendingWrap, Descending, AscendingWrap, AscendingWrap);
+        }
+        (true, true, true, true, false, false) => {
+            process!(DescendingWrap, DescendingWrap, Ascending, Ascending);
+        }
+        (true, true, true, true, false, true) => {
+            process!(DescendingWrap, DescendingWrap, Ascending, AscendingWrap);
+        }
+        (true, true, true, true, true, false) => {
+            process!(DescendingWrap, DescendingWrap, AscendingWrap, Ascending);
+        }
+        (true, true, true, true, true, true) => {
+            process!(DescendingWrap, DescendingWrap, AscendingWrap, AscendingWrap);
+        }
     }
 
     Ok(())

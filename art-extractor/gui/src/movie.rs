@@ -263,6 +263,7 @@ pub struct Movie {
     playback_state: PlaybackState,
     playback_repeat: bool,
     current_frame: Option<(usize, MovieFrame)>,
+    control_messages: Vec<MovieControlMessage>,
 }
 
 impl Movie {
@@ -281,6 +282,7 @@ impl Movie {
             playback_state: PlaybackState::Paused,
             playback_repeat: false,
             current_frame: None,
+            control_messages: Vec::with_capacity(16),
         }
     }
 
@@ -298,7 +300,9 @@ impl Movie {
     }
 
     pub fn update(&mut self, ctx: &egui::Context, current_instant: Instant) -> bool {
-        // TODO: Process enqueued MovieControlMessages here, instead of directly in the show() call.
+        while let Some(msg) = self.control_messages.pop() {
+            self.handle_control_message(msg, current_instant);
+        }
 
         match &self.playback_state {
             PlaybackState::Paused => {}
@@ -341,36 +345,38 @@ impl Movie {
         true
     }
 
-    pub fn show(&mut self, ui: &mut egui::Ui, current_instant: Instant) {
-        // TODO: It is probably better to enqueue the messages somewhere and not process them until update(). Especially since external
-        //       entities might want to enqueue messages (like global hotkey handlers).
+    fn handle_control_message(&mut self, msg: MovieControlMessage, current_instant: Instant) {
+        match msg {
+            MovieControlMessage::Play => {
+                self.play(current_instant);
+            }
+            MovieControlMessage::Pause => {
+                self.pause();
+            }
+            MovieControlMessage::SkipBackward(count) => {
+                self.frame_cursor.move_backward(count);
+            }
+            MovieControlMessage::SkipForward(count) => {
+                self.frame_cursor.move_forward(count);
+            }
+            MovieControlMessage::Jump(msg) => match msg {
+                JumpMessage::Start => self.frame_cursor.reset(),
+                JumpMessage::End => {
+                    self.frame_cursor.move_forward(usize::MAX);
+                }
+            },
+            MovieControlMessage::SetRepeat(val) => {
+                self.playback_repeat = val;
+            }
+        }
+    }
+
+    pub fn show(&mut self, ui: &mut egui::Ui) {
         egui::TopBottomPanel::bottom("movie_controls").show(ui.ctx(), |ui| {
             MovieControls::new(
                 self.playback_state.clone(),
                 self.playback_repeat,
-                |msg: MovieControlMessage| match msg {
-                    MovieControlMessage::Play => {
-                        self.play(current_instant);
-                    }
-                    MovieControlMessage::Pause => {
-                        self.pause();
-                    }
-                    MovieControlMessage::SkipBackward(count) => {
-                        self.frame_cursor.move_backward(count);
-                    }
-                    MovieControlMessage::SkipForward(count) => {
-                        self.frame_cursor.move_forward(count);
-                    }
-                    MovieControlMessage::Jump(msg) => match msg {
-                        JumpMessage::Start => self.frame_cursor.reset(),
-                        JumpMessage::End => {
-                            self.frame_cursor.move_forward(usize::MAX);
-                        }
-                    },
-                    MovieControlMessage::SetRepeat(val) => {
-                        self.playback_repeat = val;
-                    }
-                },
+                |msg| self.control_messages.push(msg),
             )
             .show(ui);
         });

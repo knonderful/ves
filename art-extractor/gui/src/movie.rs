@@ -20,32 +20,36 @@ struct MovieFrame<'a> {
 
 const ZOOM: f32 = 2.0;
 
+fn zoom_vec2(ui: &egui::Ui) -> egui::Vec2 {
+    (ZOOM / ui.ctx().pixels_per_point()) * ui.available_size()
+}
+
+fn correct_uv(rect: egui::Rect, hflip: bool, vflip: bool) -> egui::Rect {
+    if hflip {
+        if vflip {
+            egui::Rect::from_min_max(rect.max, rect.min)
+        } else {
+            egui::Rect::from_min_max(
+                egui::pos2(rect.max.x, rect.min.y),
+                egui::pos2(rect.min.x, rect.max.y),
+            )
+        }
+    } else {
+        if vflip {
+            egui::Rect::from_min_max(
+                egui::pos2(rect.min.x, rect.max.y),
+                egui::pos2(rect.max.x, rect.min.y),
+            )
+        } else {
+            rect
+        }
+    }
+}
+
 impl<'a> MovieFrame<'a> {
     /// Creates a new instance.
     pub fn new(sprites: &'a [Sprite]) -> Self {
         Self { sprites }
-    }
-
-    fn correct_uv(rect: egui::Rect, hflip: bool, vflip: bool) -> egui::Rect {
-        if hflip {
-            if vflip {
-                egui::Rect::from_min_max(rect.max, rect.min)
-            } else {
-                egui::Rect::from_min_max(
-                    egui::pos2(rect.max.x, rect.min.y),
-                    egui::pos2(rect.min.x, rect.max.y),
-                )
-            }
-        } else {
-            if vflip {
-                egui::Rect::from_min_max(
-                    egui::pos2(rect.min.x, rect.max.y),
-                    egui::pos2(rect.max.x, rect.min.y),
-                )
-            } else {
-                rect
-            }
-        }
     }
 
     pub fn show(
@@ -67,7 +71,7 @@ impl<'a> MovieFrame<'a> {
         //       here we correct our calculations by dividing by pixels_per_point.
         let to_rect = egui::Rect::from_min_size(
             ui.clip_rect().min + egui::vec2(-viewport.left(), -viewport.top()),
-            (ZOOM / ui.ctx().pixels_per_point()) * ui.available_size(),
+            zoom_vec2(ui),
         );
         let transform = egui::emath::RectTransform::from_to(from_rect, to_rect);
 
@@ -83,7 +87,7 @@ impl<'a> MovieFrame<'a> {
                 RectIntersection::None => {
                     let rect = transform.transform_rect(egui_sprite_rect);
                     let image = egui::Image::new(&sprite.texture, rect.size())
-                        .uv(Self::correct_uv(DEFAULT_UV, sprite.hflip, sprite.vflip));
+                        .uv(correct_uv(DEFAULT_UV, sprite.hflip, sprite.vflip));
 
                     ui.put(rect, image);
                 }
@@ -111,7 +115,7 @@ impl<'a> MovieFrame<'a> {
                         let uv =
                             egui::Rect::from_min_max(egui::pos2(u_x, u_y), egui::pos2(v_x, v_y));
                         let image = egui::Image::new(&sprite.texture, dest_rect.size())
-                            .uv(Self::correct_uv(uv, sprite.hflip, sprite.vflip));
+                            .uv(correct_uv(uv, sprite.hflip, sprite.vflip));
 
                         ui.put(dest_rect, image);
                     });

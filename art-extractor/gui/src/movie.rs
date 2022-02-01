@@ -19,6 +19,7 @@ struct MovieFrame<'a> {
 }
 
 const ZOOM: f32 = 2.0;
+const DEFAULT_UV: egui::Rect = egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
 
 fn zoom_vec2(ui: &egui::Ui) -> egui::Vec2 {
     (ZOOM / ui.ctx().pixels_per_point()) * ui.available_size()
@@ -76,9 +77,6 @@ impl<'a> MovieFrame<'a> {
         let transform = egui::emath::RectTransform::from_to(from_rect, to_rect);
 
         let intersect_pos = screen_size.as_rect().max;
-
-        const DEFAULT_UV: egui::Rect =
-            egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
 
         self.sprites.iter().for_each(|sprite| {
             let egui_sprite_rect = sprite.rect.to_egui();

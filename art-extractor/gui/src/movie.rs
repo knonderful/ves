@@ -381,6 +381,12 @@ impl Movie {
             if let Some((_, frame)) = &self.current_frame {
                 let screen_size = self.movie.screen_size();
                 let movie_frame_size = screen_size.to_egui() * ZOOM;
+
+                // Set a reasonable minimal size. This also results in good defaults (currently).
+                let scrollbar_width = ui.style().spacing.scroll_bar_width;
+                // TODO: Add something like "visible area" to Movie and use that here, instead.
+                ui.set_min_size(egui::vec2(256.0, 224.0) * ZOOM + egui::vec2(scrollbar_width, scrollbar_width));
+
                 egui::ScrollArea::both()
                     .auto_shrink([false, false])
                     .always_show_scroll(true)

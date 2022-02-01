@@ -84,8 +84,11 @@ impl<'a> MovieFrame<'a> {
                 // No intersections; this means the sprite fits entirely on the screen
                 RectIntersection::None => {
                     let rect = transform.transform_rect(egui_sprite_rect);
-                    let image = egui::Image::new(&sprite.texture, rect.size())
-                        .uv(correct_uv(DEFAULT_UV, sprite.hflip, sprite.vflip));
+                    let image = egui::Image::new(&sprite.texture, rect.size()).uv(correct_uv(
+                        DEFAULT_UV,
+                        sprite.hflip,
+                        sprite.vflip,
+                    ));
 
                     ui.put(rect, image);
                 }

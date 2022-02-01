@@ -14,70 +14,15 @@ struct Sprite {
     vflip: bool,
 }
 
-struct MovieFrame {
-    sprites: Vec<Sprite>,
+struct MovieFrame<'a> {
+    sprites: &'a [Sprite],
 }
 
 const ZOOM: f32 = 2.0;
 
-impl MovieFrame {
+impl<'a> MovieFrame<'a> {
     /// Creates a new instance.
-    ///
-    /// This should normally only be called when a new movie frame is to be rendered. Otherwise this instance should be reused between
-    /// renderings.
-    pub fn new(
-        ctx: &egui::Context,
-        palettes: &impl Index<PaletteRef, Output = Palette>,
-        tiles: &impl Index<TileRef, Output = Tile>,
-        movie_frame: &art_extractor_core::movie::MovieFrame,
-    ) -> Self {
-        let mut sprites = Vec::with_capacity(movie_frame.sprites().len());
-        for sprite in movie_frame.sprites().iter().rev() {
-            let palette = &palettes[sprite.palette()];
-            let tile = &tiles[sprite.tile()];
-            let surf = tile.surface();
-            let surf_data = surf.data();
-
-            let mut raw_image = vec![0u8; surf.data().len() * 4]; // 4 bytes per pixel (RGBA)
-            let mut raw_image_idx: usize = 0;
-
-            art_extractor_core::surface::surface_iterate(
-                surf.size(),
-                surf.size().as_rect(),
-                false, // We do flipping in the mesh/Image instead of in the texture (using UV)
-                false,
-                |_, idx| {
-                    let color = &palette[surf_data[idx]];
-
-                    let col_data = match color {
-                        Color::Opaque(col) => [col.r, col.g, col.b, 0xff],
-                        Color::Transparent => [0x00, 0x00, 0x00, 0x00],
-                    };
-
-                    raw_image[raw_image_idx..raw_image_idx + 4].copy_from_slice(&col_data);
-                    raw_image_idx += 4;
-                },
-            )
-            .unwrap();
-
-            let w: usize = surf.size().width.raw().try_into().unwrap();
-            let h: usize = surf.size().height.raw().try_into().unwrap();
-            let color_image = ColorImage::from_rgba_unmultiplied([w, h], &raw_image);
-
-            let texture = ctx.load_texture("something", ImageData::Color(color_image));
-            let rect =
-                art_extractor_core::geom_art::Rect::new_from_size(sprite.position(), surf.size());
-
-            let gui_sprite = Sprite {
-                rect,
-                texture,
-                hflip: sprite.h_flip(),
-                vflip: sprite.v_flip(),
-            };
-
-            sprites.push(gui_sprite);
-        }
-
+    pub fn new(sprites: &'a [Sprite]) -> Self {
         Self { sprites }
     }
 
@@ -262,7 +207,7 @@ pub struct Movie {
     frame_duration: Duration,
     playback_state: PlaybackState,
     playback_repeat: bool,
-    current_frame: Option<(usize, MovieFrame)>,
+    current_frame: Option<(usize, Vec<Sprite>)>,
     control_messages: Vec<MovieControlMessage>,
 }
 
@@ -328,6 +273,60 @@ impl Movie {
         // true
     }
 
+    fn extract_sprites(
+        ctx: &egui::Context,
+        palettes: &impl Index<PaletteRef, Output = Palette>,
+        tiles: &impl Index<TileRef, Output = Tile>,
+        movie_frame: &art_extractor_core::movie::MovieFrame,
+        sprites: &mut Vec<Sprite>,
+    ) {
+        for sprite in movie_frame.sprites().iter().rev() {
+            let palette = &palettes[sprite.palette()];
+            let tile = &tiles[sprite.tile()];
+            let surf = tile.surface();
+            let surf_data = surf.data();
+
+            let mut raw_image = vec![0u8; surf.data().len() * 4]; // 4 bytes per pixel (RGBA)
+            let mut raw_image_idx: usize = 0;
+
+            art_extractor_core::surface::surface_iterate(
+                surf.size(),
+                surf.size().as_rect(),
+                false, // We do flipping in the mesh/Image instead of in the texture (using UV)
+                false,
+                |_, idx| {
+                    let color = &palette[surf_data[idx]];
+
+                    let col_data = match color {
+                        Color::Opaque(col) => [col.r, col.g, col.b, 0xff],
+                        Color::Transparent => [0x00, 0x00, 0x00, 0x00],
+                    };
+
+                    raw_image[raw_image_idx..raw_image_idx + 4].copy_from_slice(&col_data);
+                    raw_image_idx += 4;
+                },
+            )
+            .unwrap();
+
+            let w: usize = surf.size().width.raw().try_into().unwrap();
+            let h: usize = surf.size().height.raw().try_into().unwrap();
+            let color_image = ColorImage::from_rgba_unmultiplied([w, h], &raw_image);
+
+            let texture = ctx.load_texture("something", ImageData::Color(color_image));
+            let rect =
+                art_extractor_core::geom_art::Rect::new_from_size(sprite.position(), surf.size());
+
+            let gui_sprite = Sprite {
+                rect,
+                texture,
+                hflip: sprite.h_flip(),
+                vflip: sprite.v_flip(),
+            };
+
+            sprites.push(gui_sprite);
+        }
+    }
+
     fn render_frame(&mut self, ctx: &egui::Context) -> bool {
         let pos = self.frame_cursor.position();
         // Only render the frame if the position has changed
@@ -340,8 +339,17 @@ impl Movie {
         let palettes = SliceCache::new(self.movie.palettes());
         let tiles = SliceCache::new(self.movie.tiles());
         let movie_frame = &self.movie.frames()[pos];
-        let frame = MovieFrame::new(ctx, &palettes, &tiles, movie_frame);
-        self.current_frame = Some((pos, frame));
+
+        let mut sprites = if let Some((_, mut sprites)) = self.current_frame.take() {
+            sprites.clear();
+            sprites
+        } else {
+            Vec::with_capacity(movie_frame.sprites().len())
+        };
+
+        Self::extract_sprites(ctx, &palettes, &tiles, movie_frame, &mut sprites);
+        self.current_frame = Some((pos, sprites));
+
         true
     }
 
@@ -385,7 +393,9 @@ impl Movie {
                 // Set a reasonable minimal size. This also results in good defaults (currently).
                 let scrollbar_width = ui.style().spacing.scroll_bar_width;
                 // TODO: Add something like "visible area" to Movie and use that here, instead.
-                ui.set_min_size(egui::vec2(256.0, 224.0) * ZOOM + egui::vec2(scrollbar_width, scrollbar_width));
+                ui.set_min_size(
+                    egui::vec2(256.0, 224.0) * ZOOM + egui::vec2(scrollbar_width, scrollbar_width),
+                );
 
                 egui::ScrollArea::both()
                     .auto_shrink([false, false])
@@ -393,7 +403,8 @@ impl Movie {
                     .show_viewport(ui, |ui, viewport| {
                         // Make sure the movie canvas doesn't shrink too far
                         ui.set_min_size(movie_frame_size);
-                        frame.show(ui, screen_size, viewport);
+
+                        MovieFrame::new(&frame).show(ui, screen_size, viewport);
                     });
             }
         });

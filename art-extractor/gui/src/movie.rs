@@ -275,7 +275,6 @@ impl Movie {
         }
 
         self.render_frame(ctx)
-        // true
     }
 
     fn extract_sprites(

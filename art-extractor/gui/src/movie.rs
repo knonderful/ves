@@ -121,7 +121,7 @@ impl MovieFrame {
         //       application, which would work, but then the UI of the application would not scale with what the user is "used to". Instead,
         //       here we correct our calculations by dividing by pixels_per_point.
         let to_rect = egui::Rect::from_min_size(
-            egui::pos2(-viewport.left(), -viewport.top()),
+            ui.clip_rect().min + egui::vec2(-viewport.left(), -viewport.top()),
             (ZOOM / ui.ctx().pixels_per_point()) * ui.available_size(),
         );
         let transform = egui::emath::RectTransform::from_to(from_rect, to_rect);

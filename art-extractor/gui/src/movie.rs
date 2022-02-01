@@ -372,15 +372,17 @@ impl Movie {
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui) {
-        ui.vertical(|ui| {
+        ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
+            MovieControls::new(self.playback_state.clone(), self.playback_repeat, |msg| {
+                self.control_messages.push(msg)
+            })
+            .show(ui);
+
             if let Some((_, frame)) = &self.current_frame {
                 let screen_size = self.movie.screen_size();
                 let movie_frame_size = screen_size.to_egui() * ZOOM;
-                let scrollbar_width = ui.style().spacing.scroll_bar_width;
                 egui::ScrollArea::both()
-                    // TODO: Add something like "visible area" to input Movie and use that, instead.
-                    .max_width(ZOOM * 256.0 + scrollbar_width)
-                    .max_height(ZOOM * 224.0 + scrollbar_width)
+                    .auto_shrink([false, false])
                     .always_show_scroll(true)
                     .show_viewport(ui, |ui, viewport| {
                         // Make sure the movie canvas doesn't shrink too far
@@ -388,10 +390,6 @@ impl Movie {
                         frame.show(ui, screen_size, viewport);
                     });
             }
-            MovieControls::new(self.playback_state.clone(), self.playback_repeat, |msg| {
-                self.control_messages.push(msg)
-            })
-            .show(ui);
         });
     }
 }

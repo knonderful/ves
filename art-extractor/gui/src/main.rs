@@ -127,7 +127,6 @@ impl epi::App for ArtDirectorApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             egui::Window::new("Movie")
-                .auto_sized()
                 .show(ui.ctx(), |ui| match self.main_mode {
                     MainMode::Movie => match self.movie {
                         None => {

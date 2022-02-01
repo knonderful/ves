@@ -125,15 +125,19 @@ impl epi::App for ArtDirectorApp {
                 });
         }
 
-        egui::CentralPanel::default().show(ctx, |ui| match self.main_mode {
-            MainMode::Movie => match self.movie {
-                None => {
-                    ui.label("No movie loaded.");
-                }
-                Some(ref mut movie) => {
-                    movie.show(ui);
-                }
-            },
+        egui::CentralPanel::default().show(ctx, |ui| {
+            egui::Window::new("Movie")
+                .auto_sized()
+                .show(ui.ctx(), |ui| match self.main_mode {
+                    MainMode::Movie => match self.movie {
+                        None => {
+                            ui.label("No movie loaded.");
+                        }
+                        Some(ref mut movie) => {
+                            movie.show(ui);
+                        }
+                    },
+                });
         });
 
         // Resize the native window to be just the size we need it to be:

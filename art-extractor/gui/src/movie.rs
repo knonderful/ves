@@ -78,7 +78,7 @@ impl<'a> MovieFrame<'a> {
 
         let intersect_pos = screen_size.as_rect().max;
 
-        self.sprites.iter().for_each(|sprite| {
+        self.sprites.iter().rev().for_each(|sprite| {
             let egui_sprite_rect = sprite.rect.to_egui();
             match sprite.rect.intersect_point(intersect_pos) {
                 // No intersections; this means the sprite fits entirely on the screen
@@ -285,7 +285,7 @@ impl Movie {
         movie_frame: &art_extractor_core::movie::MovieFrame,
         sprites: &mut Vec<Sprite>,
     ) {
-        for sprite in movie_frame.sprites().iter().rev() {
+        for sprite in movie_frame.sprites().iter() {
             let palette = &palettes[sprite.palette()];
             let tile = &tiles[sprite.tile()];
             let surf = tile.surface();

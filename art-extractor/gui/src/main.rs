@@ -1,6 +1,6 @@
 mod movie;
 
-use crate::movie::Movie;
+use crate::movie::{Movie, SpriteTable};
 use art_extractor_core::geom_art::ArtworkSpaceUnit;
 use chrono::{DateTime, Local};
 use eframe::{egui, epi};
@@ -126,17 +126,27 @@ impl epi::App for ArtDirectorApp {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            egui::Window::new("Movie")
-                .show(ui.ctx(), |ui| match self.main_mode {
-                    MainMode::Movie => match self.movie {
-                        None => {
-                            ui.label("No movie loaded.");
-                        }
-                        Some(ref mut movie) => {
-                            movie.show(ui);
-                        }
-                    },
-                });
+            egui::Window::new("Movie").show(ui.ctx(), |ui| match self.main_mode {
+                MainMode::Movie => match &mut self.movie {
+                    None => {
+                        ui.label("No movie loaded.");
+                    }
+                    Some(movie) => {
+                        movie.show(ui);
+                    }
+                },
+            });
+
+            egui::Window::new("Sprites").show(ui.ctx(), |ui| {
+                match self.movie.as_ref().and_then(|movie| movie.sprites()) {
+                    None => {
+                        ui.label("No movie loaded.");
+                    }
+                    Some(sprites) => {
+                        SpriteTable::new(sprites, 8).show(ui);
+                    }
+                }
+            });
         });
 
         // Resize the native window to be just the size we need it to be:

@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use ves_cache::SliceCache;
 use ves_geom::RectIntersection;
 
-struct GuiMovieFrameSprite {
+struct Sprite {
     rect: art_extractor_core::geom_art::Rect,
     texture: egui::TextureHandle,
     hflip: bool,
@@ -15,7 +15,7 @@ struct GuiMovieFrameSprite {
 }
 
 struct MovieFrame {
-    sprites: Vec<GuiMovieFrameSprite>,
+    sprites: Vec<Sprite>,
 }
 
 const ZOOM: f32 = 2.0;
@@ -68,7 +68,7 @@ impl MovieFrame {
             let rect =
                 art_extractor_core::geom_art::Rect::new_from_size(sprite.position(), surf.size());
 
-            let gui_sprite = GuiMovieFrameSprite {
+            let gui_sprite = Sprite {
                 rect,
                 texture,
                 hflip: sprite.h_flip(),

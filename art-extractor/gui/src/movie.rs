@@ -390,26 +390,35 @@ impl Movie {
             })
             .show(ui);
 
+            // Some space between controls and render window
+            ui.add_space(8.0);
+
             if let Some((_, frame)) = &self.current_frame {
                 let screen_size = self.movie.screen_size();
                 let movie_frame_size = screen_size.to_egui() * ZOOM;
 
                 // Set a reasonable minimal size. This also results in good defaults (currently).
                 let scrollbar_width = ui.style().spacing.scroll_bar_width;
-                // TODO: Add something like "visible area" to Movie and use that here, instead.
-                ui.set_min_size(
+                ui.allocate_ui(
                     egui::vec2(256.0, 224.0) * ZOOM + egui::vec2(scrollbar_width, scrollbar_width),
+                    |ui| {
+                        egui::ScrollArea::both()
+                            .auto_shrink([false, false])
+                            .always_show_scroll(true)
+                            .show_viewport(ui, |ui, viewport| {
+                                // Make sure the movie canvas doesn't shrink too far
+                                ui.set_min_size(movie_frame_size);
+
+                                MovieFrame::new(&frame).show(ui, screen_size, viewport);
+                            });
+                    },
                 );
 
-                egui::ScrollArea::both()
-                    .auto_shrink([false, false])
-                    .always_show_scroll(true)
-                    .show_viewport(ui, |ui, viewport| {
-                        // Make sure the movie canvas doesn't shrink too far
-                        ui.set_min_size(movie_frame_size);
-
-                        MovieFrame::new(&frame).show(ui, screen_size, viewport);
-                    });
+                // HACK: This seems to be necessary to prevent the scroll area from rendering into
+                //       the window header.
+                ui.add_space(8.0);
+            } else {
+                ui.label("No movie frame available.");
             }
         });
     }

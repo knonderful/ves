@@ -389,7 +389,7 @@ impl Movie {
                     .auto_shrink([false, false])
                     .always_show_scroll(true)
                     .show_viewport(ui, |ui, viewport| {
-                        // Make sure the movie window doesn't shrink too far
+                        // Make sure the movie canvas doesn't shrink too far
                         ui.set_min_size(movie_frame_size);
                         frame.show(ui, screen_size, viewport);
                     });

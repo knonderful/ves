@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 use ves_cache::SliceCache;
 use ves_geom::RectIntersection;
 
-struct Sprite {
+pub struct Sprite {
     rect: art_extractor_core::geom_art::Rect,
     texture: egui::TextureHandle,
     hflip: bool,
@@ -413,6 +413,14 @@ impl Movie {
                     });
             }
         });
+    }
+
+    pub fn sprites(&self) -> Option<&[Sprite]> {
+        if let Some((_, sprites)) = &self.current_frame {
+            Some(sprites.as_slice())
+        } else {
+            None
+        }
     }
 }
 

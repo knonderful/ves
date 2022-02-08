@@ -2,6 +2,7 @@ use crate::egui::{ColorImage, ImageData};
 use crate::{egui, ToEgui};
 use art_extractor_core::sprite::{Color, Palette, PaletteRef, Tile, TileRef};
 use art_extractor_core::surface::Surface;
+use std::default::Default;
 use std::ops::Index;
 use std::time::{Duration, Instant};
 use ves_cache::SliceCache;
@@ -214,6 +215,55 @@ pub struct Movie {
     playback_repeat: bool,
     current_frame: Option<(usize, Vec<Sprite>)>,
     control_messages: Vec<MovieControlMessage>,
+    drag_state: DragState,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum DragEvent {
+    NoDrag,
+    Start(egui::Pos2),
+    Update(egui::Rect),
+    Finished(egui::Rect),
+}
+
+#[derive(Clone, Debug)]
+struct DragState {
+    /// The positions for the drag. The first item is the start position, the second the last known
+    /// position.
+    positions: Option<(egui::Pos2, egui::Pos2)>,
+}
+
+impl Default for DragState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl DragState {
+    fn new() -> Self {
+        Self { positions: None }
+    }
+
+    fn update(&mut self, response: &egui::Response) -> DragEvent {
+        if response.dragged_by(egui::PointerButton::Primary) {
+            let new_pos = response.interact_pointer_pos().unwrap();
+            match self.positions {
+                None => {
+                    self.positions = Some((new_pos, new_pos));
+                    DragEvent::Start(new_pos)
+                }
+                Some((start, ref mut current)) => {
+                    *current = new_pos;
+                    DragEvent::Update(egui::Rect::from_two_pos(start, *current))
+                }
+            }
+        } else {
+            match self.positions.take() {
+                None => DragEvent::NoDrag,
+                Some((start, end)) => DragEvent::Finished(egui::Rect::from_two_pos(start, end)),
+            }
+        }
+    }
 }
 
 impl Movie {
@@ -233,6 +283,7 @@ impl Movie {
             playback_repeat: false,
             current_frame: None,
             control_messages: Vec::with_capacity(16),
+            drag_state: Default::default(),
         }
     }
 
@@ -410,6 +461,31 @@ impl Movie {
                                 ui.set_min_size(movie_frame_size);
 
                                 MovieFrame::new(&frame).show(ui, screen_size, viewport);
+
+                                // This also "steals" the interaction of the parent, which in this
+                                // case causes the ScrollArea not to scroll on drag (which is what
+                                // we want).
+                                let response = ui.interact(
+                                    ui.min_rect(),
+                                    ui.id(),
+                                    egui::Sense::click_and_drag(),
+                                );
+
+                                match self.drag_state.update(&response) {
+                                    DragEvent::NoDrag => {}
+                                    DragEvent::Start(_) => {}
+                                    DragEvent::Update(rect) => {
+                                        ui.painter().rect_stroke(
+                                            rect,
+                                            0.0,
+                                            egui::Stroke::new(
+                                                ui.ctx().pixels_per_point(),
+                                                egui::Color32::from_rgb(255, 255, 255),
+                                            ),
+                                        );
+                                    }
+                                    DragEvent::Finished(_) => {}
+                                }
                             });
                     },
                 );

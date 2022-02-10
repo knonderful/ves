@@ -99,10 +99,19 @@ impl<'a> MovieFrame<'a> {
                         let egui_rect = rect.to_egui();
                         let width = egui_sprite_rect.width();
                         let height = egui_sprite_rect.height();
-                        let u_x = (egui_rect.min.x - egui_sprite_rect.min.x) / width;
-                        let u_y = (egui_rect.min.y - egui_sprite_rect.min.y) / height;
-                        let v_x = (egui_rect.max.x - egui_sprite_rect.min.x) / width;
-                        let v_y = (egui_rect.max.y - egui_sprite_rect.min.y) / height;
+                        let mut u_x = (egui_rect.min.x - egui_sprite_rect.min.x) / width;
+                        let mut u_y = (egui_rect.min.y - egui_sprite_rect.min.y) / height;
+                        let mut v_x = (egui_rect.max.x - egui_sprite_rect.min.x) / width;
+                        let mut v_y = (egui_rect.max.y - egui_sprite_rect.min.y) / height;
+
+                        if sprite.hflip {
+                            u_x = 1.0 - u_x;
+                            v_x = 1.0 - v_x;
+                        }
+                        if sprite.vflip {
+                            u_y = 1.0 - u_y;
+                            v_y = 1.0 - v_y;
+                        }
 
                         let egui_dest_rect = art_extractor_core::geom_art::Rect::new_from_size(
                             (
@@ -114,10 +123,9 @@ impl<'a> MovieFrame<'a> {
                         .to_egui();
 
                         let dest_rect = transform.transform_rect(egui_dest_rect);
-                        let uv =
-                            egui::Rect::from_min_max(egui::pos2(u_x, u_y), egui::pos2(v_x, v_y));
-                        let image = egui::Image::new(&sprite.texture, dest_rect.size())
-                            .uv(correct_uv(uv, sprite.hflip, sprite.vflip));
+                        let image = egui::Image::new(&sprite.texture, dest_rect.size()).uv(
+                            egui::Rect::from_min_max(egui::pos2(u_x, u_y), egui::pos2(v_x, v_y)),
+                        );
 
                         ui.put(dest_rect, image);
                     });

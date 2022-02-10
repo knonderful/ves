@@ -60,8 +60,6 @@ impl<'a> MovieFrame<'a> {
         screen_size: art_extractor_core::geom_art::Size,
         viewport: egui::Rect,
     ) {
-        // TODO: The scaling is not pixel-perfect by default. This has to do with the texture filtering in the rendering component.
-        //       Currently this requires a hack in egui_glow, since there is no way for the application code to control this.
         // TODO: It seems like the UI adds spacing of an extra 8px when an image is exactly on the edge, causing the scrollbars to resize
         //       when a sprite wraps around.
 

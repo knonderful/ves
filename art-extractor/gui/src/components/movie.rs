@@ -2,11 +2,8 @@ use super::sprite::Sprite;
 use crate::components::cursor::Cursor;
 use crate::components::mouse::MouseInteractionTracker;
 use crate::egui;
-use crate::egui::{ColorImage, ImageData};
+use crate::egui::ImageData;
 use crate::ToEgui as _;
-use art_extractor_core::sprite::{Color, Palette, PaletteRef, Tile, TileRef};
-use art_extractor_core::surface::Surface;
-use std::ops::Index;
 use std::time::{Duration, Instant};
 use ves_cache::SliceCache;
 use ves_geom::RectIntersection;
@@ -158,60 +155,6 @@ impl Movie {
         self.render_frame(ctx)
     }
 
-    fn extract_sprites(
-        ctx: &egui::Context,
-        palettes: &impl Index<PaletteRef, Output = Palette>,
-        tiles: &impl Index<TileRef, Output = Tile>,
-        movie_frame: &art_extractor_core::movie::MovieFrame,
-        sprites: &mut Vec<Sprite>,
-    ) {
-        for sprite in movie_frame.sprites().iter() {
-            let palette = &palettes[sprite.palette()];
-            let tile = &tiles[sprite.tile()];
-            let surf = tile.surface();
-            let surf_data = surf.data();
-
-            let mut raw_image = vec![0u8; surf.data().len() * 4]; // 4 bytes per pixel (RGBA)
-            let mut raw_image_idx: usize = 0;
-
-            art_extractor_core::surface::surface_iterate(
-                surf.size(),
-                surf.size().as_rect(),
-                false, // We do flipping in the mesh/Image instead of in the texture (using UV)
-                false,
-                |_, idx| {
-                    let color = &palette[surf_data[idx]];
-
-                    let col_data = match color {
-                        Color::Opaque(col) => [col.r, col.g, col.b, 0xff],
-                        Color::Transparent => [0x00, 0x00, 0x00, 0x00],
-                    };
-
-                    raw_image[raw_image_idx..raw_image_idx + 4].copy_from_slice(&col_data);
-                    raw_image_idx += 4;
-                },
-            )
-            .unwrap();
-
-            let w: usize = surf.size().width.raw().try_into().unwrap();
-            let h: usize = surf.size().height.raw().try_into().unwrap();
-            let color_image = ColorImage::from_rgba_unmultiplied([w, h], &raw_image);
-
-            let texture = ctx.load_texture("something", ImageData::Color(color_image));
-            let rect =
-                art_extractor_core::geom_art::Rect::new_from_size(sprite.position(), surf.size());
-
-            let gui_sprite = Sprite {
-                rect,
-                texture,
-                hflip: sprite.h_flip(),
-                vflip: sprite.v_flip(),
-            };
-
-            sprites.push(gui_sprite);
-        }
-    }
-
     fn render_frame(&mut self, ctx: &egui::Context) -> bool {
         let pos = self.frame_cursor.position();
         // Only render the frame if the position has changed
@@ -232,7 +175,13 @@ impl Movie {
             Vec::with_capacity(movie_frame.sprites().len())
         };
 
-        Self::extract_sprites(ctx, &palettes, &tiles, movie_frame, &mut sprites);
+        for sprite in movie_frame.sprites().iter() {
+            let gui_sprite = Sprite::create(sprite, &palettes, &tiles, |color_image| {
+                ctx.load_texture("something", ImageData::Color(color_image))
+            });
+            sprites.push(gui_sprite);
+        }
+
         self.current_frame = Some((pos, sprites));
 
         true

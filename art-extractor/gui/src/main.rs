@@ -1,6 +1,7 @@
-mod movie;
+mod components;
 
-use crate::movie::{Movie, SpriteTable};
+use crate::components::movie::Movie;
+use crate::components::sprite_table::SpriteTable;
 use art_extractor_core::geom_art::ArtworkSpaceUnit;
 use chrono::{DateTime, Local};
 use eframe::{egui, epi};

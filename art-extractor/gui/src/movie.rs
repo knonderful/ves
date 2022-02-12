@@ -226,7 +226,6 @@ pub struct Movie {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum DragEvent {
-    NoDrag,
     Start(egui::Pos2),
     Update(egui::Rect),
     Finished(egui::Rect),
@@ -250,10 +249,10 @@ impl DragState {
         Self { positions: None }
     }
 
-    fn update(&mut self, response: &egui::Response) -> DragEvent {
+    fn update(&mut self, response: &egui::Response) -> Option<DragEvent> {
         if response.dragged_by(egui::PointerButton::Primary) {
             let new_pos = response.interact_pointer_pos().unwrap();
-            match self.positions {
+            Some(match self.positions {
                 None => {
                     self.positions = Some((new_pos, new_pos));
                     DragEvent::Start(new_pos)
@@ -262,11 +261,13 @@ impl DragState {
                     *current = new_pos;
                     DragEvent::Update(egui::Rect::from_two_pos(start, *current))
                 }
-            }
+            })
         } else {
             match self.positions.take() {
-                None => DragEvent::NoDrag,
-                Some((start, end)) => DragEvent::Finished(egui::Rect::from_two_pos(start, end)),
+                None => None,
+                Some((start, end)) => {
+                    Some(DragEvent::Finished(egui::Rect::from_two_pos(start, end)))
+                }
             }
         }
     }
@@ -477,20 +478,21 @@ impl Movie {
                                     egui::Sense::click_and_drag(),
                                 );
 
-                                match self.drag_state.update(&response) {
-                                    DragEvent::NoDrag => {}
-                                    DragEvent::Start(_) => {}
-                                    DragEvent::Update(rect) => {
-                                        ui.painter().rect_stroke(
-                                            rect,
-                                            0.0,
-                                            egui::Stroke::new(
-                                                ui.ctx().pixels_per_point(),
-                                                egui::Color32::from_rgb(255, 255, 255),
-                                            ),
-                                        );
+                                if let Some(event) = self.drag_state.update(&response) {
+                                    match event {
+                                        DragEvent::Start(_) => {}
+                                        DragEvent::Update(rect) => {
+                                            ui.painter().rect_stroke(
+                                                rect,
+                                                0.0,
+                                                egui::Stroke::new(
+                                                    ui.ctx().pixels_per_point(),
+                                                    egui::Color32::from_rgb(255, 255, 255),
+                                                ),
+                                            );
+                                        }
+                                        DragEvent::Finished(_) => {}
                                     }
-                                    DragEvent::Finished(_) => {}
                                 }
                             });
                     },

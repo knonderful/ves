@@ -47,33 +47,15 @@ impl<'a> MovieFrame<'a> {
         let intersect_pos = screen_size.as_rect().max;
 
         self.sprites.iter().rev().for_each(|sprite| {
-            let egui_sprite_rect = sprite.rect.to_egui();
             match sprite.rect.intersect_point(intersect_pos) {
                 // No intersections; this means the sprite fits entirely on the screen
                 RectIntersection::None => {
-                    let rect = transform.transform_rect(egui_sprite_rect);
+                    let rect = transform.transform_rect(sprite.rect.to_egui());
                     ui.put(rect, sprite.to_image(rect.size()));
                 }
                 // Treat all other cases generically
                 intersection => {
                     intersection.for_each(|rect| {
-                        let egui_rect = rect.to_egui();
-                        let width = egui_sprite_rect.width();
-                        let height = egui_sprite_rect.height();
-                        let mut u_x = (egui_rect.min.x - egui_sprite_rect.min.x) / width;
-                        let mut u_y = (egui_rect.min.y - egui_sprite_rect.min.y) / height;
-                        let mut v_x = (egui_rect.max.x - egui_sprite_rect.min.x) / width;
-                        let mut v_y = (egui_rect.max.y - egui_sprite_rect.min.y) / height;
-
-                        if sprite.hflip {
-                            u_x = 1.0 - u_x;
-                            v_x = 1.0 - v_x;
-                        }
-                        if sprite.vflip {
-                            u_y = 1.0 - u_y;
-                            v_y = 1.0 - v_y;
-                        }
-
                         let egui_dest_rect = art_extractor_core::geom_art::Rect::new_from_size(
                             (
                                 rect.min_x() % screen_size.width,
@@ -84,9 +66,8 @@ impl<'a> MovieFrame<'a> {
                         .to_egui();
 
                         let dest_rect = transform.transform_rect(egui_dest_rect);
-                        let image = egui::Image::new(&sprite.texture, dest_rect.size()).uv(
-                            egui::Rect::from_min_max(egui::pos2(u_x, u_y), egui::pos2(v_x, v_y)),
-                        );
+                        let image = egui::Image::new(&sprite.texture, dest_rect.size())
+                            .uv(sprite.partial_uv(rect));
 
                         ui.put(dest_rect, image);
                     });

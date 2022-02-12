@@ -16,33 +16,6 @@ struct MovieFrame<'a> {
 }
 
 const ZOOM: f32 = 2.0;
-pub const DEFAULT_UV: egui::Rect = egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
-
-pub fn zoom_vec2(ui: &egui::Ui) -> egui::Vec2 {
-    (ZOOM / ui.ctx().pixels_per_point()) * ui.available_size()
-}
-
-pub fn correct_uv(rect: egui::Rect, hflip: bool, vflip: bool) -> egui::Rect {
-    if hflip {
-        if vflip {
-            egui::Rect::from_min_max(rect.max, rect.min)
-        } else {
-            egui::Rect::from_min_max(
-                egui::pos2(rect.max.x, rect.min.y),
-                egui::pos2(rect.min.x, rect.max.y),
-            )
-        }
-    } else {
-        if vflip {
-            egui::Rect::from_min_max(
-                egui::pos2(rect.min.x, rect.max.y),
-                egui::pos2(rect.max.x, rect.min.y),
-            )
-        } else {
-            rect
-        }
-    }
-}
 
 impl<'a> MovieFrame<'a> {
     /// Creates a new instance.
@@ -67,7 +40,7 @@ impl<'a> MovieFrame<'a> {
         //       here we correct our calculations by dividing by pixels_per_point.
         let to_rect = egui::Rect::from_min_size(
             ui.clip_rect().min + egui::vec2(-viewport.left(), -viewport.top()),
-            zoom_vec2(ui),
+            super::zoom_vec2(ui, ZOOM),
         );
         let transform = egui::emath::RectTransform::from_to(from_rect, to_rect);
 
@@ -79,13 +52,7 @@ impl<'a> MovieFrame<'a> {
                 // No intersections; this means the sprite fits entirely on the screen
                 RectIntersection::None => {
                     let rect = transform.transform_rect(egui_sprite_rect);
-                    let image = egui::Image::new(&sprite.texture, rect.size()).uv(correct_uv(
-                        DEFAULT_UV,
-                        sprite.hflip,
-                        sprite.vflip,
-                    ));
-
-                    ui.put(rect, image);
+                    ui.put(rect, sprite.to_image(rect.size()));
                 }
                 // Treat all other cases generically
                 intersection => {

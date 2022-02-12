@@ -1,7 +1,8 @@
-use crate::components::movie::{correct_uv, DEFAULT_UV, zoom_vec2};
 use crate::components::sprite::Sprite;
 use crate::egui;
 use crate::ToEgui as _;
+
+const ZOOM: f32 = 2.0;
 
 pub struct SpriteTable<'a> {
     sprites: &'a [Sprite],
@@ -18,19 +19,15 @@ impl<'a> SpriteTable<'a> {
             .spacing(egui::vec2(2.0, 2.0))
             .show(ui, |ui| {
                 let from_rect = egui::Rect::from_min_size(egui::Pos2::ZERO, ui.available_size());
-                let to_rect = egui::Rect::from_min_size(egui::Pos2::ZERO, zoom_vec2(ui));
+                let to_rect =
+                    egui::Rect::from_min_size(egui::Pos2::ZERO, super::zoom_vec2(ui, ZOOM));
                 let transform = egui::emath::RectTransform::from_to(from_rect, to_rect);
 
                 self.sprites.iter().enumerate().for_each(|(idx, sprite)| {
                     let egui_sprite_rect = sprite.rect.to_egui();
 
                     let rect = transform.transform_rect(egui_sprite_rect);
-                    let image = egui::Image::new(&sprite.texture, rect.size()).uv(correct_uv(
-                        DEFAULT_UV,
-                        sprite.hflip,
-                        sprite.vflip,
-                    ));
-                    ui.add(image);
+                    ui.add(sprite.to_image(rect.size()));
 
                     if idx > 0 && idx % self.columns == 0 {
                         ui.end_row()

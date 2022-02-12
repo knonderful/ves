@@ -8,18 +8,12 @@ use eframe::{egui, epi};
 use std::collections::VecDeque;
 use std::time::Instant;
 
-#[derive(Debug, Eq, PartialEq, Clone)]
-enum MainMode {
-    Movie,
-}
-
 struct LogEntry {
     timestamp: DateTime<Local>,
     message: String,
 }
 
 struct ArtDirectorApp {
-    main_mode: MainMode,
     show_log: bool,
     log: VecDeque<LogEntry>,
     movie: Option<Movie>,
@@ -28,7 +22,6 @@ struct ArtDirectorApp {
 impl Default for ArtDirectorApp {
     fn default() -> Self {
         Self {
-            main_mode: MainMode::Movie,
             show_log: false,
             log: Default::default(),
             movie: None,
@@ -82,10 +75,6 @@ impl epi::App for ArtDirectorApp {
 
         egui::TopBottomPanel::top("main_menu").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                // Mode selection items
-                ui.with_layout(egui::Layout::left_to_right(), |ui| {
-                    ui.selectable_value(&mut self.main_mode, MainMode::Movie, "Movie");
-                });
                 // Mini menu icons
                 ui.with_layout(egui::Layout::right_to_left(), |ui| {
                     egui::global_dark_light_mode_switch(ui);
@@ -127,15 +116,13 @@ impl epi::App for ArtDirectorApp {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            egui::Window::new("Movie").show(ui.ctx(), |ui| match self.main_mode {
-                MainMode::Movie => match &mut self.movie {
-                    None => {
-                        ui.label("No movie loaded.");
-                    }
-                    Some(movie) => {
-                        movie.show(ui);
-                    }
-                },
+            egui::Window::new("Movie").show(ui.ctx(), |ui| match &mut self.movie {
+                None => {
+                    ui.label("No movie loaded.");
+                }
+                Some(movie) => {
+                    movie.show(ui);
+                }
             });
 
             egui::Window::new("Sprites").show(ui.ctx(), |ui| {

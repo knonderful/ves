@@ -221,7 +221,31 @@ pub struct Movie {
     playback_repeat: bool,
     current_frame: Option<(usize, Vec<Sprite>)>,
     control_messages: Vec<MovieControlMessage>,
+    mouse_tracker: MouseInteractionTracker,
+}
+
+#[derive(Clone, Debug, Default)]
+struct MouseInteractionTracker {
     drag_state: DragState,
+}
+
+impl MouseInteractionTracker {
+    pub fn update(&mut self, response: &egui::Response) -> Option<MouseInteraction> {
+        if response.clicked() {
+            self.drag_state.reset();
+            // Since the response was clicked, this *must* be Some, hence the unwrap.
+            let pos = response.interact_pointer_pos().unwrap();
+            Some(MouseInteraction::Click(pos))
+        } else {
+            self.drag_state.update(response).map(MouseInteraction::Drag)
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum MouseInteraction {
+    Click(egui::Pos2),
+    Drag(DragEvent),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -231,26 +255,21 @@ enum DragEvent {
     Finished(egui::Rect),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 struct DragState {
     /// The positions for the drag. The first item is the start position, the second the last known
     /// position.
     positions: Option<(egui::Pos2, egui::Pos2)>,
 }
 
-impl Default for DragState {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl DragState {
-    fn new() -> Self {
-        Self { positions: None }
+    fn reset(&mut self) {
+        self.positions.take();
     }
 
     fn update(&mut self, response: &egui::Response) -> Option<DragEvent> {
         if response.dragged_by(egui::PointerButton::Primary) {
+            // Since the response was dragged, this *must* be Some, hence the unwrap.
             let new_pos = response.interact_pointer_pos().unwrap();
             Some(match self.positions {
                 None => {
@@ -290,7 +309,7 @@ impl Movie {
             playback_repeat: false,
             current_frame: None,
             control_messages: Vec::with_capacity(16),
-            drag_state: Default::default(),
+            mouse_tracker: Default::default(),
         }
     }
 
@@ -478,20 +497,23 @@ impl Movie {
                                     egui::Sense::click_and_drag(),
                                 );
 
-                                if let Some(event) = self.drag_state.update(&response) {
+                                if let Some(event) = self.mouse_tracker.update(&response) {
                                     match event {
-                                        DragEvent::Start(_) => {}
-                                        DragEvent::Update(rect) => {
-                                            ui.painter().rect_stroke(
-                                                rect,
-                                                0.0,
-                                                egui::Stroke::new(
-                                                    ui.ctx().pixels_per_point(),
-                                                    egui::Color32::from_rgb(255, 255, 255),
-                                                ),
-                                            );
-                                        }
-                                        DragEvent::Finished(_) => {}
+                                        MouseInteraction::Click(_) => { /* do nothing for now */ }
+                                        MouseInteraction::Drag(event) => match event {
+                                            DragEvent::Start(_) => {}
+                                            DragEvent::Update(rect) => {
+                                                ui.painter().rect_stroke(
+                                                    rect,
+                                                    0.0,
+                                                    egui::Stroke::new(
+                                                        ui.ctx().pixels_per_point(),
+                                                        egui::Color32::from_rgb(255, 255, 255),
+                                                    ),
+                                                );
+                                            }
+                                            DragEvent::Finished(_) => {}
+                                        },
                                     }
                                 }
                             });

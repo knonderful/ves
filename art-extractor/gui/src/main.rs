@@ -63,7 +63,7 @@ impl epi::App for ArtDirectorApp {
             match bincode::deserialize_from::<_, art_extractor_core::movie::Movie>(file) {
                 Ok(core_movie) => {
                     let mut gui_movie = Movie::new(core_movie);
-                    gui_movie.play(current_instant);
+                    // gui_movie.play(current_instant);
                     self.movie = Some(gui_movie);
                     self.log("Successfully loaded test movie.");
                 }

@@ -7,16 +7,17 @@ use crate::ToEgui as _;
 use std::time::{Duration, Instant};
 use ves_cache::SliceCache;
 use ves_geom::RectIntersection;
+use crate::components::selection::{Selectable, SelectionState};
 
 struct MovieFrame<'a> {
-    sprites: &'a [Sprite],
+    sprites: &'a [Selectable<Sprite>],
 }
 
 const ZOOM: f32 = 2.0;
 
 impl<'a> MovieFrame<'a> {
     /// Creates a new instance.
-    pub fn new(sprites: &'a [Sprite]) -> Self {
+    pub fn new(sprites: &'a [Selectable<Sprite>]) -> Self {
         Self { sprites }
     }
 
@@ -43,12 +44,19 @@ impl<'a> MovieFrame<'a> {
 
         let intersect_pos = screen_size.as_rect().max;
 
-        self.sprites.iter().rev().for_each(|sprite| {
+        // Collect all selection states with their rects and render them after all the images have
+        // been added, since we want the selection boxes to appear over all sprites.
+        let mut states_with_rect = Vec::with_capacity(self.sprites.len());
+
+        self.sprites.iter().rev().for_each(|selectable_sprite| {
+            let state = &selectable_sprite.state;
+            let sprite = &selectable_sprite.item;
             match sprite.rect.intersect_point(intersect_pos) {
                 // No intersections; this means the sprite fits entirely on the screen
                 RectIntersection::None => {
                     let rect = transform.transform_rect(sprite.rect.to_egui());
                     ui.put(rect, sprite.to_image(rect.size()));
+                    states_with_rect.push((state, rect));
                 }
                 // Treat all other cases generically
                 intersection => {
@@ -67,10 +75,16 @@ impl<'a> MovieFrame<'a> {
                             .uv(sprite.partial_uv(rect));
 
                         ui.put(dest_rect, image);
+                        states_with_rect.push((state, dest_rect));
                     });
                 }
             }
         });
+
+        for state in states_with_rect {
+            let (state, rect) = state;
+            state.show(ui, rect, ZOOM);
+        }
     }
 }
 
@@ -90,7 +104,7 @@ pub struct Movie {
     playback_repeat: bool,
     /// The current frame. The first item is the current frame number. The second are the sprites in
     /// the frame.
-    current_frame: Option<(usize, Vec<Sprite>)>,
+    current_frame: Option<(usize, Vec<Selectable<Sprite>>)>,
     control_messages: Vec<MovieControlMessage>,
     mouse_tracker: MouseInteractionTracker,
 }
@@ -177,11 +191,16 @@ impl Movie {
             Vec::with_capacity(movie_frame.sprites().len())
         };
 
-        for sprite in movie_frame.sprites().iter() {
+        for (i, sprite) in movie_frame.sprites().iter().enumerate() {
             let gui_sprite = Sprite::create(sprite, &palettes, &tiles, |color_image| {
                 ctx.load_texture("something", ImageData::Color(color_image))
             });
-            sprites.push(gui_sprite);
+            let selection_state = if i % 2 == 0 {
+                SelectionState::Selected
+            } else {
+                SelectionState::Unselected
+            };
+            sprites.push(Selectable::new(gui_sprite, selection_state));
         }
 
         self.current_frame = Some((pos, sprites));
@@ -286,7 +305,7 @@ impl Movie {
         });
     }
 
-    pub fn sprites(&self) -> Option<&[Sprite]> {
+    pub fn sprites(&self) -> Option<&[Selectable<Sprite>]> {
         if let Some((_, sprites)) = &self.current_frame {
             Some(sprites.as_slice())
         } else {

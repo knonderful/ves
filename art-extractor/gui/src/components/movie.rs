@@ -88,6 +88,8 @@ pub struct Movie {
     frame_duration: Duration,
     playback_state: PlaybackState,
     playback_repeat: bool,
+    /// The current frame. The first item is the current frame number. The second are the sprites in
+    /// the frame.
     current_frame: Option<(usize, Vec<Sprite>)>,
     control_messages: Vec<MovieControlMessage>,
     mouse_tracker: MouseInteractionTracker,

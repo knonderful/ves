@@ -197,7 +197,7 @@ impl RomData {
         let payload = module
             .custom_sections()
             .find(|sect| sect.name() == ROM_DATA)
-            .ok_or(anyhow::Error::msg(format!(
+            .ok_or_else(|| anyhow::Error::msg(format!(
                 "Could not find rom data (custom section '{}') in {}.",
                 ROM_DATA,
                 path.as_ref().display()

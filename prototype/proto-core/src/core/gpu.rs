@@ -104,35 +104,33 @@ impl OamTable {
 
         let ocm_surface = &ocm_table.surface();
 
-        for sprite_opt in self.data.iter() {
-            if let Some(sprite) = sprite_opt {
-                let sprite_rect = ocm_table.obj_rectangle(sprite);
-                let src_iter =
-                    RectangleIterator::new_with_rectangle(ocm_surface.dimensions(), sprite_rect);
+        for sprite in self.data.iter().flatten() {
+            let sprite_rect = ocm_table.obj_rectangle(sprite);
+            let src_iter =
+                RectangleIterator::new_with_rectangle(ocm_surface.dimensions(), sprite_rect);
 
-                let (x, y) = sprite.position();
-                let dest_rect = Rectangle2D::new((x as _, y as _).into(), sprite_rect.dimensions);
-                let dest_iter =
-                    RectangleIterator::new_with_rectangle(surface.dimensions(), dest_rect);
+            let (x, y) = sprite.position();
+            let dest_rect = Rectangle2D::new((x as _, y as _).into(), sprite_rect.dimensions);
+            let dest_iter =
+                RectangleIterator::new_with_rectangle(surface.dimensions(), dest_rect);
 
-                src_iter.zip(dest_iter).for_each(|(src_pos, dest_pos)| {
-                    let src_value = ocm_surface.get_value(src_pos);
-                    if src_value == transparent {
-                        return;
-                    }
+            src_iter.zip(dest_iter).for_each(|(src_pos, dest_pos)| {
+                let src_value = ocm_surface.get_value(src_pos);
+                if src_value == transparent {
+                    return;
+                }
 
-                    // TODO: Perform conversion with dedicated structs or something.
-                    //       Think about lossy vs non-lossy and how that should be reflected in the code.
-                    let dest_value = Rgba8888 {
-                        r: src_value.r,
-                        g: src_value.g,
-                        b: src_value.b,
-                        a: 255,
-                    };
+                // TODO: Perform conversion with dedicated structs or something.
+                //       Think about lossy vs non-lossy and how that should be reflected in the code.
+                let dest_value = Rgba8888 {
+                    r: src_value.r,
+                    g: src_value.g,
+                    b: src_value.b,
+                    a: 255,
+                };
 
-                    surface.set_value(dest_pos, &dest_value);
-                });
-            }
+                surface.set_value(dest_pos, &dest_value);
+            });
         }
     }
 }

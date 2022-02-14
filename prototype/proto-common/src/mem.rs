@@ -4,6 +4,7 @@ bit_struct!(
     /// The internal format is as follows:
     /// * Bits 0-31: The offset.
     /// * Bits 32-63: The length.
+    #[allow(clippy::len_without_is_empty)]
     pub struct RomBlock {
         value: u64
     }

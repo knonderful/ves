@@ -446,29 +446,29 @@ mod test_obj_size {
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ObjSizeSelect {
     /// Small: [`ObjSize::Small`], Medium: [`ObjSize::Medium`].
-    SM,
+    SmallMedium,
     /// Small: [`ObjSize::Small`], Medium: [`ObjSize::Large`].
-    SL,
+    SmallLarge,
     /// Small: [`ObjSize::Small`], Medium: [`ObjSize::ExtraLarge`].
-    SXL,
+    SmallExtraLarge,
     /// Small: [`ObjSize::Medium`], Medium: [`ObjSize::Large`].
-    ML,
+    MediumLarge,
     /// Small: [`ObjSize::Medium`], Medium: [`ObjSize::ExtraLarge`].
-    MXL,
+    MediumExtraLarge,
     /// Small: [`ObjSize::Large`], Medium: [`ObjSize::ExtraLarge`].
-    LXL,
+    LargeExtraLarge,
 }
 
 impl FromSnesData<u8> for ObjSizeSelect {
     fn from_snes_data(data: u8) -> Result<Self> {
         use ObjSizeSelect::*;
         match data {
-            0 => Ok(SM),
-            1 => Ok(SL),
-            2 => Ok(SXL),
-            3 => Ok(ML),
-            4 => Ok(MXL),
-            5 => Ok(LXL),
+            0 => Ok(SmallMedium),
+            1 => Ok(SmallLarge),
+            2 => Ok(SmallExtraLarge),
+            3 => Ok(MediumLarge),
+            4 => Ok(MediumExtraLarge),
+            5 => Ok(LargeExtraLarge),
             _ => Err(anyhow!("Unexpected OBJ SIZE SELECT value: {}.", data)),
         }
     }
@@ -479,9 +479,9 @@ impl ObjSizeSelect {
     fn small(&self) -> ObjSize {
         use ObjSizeSelect::*;
         match self {
-            SM | SL | SXL => ObjSize::Small,
-            ML | MXL => ObjSize::Medium,
-            LXL => ObjSize::Large,
+            SmallMedium | SmallLarge | SmallExtraLarge => ObjSize::Small,
+            MediumLarge | MediumExtraLarge => ObjSize::Medium,
+            LargeExtraLarge => ObjSize::Large,
         }
     }
 
@@ -489,9 +489,9 @@ impl ObjSizeSelect {
     fn large(&self) -> ObjSize {
         use ObjSizeSelect::*;
         match self {
-            SM => ObjSize::Medium,
-            ML | SL => ObjSize::Large,
-            SXL | MXL | LXL => ObjSize::ExtraLarge,
+            SmallMedium => ObjSize::Medium,
+            MediumLarge | SmallLarge => ObjSize::Large,
+            SmallExtraLarge | MediumExtraLarge | LargeExtraLarge => ObjSize::ExtraLarge,
         }
     }
 }
@@ -502,39 +502,39 @@ mod test_obj_size_select {
 
     #[test]
     fn test_small() {
-        assert_eq!(ObjSizeSelect::SM.small(), ObjSize::Small);
-        assert_eq!(ObjSizeSelect::SL.small(), ObjSize::Small);
-        assert_eq!(ObjSizeSelect::SXL.small(), ObjSize::Small);
-        assert_eq!(ObjSizeSelect::ML.small(), ObjSize::Medium);
-        assert_eq!(ObjSizeSelect::MXL.small(), ObjSize::Medium);
-        assert_eq!(ObjSizeSelect::LXL.small(), ObjSize::Large);
+        assert_eq!(ObjSizeSelect::SmallMedium.small(), ObjSize::Small);
+        assert_eq!(ObjSizeSelect::SmallLarge.small(), ObjSize::Small);
+        assert_eq!(ObjSizeSelect::SmallExtraLarge.small(), ObjSize::Small);
+        assert_eq!(ObjSizeSelect::MediumLarge.small(), ObjSize::Medium);
+        assert_eq!(ObjSizeSelect::MediumExtraLarge.small(), ObjSize::Medium);
+        assert_eq!(ObjSizeSelect::LargeExtraLarge.small(), ObjSize::Large);
     }
 
     #[test]
     fn test_large() {
-        assert_eq!(ObjSizeSelect::SM.large(), ObjSize::Medium);
-        assert_eq!(ObjSizeSelect::SL.large(), ObjSize::Large);
-        assert_eq!(ObjSizeSelect::SXL.large(), ObjSize::ExtraLarge);
-        assert_eq!(ObjSizeSelect::ML.large(), ObjSize::Large);
-        assert_eq!(ObjSizeSelect::MXL.large(), ObjSize::ExtraLarge);
-        assert_eq!(ObjSizeSelect::LXL.large(), ObjSize::ExtraLarge);
+        assert_eq!(ObjSizeSelect::SmallMedium.large(), ObjSize::Medium);
+        assert_eq!(ObjSizeSelect::SmallLarge.large(), ObjSize::Large);
+        assert_eq!(ObjSizeSelect::SmallExtraLarge.large(), ObjSize::ExtraLarge);
+        assert_eq!(ObjSizeSelect::MediumLarge.large(), ObjSize::Large);
+        assert_eq!(ObjSizeSelect::MediumExtraLarge.large(), ObjSize::ExtraLarge);
+        assert_eq!(ObjSizeSelect::LargeExtraLarge.large(), ObjSize::ExtraLarge);
     }
 
     #[test]
     fn test_from_snes_data() {
-        assert_eq!(ObjSizeSelect::SM, ObjSizeSelect::from_snes_data(0).unwrap());
-        assert_eq!(ObjSizeSelect::SL, ObjSizeSelect::from_snes_data(1).unwrap());
+        assert_eq!(ObjSizeSelect::SmallMedium, ObjSizeSelect::from_snes_data(0).unwrap());
+        assert_eq!(ObjSizeSelect::SmallLarge, ObjSizeSelect::from_snes_data(1).unwrap());
         assert_eq!(
-            ObjSizeSelect::SXL,
+            ObjSizeSelect::SmallExtraLarge,
             ObjSizeSelect::from_snes_data(2).unwrap()
         );
-        assert_eq!(ObjSizeSelect::ML, ObjSizeSelect::from_snes_data(3).unwrap());
+        assert_eq!(ObjSizeSelect::MediumLarge, ObjSizeSelect::from_snes_data(3).unwrap());
         assert_eq!(
-            ObjSizeSelect::MXL,
+            ObjSizeSelect::MediumExtraLarge,
             ObjSizeSelect::from_snes_data(4).unwrap()
         );
         assert_eq!(
-            ObjSizeSelect::LXL,
+            ObjSizeSelect::LargeExtraLarge,
             ObjSizeSelect::from_snes_data(5).unwrap()
         );
         for i in 6..=255 {

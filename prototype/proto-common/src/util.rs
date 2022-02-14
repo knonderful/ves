@@ -63,6 +63,7 @@ macro_rules! bit_struct {
         }
 
         #[allow(dead_code)]
+        #[allow(clippy::unnecessary_cast)]
         impl $struct_name {
             /// Creates a new instance from the bit fields.
             pub fn new($($field_name: $field_type,)*) -> Self {

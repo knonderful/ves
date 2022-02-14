@@ -1,3 +1,4 @@
+#![allow(clippy::zero_ptr)] // Need this for the libretro_core!() macro
 mod core;
 mod libretro_core;
 #[macro_use]

@@ -11,10 +11,10 @@ cargo build --release
 
 WASM2WAT_OPTS="--enable-reference-types --inline-exports --inline-imports --generate-names"
 
-ORIGINAL_BASE="${SCRIPT_DIR}/target/wasm32-unknown-unknown/release/${BINARY_BASE_NAME}"
+ORIGINAL_BASE="${SCRIPT_DIR}/../../target/wasm32-unknown-unknown/release/${BINARY_BASE_NAME}"
 ORIGINAL_WASM="${ORIGINAL_BASE}.wasm"
 ORIGINAL_WAT="${ORIGINAL_BASE}.wat"
-wasm2wat ${WASM2WAT_OPTS} -o "${ORIGINAL_WAT}" "${ORIGINAL_WASM}"
+wasm2wat "${WASM2WAT_OPTS}" -o "${ORIGINAL_WAT}" "${ORIGINAL_WASM}"
 
 #OPTIMIZED_BASE="${SCRIPT_DIR}/pkg/${BINARY_BASE_NAME}_bg"
 #OPTIMIZED_WASM="${OPTIMIZED_BASE}.wasm"

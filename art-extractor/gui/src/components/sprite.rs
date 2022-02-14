@@ -33,7 +33,6 @@ pub struct Sprite {
 }
 
 impl Sprite {
-
     /// Creates a [`Sprite`] from a [`art_extractor_core::sprite::Sprite`].
     ///
     /// # Arguments

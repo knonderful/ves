@@ -111,8 +111,7 @@ impl OamTable {
 
             let (x, y) = sprite.position();
             let dest_rect = Rectangle2D::new((x as _, y as _).into(), sprite_rect.dimensions);
-            let dest_iter =
-                RectangleIterator::new_with_rectangle(surface.dimensions(), dest_rect);
+            let dest_iter = RectangleIterator::new_with_rectangle(surface.dimensions(), dest_rect);
 
             src_iter.zip(dest_iter).for_each(|(src_pos, dest_pos)| {
                 let src_value = ocm_surface.get_value(src_pos);

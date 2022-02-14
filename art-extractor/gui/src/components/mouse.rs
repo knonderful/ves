@@ -58,7 +58,9 @@ impl DragState {
                 }
             })
         } else {
-            self.positions.take().map(|(start, end)| DragEvent::Finished(egui::Rect::from_two_pos(start, end)))
+            self.positions
+                .take()
+                .map(|(start, end)| DragEvent::Finished(egui::Rect::from_two_pos(start, end)))
         }
     }
 }

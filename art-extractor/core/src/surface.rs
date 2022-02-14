@@ -217,7 +217,8 @@ where
             )
         })?;
         let last_y = y_iter
-            .next().ok_or("Expected at least one item in Y-iterator.")?;
+            .next()
+            .ok_or("Expected at least one item in Y-iterator.")?;
         let y_usize: usize = last_y.into();
         let width_usize: usize = width.into();
         let row_offset = y_usize * width_usize;

@@ -197,11 +197,13 @@ impl RomData {
         let payload = module
             .custom_sections()
             .find(|sect| sect.name() == ROM_DATA)
-            .ok_or_else(|| anyhow::Error::msg(format!(
-                "Could not find rom data (custom section '{}') in {}.",
-                ROM_DATA,
-                path.as_ref().display()
-            )))?
+            .ok_or_else(|| {
+                anyhow::Error::msg(format!(
+                    "Could not find rom data (custom section '{}') in {}.",
+                    ROM_DATA,
+                    path.as_ref().display()
+                ))
+            })?
             .payload();
         Ok(Self::new(Vec::from(payload)))
     }

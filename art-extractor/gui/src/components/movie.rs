@@ -1,13 +1,13 @@
 use super::sprite::Sprite;
 use crate::components::cursor::Cursor;
 use crate::components::mouse::MouseInteractionTracker;
+use crate::components::selection::{Selectable, SelectionState};
 use crate::egui;
 use crate::egui::ImageData;
 use crate::ToEgui as _;
 use std::time::{Duration, Instant};
 use ves_cache::SliceCache;
 use ves_geom::RectIntersection;
-use crate::components::selection::{Selectable, SelectionState};
 
 struct MovieFrame<'a> {
     sprites: &'a [Selectable<Sprite>],

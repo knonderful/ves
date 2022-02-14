@@ -522,13 +522,22 @@ mod test_obj_size_select {
 
     #[test]
     fn test_from_snes_data() {
-        assert_eq!(ObjSizeSelect::SmallMedium, ObjSizeSelect::from_snes_data(0).unwrap());
-        assert_eq!(ObjSizeSelect::SmallLarge, ObjSizeSelect::from_snes_data(1).unwrap());
+        assert_eq!(
+            ObjSizeSelect::SmallMedium,
+            ObjSizeSelect::from_snes_data(0).unwrap()
+        );
+        assert_eq!(
+            ObjSizeSelect::SmallLarge,
+            ObjSizeSelect::from_snes_data(1).unwrap()
+        );
         assert_eq!(
             ObjSizeSelect::SmallExtraLarge,
             ObjSizeSelect::from_snes_data(2).unwrap()
         );
-        assert_eq!(ObjSizeSelect::MediumLarge, ObjSizeSelect::from_snes_data(3).unwrap());
+        assert_eq!(
+            ObjSizeSelect::MediumLarge,
+            ObjSizeSelect::from_snes_data(3).unwrap()
+        );
         assert_eq!(
             ObjSizeSelect::MediumExtraLarge,
             ObjSizeSelect::from_snes_data(4).unwrap()
@@ -788,13 +797,7 @@ pub fn create_movie_frame(
         let tile_ref = tile_cache.offer(Cow::Owned(tile));
         let palette_ref = palette_cache.offer(Cow::Borrowed(palette));
 
-        let sprite = Sprite::new(
-            tile_ref,
-            palette_ref,
-            obj.position,
-            obj.h_flip,
-            obj.v_flip,
-        );
+        let sprite = Sprite::new(tile_ref, palette_ref, obj.position, obj.h_flip, obj.v_flip);
         sprites.push(sprite);
     }
 

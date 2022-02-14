@@ -24,19 +24,22 @@ impl<'a> SpriteTable<'a> {
                     egui::Rect::from_min_size(egui::Pos2::ZERO, super::zoom_vec2(ui, ZOOM));
                 let transform = egui::emath::RectTransform::from_to(from_rect, to_rect);
 
-                self.sprites.iter().enumerate().for_each(|(idx, selectable_sprite)| {
-                    let state = &selectable_sprite.state;
-                    let sprite = &selectable_sprite.item;
-                    let egui_sprite_rect = sprite.rect.to_egui();
+                self.sprites
+                    .iter()
+                    .enumerate()
+                    .for_each(|(idx, selectable_sprite)| {
+                        let state = &selectable_sprite.state;
+                        let sprite = &selectable_sprite.item;
+                        let egui_sprite_rect = sprite.rect.to_egui();
 
-                    let rect = transform.transform_rect(egui_sprite_rect);
-                    let response = ui.add(sprite.to_image(rect.size()));
-                    state.show(ui, response.rect, ZOOM);
+                        let rect = transform.transform_rect(egui_sprite_rect);
+                        let response = ui.add(sprite.to_image(rect.size()));
+                        state.show(ui, response.rect, ZOOM);
 
-                    if idx > 0 && idx % self.columns == 0 {
-                        ui.end_row()
-                    }
-                });
+                        if idx > 0 && idx % self.columns == 0 {
+                            ui.end_row()
+                        }
+                    });
             });
     }
 }

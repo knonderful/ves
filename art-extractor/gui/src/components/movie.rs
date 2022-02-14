@@ -260,7 +260,7 @@ impl Movie {
                                 // Make sure the movie canvas doesn't shrink too far
                                 ui.set_min_size(movie_frame_size);
 
-                                MovieFrame::new(&frame).show(ui, screen_size, viewport);
+                                MovieFrame::new(frame).show(ui, screen_size, viewport);
 
                                 // This also "steals" the interaction of the parent, which in this
                                 // case causes the ScrollArea not to scroll on drag (which is what

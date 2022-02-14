@@ -106,7 +106,7 @@ impl OamTable {
 
         for sprite_opt in self.data.iter() {
             if let Some(sprite) = sprite_opt {
-                let sprite_rect = ocm_table.obj_rectangle(&sprite);
+                let sprite_rect = ocm_table.obj_rectangle(sprite);
                 let src_iter =
                     RectangleIterator::new_with_rectangle(ocm_surface.dimensions(), sprite_rect);
 

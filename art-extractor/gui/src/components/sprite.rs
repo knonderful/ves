@@ -15,15 +15,13 @@ fn correct_uv(rect: egui::Rect, hflip: bool, vflip: bool) -> egui::Rect {
                 egui::pos2(rect.min.x, rect.max.y),
             )
         }
+    } else if vflip {
+        egui::Rect::from_min_max(
+            egui::pos2(rect.min.x, rect.max.y),
+            egui::pos2(rect.max.x, rect.min.y),
+        )
     } else {
-        if vflip {
-            egui::Rect::from_min_max(
-                egui::pos2(rect.min.x, rect.max.y),
-                egui::pos2(rect.max.x, rect.min.y),
-            )
-        } else {
-            rect
-        }
+        rect
     }
 }
 

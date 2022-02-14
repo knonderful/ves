@@ -24,7 +24,7 @@ pub fn create_movie(
         movie_frames.push(movie_frame);
     }
 
-    movie_frames.sort_unstable_by(|a, b| a.frame_number().cmp(&b.frame_number()));
+    movie_frames.sort_unstable_by_key(|a| a.frame_number());
 
     let movie = Movie::new(
         Size::new(512, 256),
@@ -62,7 +62,7 @@ mod test_create_movie {
         const DEBUG_OUT: bool = false;
         if DEBUG_OUT {
             for frame in actual_movie.frames() {
-                let actual = crate::test_util::bmp_from_movie_frame(&frame, &palettes, &tiles);
+                let actual = crate::test_util::bmp_from_movie_frame(frame, &palettes, &tiles);
                 actual
                     .save(format!(
                         "{}/../../target/movie_frame_{}.bmp",

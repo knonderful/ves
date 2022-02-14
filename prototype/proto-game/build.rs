@@ -17,7 +17,7 @@ impl RomDataEntrySpec {
                 format!(
                     "Could not obtain metadata for {}: {}",
                     path.to_str().unwrap(),
-                    e.to_string()
+                    e
                 )
             })
             .unwrap()
@@ -78,13 +78,13 @@ macro_rules! entry_vec {
     };
 }
 
-const FN_CALC_ROM_DATA_OFFSET: &'static str = "calc_rom_data_offset";
-const TYPE_ROM_DATA_POINTER: &'static str = "u32";
-const TYPE_ROM_BLOCK: &'static str = "proto_common::mem::RomBlock";
-const TYPE_ROM_DATA_ENTRY: &'static str = "RomDataEntry";
-const TYPE_ROM_DATA_GFX: &'static str = "RomDataGfx";
-const TYPE_ROM_DATA: &'static str = "RomData";
-const FIELD_ROM_DATA_GFX: &'static str = "gfx";
+const FN_CALC_ROM_DATA_OFFSET: &str = "calc_rom_data_offset";
+const TYPE_ROM_DATA_POINTER: &str = "u32";
+const TYPE_ROM_BLOCK: &str = "proto_common::mem::RomBlock";
+const TYPE_ROM_DATA_ENTRY: &str = "RomDataEntry";
+const TYPE_ROM_DATA_GFX: &str = "RomDataGfx";
+const TYPE_ROM_DATA: &str = "RomData";
+const FIELD_ROM_DATA_GFX: &str = "gfx";
 
 fn main() {
     let params = RomDataSpec {

@@ -434,16 +434,14 @@ where
                     right: ((remaining_x, y_start), (x_end, y_end)).into(),
                 }
             }
-        } else {
-            if y_start <= y && y < y_end {
-                let remaining_y = y + T::one();
-                RectIntersection::Horizontal {
-                    top: ((x_start, y_start), (x_end, y)).into(),
-                    bottom: ((x_start, remaining_y), (x_end, y_end)).into(),
-                }
-            } else {
-                RectIntersection::None
+        } else if y_start <= y && y < y_end {
+            let remaining_y = y + T::one();
+            RectIntersection::Horizontal {
+                top: ((x_start, y_start), (x_end, y)).into(),
+                bottom: ((x_start, remaining_y), (x_end, y_end)).into(),
             }
+        } else {
+            RectIntersection::None
         }
     }
 }

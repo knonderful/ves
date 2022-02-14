@@ -273,7 +273,7 @@ impl ObjNameTable {
         // Iterate from right to left, since the right-most pixel is the lsb of the source byte
         for pixel in target_row_data.iter_mut().rev() {
             // Apply the two planes to the current pixel
-            let mask = (u8::from((plane2 & 0x1) << 1) | u8::from(plane1 & 0x1)) << bit_offset;
+            let mask = (((plane2 & 0x1) << 1) | (plane1 & 0x1)) << bit_offset;
             pixel.set_value(pixel.value() | mask);
             // Move to the next bit in the source bytes
             plane1 >>= 1;
@@ -780,7 +780,7 @@ pub fn create_movie_frame(
                 dest_data[dest_idx] = src_data[src_idx];
             },
         )
-        .map_err(|msg| anyhow::Error::msg(msg))?;
+        .map_err(anyhow::Error::msg)?;
 
         // Build the Palette
         let palette = &palettes[usize::from(obj.palette)];
@@ -789,8 +789,8 @@ pub fn create_movie_frame(
         let palette_ref = palette_cache.offer(Cow::Borrowed(palette));
 
         let sprite = Sprite::new(
-            tile_ref.into(),
-            palette_ref.into(),
+            tile_ref,
+            palette_ref,
             obj.position,
             obj.h_flip,
             obj.v_flip,

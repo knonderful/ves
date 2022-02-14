@@ -13,20 +13,11 @@ struct LogEntry {
     message: String,
 }
 
+#[derive(Default)]
 struct ArtDirectorApp {
     show_log: bool,
     log: VecDeque<LogEntry>,
     movie: Option<Movie>,
-}
-
-impl Default for ArtDirectorApp {
-    fn default() -> Self {
-        Self {
-            show_log: false,
-            log: Default::default(),
-            movie: None,
-        }
-    }
 }
 
 impl ArtDirectorApp {

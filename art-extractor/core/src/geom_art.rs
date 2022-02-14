@@ -6,6 +6,7 @@ ves_geom::space_unit!(
     u32
 );
 
+#[allow(clippy::from_over_into)]
 impl Into<usize> for ArtworkSpaceUnit {
     #[inline(always)]
     fn into(self) -> usize {

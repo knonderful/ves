@@ -95,9 +95,20 @@ impl<T, K> VecCacheMut<T, K> {
         self.values.len()
     }
 
+    /// Determines whether the cache is empty.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Consumes this instance and returns the [`Vec`] of values.
     pub fn into_vec(self) -> Vec<T> {
         self.values
+    }
+}
+
+impl<T, K> Default for VecCacheMut<T, K> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

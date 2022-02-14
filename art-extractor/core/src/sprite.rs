@@ -143,6 +143,11 @@ impl Palette {
         self.colors.len()
     }
 
+    /// Determines whether the palette is empty.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Gets an immutable iterator over all slots.
     pub fn iter(&self) -> impl Iterator<Item = (PaletteIndex, &Color)> + '_ {
         self.colors

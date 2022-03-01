@@ -1,0 +1,16 @@
+[package]
+name = "ves-proto-game"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["wee_alloc"]
+
+[dependencies]
+wee_alloc = { version = "0.4.5", optional = true }
+log = ">=0.4, <1"
+ves-proto-common = { path = "../common" }
+ves-proto-logger = { path = "../logger" }

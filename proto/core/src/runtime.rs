@@ -68,9 +68,16 @@ impl Runtime {
         ptr: u32,
         len: u32,
     ) -> std::result::Result<&'a [u8], Trap> {
+        let index_from: usize = ptr
+            .try_into()
+            .map_err(|_| Trap::new(format!("Could not convert ptr ({ptr}) to usize.")))?;
+        let index_to: usize = len
+            .try_into()
+            .map_err(|_| Trap::new(format!("Could not convert len ({len}) to usize.")))?;
+
         mem.data(store)
-            .get(ptr as u32 as usize..)
-            .and_then(|arr| arr.get(..len as usize))
+            .get(index_from..)
+            .and_then(|arr| arr.get(..index_to))
             .ok_or_else(|| {
                 Trap::new(format!(
                     "Could not get slice with pointer {} and length {}.",

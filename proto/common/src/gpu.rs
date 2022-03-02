@@ -190,25 +190,19 @@ mod tests_oam_entry {
 }
 
 bit_struct!(
-    /// An index in a palette table. A palette table is always at most 8 entries in size.
+    /// An index in a palette table. A palette table is always at most 255 entries in size.
     ///
     /// The internal format is as follows:
-    /// * Bits 0-3: Index.
-    /// * Bits 4-7: Unused.
+    /// * Bits 0-7: Index.
     #[derive(Copy, Clone, Eq, PartialEq, Default)]
     pub struct PaletteTableIndex {
         value: u8
     }
 
     impl {
-        #[bit_struct_field(shift = 0, mask = 0b111)]
+        #[bit_struct_field(shift = 0, mask = 0xFF)]
         /// The index value.
         pub fn index(&self) -> u8;
-    }
-
-    padding {
-        #[bit_struct_field(shift = 3, mask = 0b11111)]
-        fn unused(&self) -> u8;
     }
 );
 

@@ -422,7 +422,7 @@ bit_struct!(
     /// * Bits 0-4: Red component.
     /// * Bits 5-9: Green component.
     /// * Bits 10-14: Blue component.
-    /// * Bit 14: Unused.
+    /// * Bit 15: Unused.
     #[derive(Copy, Clone, Eq, PartialEq, Default)]
     pub struct PaletteColor {
         value: u16

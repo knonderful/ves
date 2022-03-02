@@ -4,6 +4,7 @@ use std::path::Path;
 use wasmtime::{
     AsContext, Caller, Engine, Extern, Linker, Memory, Module, Store, StoreContext, Trap, TypedFunc,
 };
+use ves_proto_common::gpu::OamTableEntry;
 
 pub struct Runtime {
     store: Store<ProtoCore>,
@@ -28,6 +29,17 @@ impl Runtime {
 
                 let log_level = level.try_into().map_err(Trap::new)?;
                 caller.data().logger.log(log_level, message);
+
+                Ok(())
+            },
+        )?;
+
+        linker.func_wrap(
+            "gpu", // module
+            "oam_set", // function
+            move |_caller: Caller<'_, ProtoCore>, index: u32, entry: u64| {
+                let entry = OamTableEntry::from(entry);
+                println!("gpu::oam_set() called with index: {index} and entry: {entry:?}");
 
                 Ok(())
             },

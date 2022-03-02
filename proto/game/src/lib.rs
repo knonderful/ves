@@ -1,5 +1,5 @@
 use log::info;
-use ves_proto_common::gpu::{OamTableEntry, OamTableIndex};
+use ves_proto_common::gpu::{OamTableEntry, OamTableIndex, PaletteColor, PaletteIndex, PaletteTableIndex};
 use ves_proto_common::log::LogLevel;
 use ves_proto_logger::Logger;
 
@@ -32,6 +32,16 @@ extern "C" {
     /// * `entry`: The [`OamTableEntry`](ves_proto_common::gpu::OamTableEntry).
     #[link_name = "oam_set"]
     fn core_gpu_oam_set(index: u8, entry: u64);
+
+    /// Core function for setting an entry in the palette table.
+    ///
+    /// # Arguments
+    ///
+    /// * `palette`: The [`PaletteTableIndex`](ves_proto_common::gpu::PaletteTableIndex).
+    /// * `index`: The [`PaletteIndex`](ves_proto_common::gpu::PaletteIndex).
+    /// * `color`: The [`PaletteColor`](ves_proto_common::gpu::PaletteColor).
+    #[link_name = "palette_set"]
+    fn core_gpu_palette_set(palette: u8, index: u8, color: u16);
 }
 
 #[no_mangle]
@@ -65,7 +75,13 @@ impl Game {
                 0,
                 123,
             );
-            core_gpu_oam_set(index.into(), entry.into())
+            core_gpu_oam_set(index.into(), entry.into());
+        }
+        unsafe {
+            let palette = PaletteTableIndex::new(2);
+            let index = PaletteIndex::new(14);
+            let color = PaletteColor::new(3, 2, 1);
+            core_gpu_palette_set(palette.into(), index.into(), color.into());
         }
     }
 }

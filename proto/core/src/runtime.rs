@@ -1,10 +1,10 @@
 use crate::ProtoCore;
 use anyhow::Result;
 use std::path::Path;
+use ves_proto_common::gpu::{OamTableEntry, PaletteColor, PaletteIndex, PaletteTableIndex};
 use wasmtime::{
     AsContext, Caller, Engine, Extern, Linker, Memory, Module, Store, StoreContext, Trap, TypedFunc,
 };
-use ves_proto_common::gpu::OamTableEntry;
 
 pub struct Runtime {
     store: Store<ProtoCore>,
@@ -40,6 +40,26 @@ impl Runtime {
             move |_caller: Caller<'_, ProtoCore>, index: u32, entry: u64| {
                 let entry = OamTableEntry::from(entry);
                 println!("gpu::oam_set() called with index: {index} and entry: {entry:?}");
+
+                Ok(())
+            },
+        )?;
+
+        linker.func_wrap(
+            "gpu",         // module
+            "palette_set", // function
+            move |_caller: Caller<'_, ProtoCore>, palette: u32, index: u32, color: u32| {
+                let palette = u8::try_from(palette)
+                    .map(PaletteTableIndex::from)
+                    .map_err(|_| Trap::new("Could not convert palette value to u8."))?;
+                let index = u8::try_from(index)
+                    .map(PaletteIndex::from)
+                    .map_err(|_| Trap::new("Could not convert index value to u8."))?;
+                let color = u16::try_from(color)
+                    .map(PaletteColor::from)
+                    .map_err(|_| Trap::new("Could not convert color value to u16."))?;
+
+                println!("gpu::palette_set() called with palette: {palette:?}, index: {index:?} and color: {color:?}");
 
                 Ok(())
             },

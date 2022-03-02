@@ -2054,6 +2054,9 @@ dependencies = [
 [[package]]
 name = "ves-proto-common"
 version = "0.1.0"
+dependencies = [
+ "paste",
+]
 
 [[package]]
 name = "ves-proto-core"

@@ -1,5 +1,7 @@
 use log::info;
-use ves_proto_common::gpu::{OamTableEntry, OamTableIndex, PaletteColor, PaletteIndex, PaletteTableIndex};
+use ves_proto_common::gpu::{
+    OamTableEntry, OamTableIndex, PaletteColor, PaletteIndex, PaletteTableIndex,
+};
 use ves_proto_common::log::LogLevel;
 use ves_proto_logger::Logger;
 
@@ -46,7 +48,9 @@ extern "C" {
 
 #[no_mangle]
 pub fn create_instance() -> Box<Game> {
-    Logger::new(core_log_log).init(Some(LogLevel::Trace)).unwrap();
+    Logger::new(core_log_log)
+        .init(Some(LogLevel::Trace))
+        .unwrap();
     info!("Logging initialized.");
 
     Box::new(Game { frame_nr: 1024 })
@@ -67,14 +71,7 @@ impl Game {
         info!("At frame {}", self.frame_nr);
         unsafe {
             let index = OamTableIndex::new(0);
-            let entry = OamTableEntry::new(
-                10,
-                20,
-                3,
-                1,
-                0,
-                123,
-            );
+            let entry = OamTableEntry::new(10, 20, 3, 1, 0, 123);
             core_gpu_oam_set(index.into(), entry.into());
         }
         unsafe {

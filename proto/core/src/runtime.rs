@@ -35,7 +35,7 @@ impl Runtime {
         )?;
 
         linker.func_wrap(
-            "gpu", // module
+            "gpu",     // module
             "oam_set", // function
             move |_caller: Caller<'_, ProtoCore>, index: u32, entry: u64| {
                 let entry = OamTableEntry::from(entry);

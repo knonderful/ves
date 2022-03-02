@@ -14,3 +14,9 @@ wee_alloc = { version = "0.4.5", optional = true }
 log = ">=0.4, <1"
 ves-proto-common = { path = "../common" }
 ves-proto-logger = { path = "../logger" }
+
+[build-dependencies]
+art-extractor-core = { path = "../../art-extractor/core", features = ["serde_support"] }
+bincode = ">= 1.3, <2"
+staticgen = { git = "https://github.com/knonderful/staticgen.git" }
+serde = ">=1.0.136, <2"

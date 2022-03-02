@@ -698,6 +698,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 
 [[package]]
+name = "dtoa"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5caaa75cbd2b960ff1e5392d2cfb1f44717fffe12fc1f32b7b5d1267f99732a6"
+
+[[package]]
 name = "eframe"
 version = "0.16.0"
 source = "git+https://github.com/knonderful/egui.git?rev=78704fc57a5d74813245a94e120b67f8e438b9cd#78704fc57a5d74813245a94e120b67f8e438b9cd"
@@ -1825,18 +1831,18 @@ checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
 name = "serde"
-version = "1.0.132"
+version = "1.0.136"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b9875c23cf305cd1fd7eb77234cbb705f21ea6a72c637a5c6db5fe4b8e7f008"
+checksum = "ce31e24b01e1e524df96f1c2fdd054405f8d7376249a5110886fb4b658484789"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.132"
+version = "1.0.136"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecc0db5cb2556c0e558887d9bbdcf6ac4471e83ff66cf696e5419024d1606276"
+checksum = "08597e7152fcd306f41838ed3e37be9eaeed2b61c42e2117266a554fab4662f9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1926,6 +1932,16 @@ name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
+
+[[package]]
+name = "staticgen"
+version = "0.1.0"
+source = "git+https://github.com/knonderful/staticgen.git#3ae619ae061ba048973da495501b4859858871da"
+dependencies = [
+ "dtoa",
+ "itoa",
+ "serde",
+]
 
 [[package]]
 name = "strsim"
@@ -2072,7 +2088,11 @@ dependencies = [
 name = "ves-proto-game"
 version = "0.1.0"
 dependencies = [
+ "art-extractor-core",
+ "bincode",
  "log",
+ "serde",
+ "staticgen",
  "ves-proto-common",
  "ves-proto-logger",
  "wee_alloc",

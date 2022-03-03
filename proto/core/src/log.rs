@@ -35,7 +35,6 @@ impl Logger {
 
     fn log_internal(&self, level: LogLevel, msg: &str) -> std::io::Result<()> {
         let timestamp = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S");
-        let string = format!("{timestamp} [{level}] {msg}\n");
-        self.inner.borrow_mut().out.write_all(string.as_bytes())
+        writeln!(&mut self.inner.borrow_mut().out, "{timestamp} [{level}] {msg}")
     }
 }

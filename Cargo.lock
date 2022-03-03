@@ -1812,8 +1812,9 @@ dependencies = [
 [[package]]
 name = "rust-format"
 version = "0.1.0"
-source = "git+https://github.com/knonderful/rust-format?rev=b508520#b508520ff7957488e36109ab1ea00ce05b0adb38"
+source = "git+https://github.com/knonderful/rust-format?rev=4c9a649#4c9a6497a93994f4c2cb5aaa729bf913db9330c7"
 dependencies = [
+ "thiserror",
  "toolchain_find",
 ]
 
@@ -2167,6 +2168,7 @@ dependencies = [
 name = "ves-proto-game"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "art-extractor-core",
  "bincode",
  "log",

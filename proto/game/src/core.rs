@@ -1,5 +1,7 @@
 use log::info;
-use ves_proto_common::gpu::{OamTableEntry, OamTableIndex, PaletteColor, PaletteIndex, PaletteTableIndex};
+use ves_proto_common::gpu::{
+    OamTableEntry, OamTableIndex, PaletteColor, PaletteIndex, PaletteTableIndex,
+};
 use ves_proto_common::log::LogLevel;
 use ves_proto_logger::Logger;
 
@@ -58,7 +60,12 @@ impl Core {
         }
     }
 
-    pub fn palette_set(&self, palette: &PaletteTableIndex, index: &PaletteIndex, color:&PaletteColor) {
+    pub fn palette_set(
+        &self,
+        palette: &PaletteTableIndex,
+        index: &PaletteIndex,
+        color: &PaletteColor,
+    ) {
         unsafe {
             core_gpu_palette_set(palette.into(), index.into(), color.into());
         }

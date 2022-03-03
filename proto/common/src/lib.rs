@@ -1,3 +1,3 @@
-pub mod log;
 pub mod gpu;
+pub mod log;
 mod util;

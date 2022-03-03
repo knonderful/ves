@@ -11,7 +11,8 @@ use ves_proto_common::gpu::{
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-static PALETTES: &'static[crate::generated::types::Palette] = crate::generated::methods::palettes();
+static PALETTES: &'static [crate::generated::types::Palette] =
+    crate::generated::methods::palettes();
 
 #[no_mangle]
 pub fn create_instance() -> Box<Game> {
@@ -29,9 +30,10 @@ pub struct Game {
     frame_nr: u32,
 }
 
-fn from_unchecked<A, B>(a: A) -> B where
+fn from_unchecked<A, B>(a: A) -> B
+where
     B: TryFrom<A>,
-    <B as TryFrom<A>>::Error: std::fmt::Debug
+    <B as TryFrom<A>>::Error: std::fmt::Debug,
 {
     TryFrom::try_from(a).unwrap()
 }
@@ -47,7 +49,7 @@ impl Game {
                     use crate::generated::types::Color;
                     let color = match color {
                         Color::Opaque(rgb) => PaletteColor::new(rgb.r, rgb.g, rgb.b),
-                        Color::Transparent => PaletteColor::new(0,0,0),
+                        Color::Transparent => PaletteColor::new(0, 0, 0),
                     };
 
                     let palette = PaletteTableIndex::new(from_unchecked(pal_idx));

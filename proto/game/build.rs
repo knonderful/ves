@@ -1,9 +1,9 @@
+use art_extractor_core::movie::Movie;
 use std::io::Write;
 use std::path::PathBuf;
-use art_extractor_core::movie::Movie;
 
 fn main() {
-    const INPUT_PATH: &'static str ="../../test_movie.bincode";
+    const INPUT_PATH: &'static str = "../../test_movie.bincode";
 
     use std::fs::File;
     let movie_file_path = PathBuf::from(INPUT_PATH);
@@ -20,7 +20,9 @@ fn main() {
     let structs = serializer.take_structs();
     let enums = serializer.take_enums();
 
-    generated_methods_file.write_all("\n}\n".as_bytes()).unwrap();
+    generated_methods_file
+        .write_all("\n}\n".as_bytes())
+        .unwrap();
 
     let mut generated_types_file = File::create("src/generated/types.rs").unwrap();
     structs.write(&mut generated_types_file).unwrap();

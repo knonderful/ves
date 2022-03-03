@@ -34,7 +34,7 @@ impl Logger {
     }
 
     fn log_internal(&self, level: LogLevel, msg: &str) -> std::io::Result<()> {
-        let timestamp = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S");
+        let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
         writeln!(&mut self.inner.borrow_mut().out, "{timestamp} [{level}] {msg}")
     }
 }

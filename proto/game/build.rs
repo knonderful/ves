@@ -19,8 +19,8 @@ fn main() {
     use serde::Serialize as _;
     movie.palettes().serialize(&mut serializer).unwrap();
 
-    let structs = serializer.take_structs();
-    let enums = serializer.take_enums();
+    let structs = std::mem::take(serializer.structs_mut());
+    let enums = std::mem::take(serializer.enums_mut());
 
     writeln!(generated_methods_file, "}}").unwrap();
 

@@ -1936,7 +1936,7 @@ checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 [[package]]
 name = "staticgen"
 version = "0.1.0"
-source = "git+https://github.com/knonderful/staticgen.git#3ae619ae061ba048973da495501b4859858871da"
+source = "git+https://github.com/knonderful/staticgen.git?rev=071443ffae16c262544be3a61d73953b939bff3e#071443ffae16c262544be3a61d73953b939bff3e"
 dependencies = [
  "dtoa",
  "itoa",

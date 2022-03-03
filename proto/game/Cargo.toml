@@ -18,5 +18,6 @@ ves-proto-logger = { path = "../logger" }
 [build-dependencies]
 art-extractor-core = { path = "../../art-extractor/core", features = ["serde_support"] }
 bincode = ">= 1.3, <2"
-staticgen = { git = "https://github.com/knonderful/staticgen.git", rev = "071443ffae16c262544be3a61d73953b939bff3e" }
+staticgen = { git = "https://github.com/knonderful/staticgen", rev = "0718ece" }
+rust-format = { git = "https://github.com/knonderful/rust-format", rev = "b508520" }
 serde = ">=1.0.136, <2"

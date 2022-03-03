@@ -11,7 +11,9 @@ fn main() {
     let movie: Movie = bincode::deserialize_from(movie_file).unwrap();
 
     let mut generated_methods_file = File::create("src/generated/methods.rs").unwrap();
-    generated_methods_file.write_all("use crate::generated::types::*;\n\npub const fn palettes() -> &'static [Palette] {\n    ".as_bytes()).unwrap();
+    writeln!(generated_methods_file, "use crate::generated::types::*;").unwrap();
+    writeln!(generated_methods_file, "").unwrap();
+    writeln!(generated_methods_file, "pub const fn palettes() -> &'static [Palette] {{").unwrap();
 
     let mut serializer = staticgen::Serializer::new(&mut generated_methods_file);
     use serde::Serialize as _;
@@ -20,9 +22,7 @@ fn main() {
     let structs = serializer.take_structs();
     let enums = serializer.take_enums();
 
-    generated_methods_file
-        .write_all("\n}\n".as_bytes())
-        .unwrap();
+    writeln!(generated_methods_file, "}}").unwrap();
 
     let mut generated_types_file = File::create("src/generated/types.rs").unwrap();
     structs.write(&mut generated_types_file).unwrap();

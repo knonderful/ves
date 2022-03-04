@@ -8,3 +8,6 @@ ves-proto-common = { path = "../common" }
 anyhow = ">=1, <2"
 wasmtime = "0.34.1"
 chrono = "0.4.19"
+ves-art-core = { path = "../../art/core", features = ["serde_support"] }
+bincode = ">= 1.3, <2"
+parity-wasm = "0.42.2"

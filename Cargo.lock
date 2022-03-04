@@ -2159,7 +2159,10 @@ name = "ves-proto-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bincode",
  "chrono",
+ "parity-wasm",
+ "ves-art-core",
  "ves-proto-common",
  "wasmtime",
 ]

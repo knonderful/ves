@@ -48,7 +48,7 @@ fn create_movie(in_paths: &[impl AsRef<str>], out_path: &str) -> anyhow::Result<
             path
         })
         // Below is just a kind of hacky way to show the progress. It presumes that each element in the iterator is consumed and immediately
-        // processed (which is not specified by art_extractor_snes::create_movie()... it might collect all paths first and then process them
+        // processed (which is not specified by ves_art_snes::create_movie()... it might collect all paths first and then process them
         // all, in which case this output is more or less bogus.
         .enumerate()
         .map(|(i, path)| {
@@ -61,7 +61,7 @@ fn create_movie(in_paths: &[impl AsRef<str>], out_path: &str) -> anyhow::Result<
             path
         });
 
-    let movie = art_extractor_snes::create_movie(iter)?;
+    let movie = ves_art_snes::create_movie(iter)?;
 
     println!("Writing output file: {}", out_path);
     let bincode_file = File::create(out_path)?;

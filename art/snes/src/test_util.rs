@@ -1,11 +1,11 @@
-use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
-use art_extractor_core::movie::MovieFrame;
-use art_extractor_core::sprite::{Color, Palette, PaletteRef, Tile, TileRef};
-use art_extractor_core::surface::{surface_iterate, Surface};
+use ves_art_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
+use ves_art_core::movie::MovieFrame;
+use ves_art_core::sprite::{Color, Palette, PaletteRef, Tile, TileRef};
+use ves_art_core::surface::{surface_iterate, Surface};
 use bmp::Pixel;
 use std::ops::Index;
 
-art_extractor_core::sized_surface!(
+ves_art_core::sized_surface!(
     ScreenSurface,
     Color,
     ArtworkSpaceUnit,
@@ -52,7 +52,7 @@ pub fn bmp_from_movie_frame(
         let src_rect = Rect::new_from_size((0, 0), src_size);
 
         let palette = &palettes[sprite.palette()];
-        art_extractor_core::surface::surface_iterate_2(
+        ves_art_core::surface::surface_iterate_2(
             src_size,
             src_rect,
             screen_size,

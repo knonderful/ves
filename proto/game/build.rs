@@ -1,4 +1,4 @@
-use art_extractor_core::movie::Movie;
+use ves_art_core::movie::Movie;
 use std::io::Write;
 use std::path::PathBuf;
 use std::fs::File;

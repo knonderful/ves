@@ -1,10 +1,10 @@
 [workspace]
 
 members = [
-    "art-extractor/core",
-    "art-extractor/gui",
-    "art-extractor/snes",
-    "art-extractor/snes-cli",
+    "art/core",
+    "art/gui",
+    "art/snes",
+    "art/snes-cli",
     "geom",
     "cache",
     "prototype/proto-common",

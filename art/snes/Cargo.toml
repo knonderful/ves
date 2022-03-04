@@ -1,11 +1,11 @@
 [package]
-name = "art-extractor-snes"
+name = "ves-art-snes"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 anyhow = ">=1, <2"
-art-extractor-core = { path = "../core", features = ["serde_support"] }
+ves-art-core = { path = "../core", features = ["serde_support"] }
 ves-geom = { path = "../../geom", features = ["serde"] }
 ves-cache = { path = "../../cache" }
 serde = { version = ">=1, <2", features = ["derive"] }

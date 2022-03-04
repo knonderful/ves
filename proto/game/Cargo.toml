@@ -16,7 +16,7 @@ ves-proto-common = { path = "../common" }
 ves-proto-logger = { path = "../logger" }
 
 [build-dependencies]
-art-extractor-core = { path = "../../art-extractor/core", features = ["serde_support"] }
+ves-art-core = { path = "../../art/core", features = ["serde_support"] }
 bincode = ">= 1.3, <2"
 staticgen = { git = "https://github.com/knonderful/staticgen", rev = "0718ece" }
 rust-format = { git = "https://github.com/knonderful/rust-format", rev = "4c9a649" }

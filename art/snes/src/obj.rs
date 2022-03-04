@@ -5,12 +5,12 @@
 #![allow(dead_code)]
 
 use anyhow::{anyhow, bail, Result};
-use art_extractor_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
-use art_extractor_core::movie::MovieFrame;
-use art_extractor_core::sprite::{
+use ves_art_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
+use ves_art_core::movie::MovieFrame;
+use ves_art_core::sprite::{
     Color, Palette, PaletteIndex, PaletteRef, Sprite, Tile, TileRef, TileSurface,
 };
-use art_extractor_core::surface::Surface;
+use ves_art_core::surface::Surface;
 use std::borrow::Cow;
 use std::usize;
 use ves_cache::VecCacheMut;
@@ -116,7 +116,7 @@ impl FromSnesData<&[u8]> for Palette {
 #[cfg(test)]
 mod test_palette {
     use crate::obj::FromSnesData;
-    use art_extractor_core::sprite::{Color, Palette};
+    use ves_art_core::sprite::{Color, Palette};
 
     #[test]
     fn test_from_snes_data() {
@@ -160,7 +160,7 @@ impl FromSnesData<&[u8]> for Vec<Palette> {
     }
 }
 
-art_extractor_core::sized_surface!(
+ves_art_core::sized_surface!(
     ObjNameTableSurface,
     PaletteIndex,
     ArtworkSpaceUnit,
@@ -227,7 +227,7 @@ impl ObjNameTable {
         obj_name_data: &[u8],
         y_offset: ArtworkSpaceUnit,
     ) {
-        use art_extractor_core::surface::Offset;
+        use ves_art_core::surface::Offset;
 
         let mut data_iter = obj_name_data.iter();
 
@@ -313,8 +313,8 @@ impl FromSnesData<(&[u8], &[u8])> for ObjNameTable {
 mod test_obj_name_table {
     use super::{FromSnesData, ObjNameTable};
     use crate::mesen::Frame;
-    use art_extractor_core::sprite::{Color, Palette, PaletteIndex};
-    use art_extractor_core::surface::Surface;
+    use ves_art_core::sprite::{Color, Palette, PaletteIndex};
+    use ves_art_core::surface::Surface;
     use bmp::Pixel;
 
     #[test]
@@ -429,7 +429,7 @@ impl ObjSize {
 #[cfg(test)]
 mod test_obj_size {
     use super::ObjSize;
-    use art_extractor_core::geom_art::Size;
+    use ves_art_core::geom_art::Size;
 
     #[test]
     fn test_size() {
@@ -641,7 +641,7 @@ impl FromSnesData<(u8, u8, u8, u8, u8)> for ObjData {
 #[cfg(test)]
 mod test_obj_data {
     use crate::obj::{FromSnesData, ObjData, ObjNameTableIndex};
-    use art_extractor_core::geom_art::Point;
+    use ves_art_core::geom_art::Point;
 
     #[test]
     fn test_from_snes_data() {
@@ -778,7 +778,7 @@ pub fn create_movie_frame(
         let dest_point = Point::new(0, 0);
         let dest_data = tile.surface_mut().data_mut();
 
-        art_extractor_core::surface::surface_iterate_2(
+        ves_art_core::surface::surface_iterate_2(
             src_size,
             src_rect,
             dest_size,

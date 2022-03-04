@@ -1,10 +1,10 @@
 [package]
-name = "ves-gui"
+name = "ves-art-gui"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-art-extractor-core = { path = "../core", features = ["serde_support"] }
+ves-art-core = { path = "../core", features = ["serde_support"] }
 ves-cache = { path = "../../cache" }
 ves-geom = { path = "../../geom" }
 bincode = ">= 1.3, <2"

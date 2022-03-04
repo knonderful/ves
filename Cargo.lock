@@ -66,40 +66,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b26702f315f53b6071259e15dd9d64528213b44d61de1ec926eca7715d62203"
 
 [[package]]
-name = "art-extractor-core"
-version = "0.1.0"
-dependencies = [
- "rgb",
- "serde",
- "ves-cache",
- "ves-geom",
-]
-
-[[package]]
-name = "art-extractor-snes"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "art-extractor-core",
- "bincode",
- "bmp",
- "serde",
- "serde_json",
- "ves-cache",
- "ves-geom",
-]
-
-[[package]]
-name = "art-extractor-snes-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "art-extractor-snes",
- "bincode",
- "clap",
-]
-
-[[package]]
 name = "async-trait"
 version = "0.1.52"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2125,6 +2091,52 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
 
 [[package]]
+name = "ves-art-core"
+version = "0.1.0"
+dependencies = [
+ "rgb",
+ "serde",
+ "ves-cache",
+ "ves-geom",
+]
+
+[[package]]
+name = "ves-art-gui"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "chrono",
+ "eframe",
+ "ves-art-core",
+ "ves-cache",
+ "ves-geom",
+]
+
+[[package]]
+name = "ves-art-snes"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "bmp",
+ "serde",
+ "serde_json",
+ "ves-art-core",
+ "ves-cache",
+ "ves-geom",
+]
+
+[[package]]
+name = "ves-art-snes-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bincode",
+ "clap",
+ "ves-art-snes",
+]
+
+[[package]]
 name = "ves-cache"
 version = "0.1.0"
 
@@ -2133,18 +2145,6 @@ name = "ves-geom"
 version = "0.1.0"
 dependencies = [
  "serde",
-]
-
-[[package]]
-name = "ves-gui"
-version = "0.1.0"
-dependencies = [
- "art-extractor-core",
- "bincode",
- "chrono",
- "eframe",
- "ves-cache",
- "ves-geom",
 ]
 
 [[package]]
@@ -2169,12 +2169,12 @@ name = "ves-proto-game"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "art-extractor-core",
  "bincode",
  "log",
  "rust-format",
  "serde",
  "staticgen",
+ "ves-art-core",
  "ves-proto-common",
  "ves-proto-logger",
  "wee_alloc",

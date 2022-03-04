@@ -2,7 +2,7 @@ mod components;
 
 use crate::components::movie::Movie;
 use crate::components::sprite_table::SpriteTable;
-use art_extractor_core::geom_art::ArtworkSpaceUnit;
+use ves_art_core::geom_art::ArtworkSpaceUnit;
 use chrono::{DateTime, Local};
 use eframe::{egui, epi};
 use std::collections::VecDeque;
@@ -51,7 +51,7 @@ impl epi::App for ArtDirectorApp {
             let mut input_file = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
             input_file.push("../../test_movie.bincode");
             let file = std::fs::File::open(input_file).unwrap();
-            match bincode::deserialize_from::<_, art_extractor_core::movie::Movie>(file) {
+            match bincode::deserialize_from::<_, ves_art_core::movie::Movie>(file) {
                 Ok(core_movie) => {
                     let gui_movie = Movie::new(core_movie);
                     // gui_movie.play(current_instant);
@@ -163,7 +163,7 @@ trait ToEgui {
     fn to_egui(&self) -> Self::Out;
 }
 
-impl ToEgui for art_extractor_core::geom_art::Rect {
+impl ToEgui for ves_art_core::geom_art::Rect {
     type Out = egui::Rect;
 
     #[inline(always)]
@@ -176,7 +176,7 @@ impl ToEgui for art_extractor_core::geom_art::Rect {
     }
 }
 
-impl ToEgui for art_extractor_core::geom_art::Size {
+impl ToEgui for ves_art_core::geom_art::Size {
     type Out = egui::Vec2;
 
     #[inline(always)]

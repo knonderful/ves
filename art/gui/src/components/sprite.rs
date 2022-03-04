@@ -1,5 +1,5 @@
 use crate::egui;
-use art_extractor_core::surface::Surface;
+use ves_art_core::surface::Surface;
 use std::ops::Index;
 
 pub const DEFAULT_UV: egui::Rect =
@@ -26,7 +26,7 @@ fn correct_uv(rect: egui::Rect, hflip: bool, vflip: bool) -> egui::Rect {
 }
 
 pub struct Sprite {
-    pub rect: art_extractor_core::geom_art::Rect,
+    pub rect: ves_art_core::geom_art::Rect,
     pub texture: egui::TextureHandle,
     pub hflip: bool,
     pub vflip: bool,
@@ -44,14 +44,14 @@ impl Sprite {
     ///
     /// returns: The [`Sprite`].
     pub fn create(
-        sprite: &art_extractor_core::sprite::Sprite,
+        sprite: &ves_art_core::sprite::Sprite,
         palettes: &impl Index<
-            art_extractor_core::sprite::PaletteRef,
-            Output = art_extractor_core::sprite::Palette,
+            ves_art_core::sprite::PaletteRef,
+            Output = ves_art_core::sprite::Palette,
         >,
         tiles: &impl Index<
-            art_extractor_core::sprite::TileRef,
-            Output = art_extractor_core::sprite::Tile,
+            ves_art_core::sprite::TileRef,
+            Output = ves_art_core::sprite::Tile,
         >,
         mut texture_factory: impl FnMut(egui::ColorImage) -> egui::TextureHandle,
     ) -> Self {
@@ -60,7 +60,7 @@ impl Sprite {
         let color_image = Self::create_color_image(palette, tile);
 
         let texture = texture_factory(color_image);
-        let rect = art_extractor_core::geom_art::Rect::new_from_size(
+        let rect = ves_art_core::geom_art::Rect::new_from_size(
             sprite.position(),
             tile.surface().size(),
         );
@@ -91,7 +91,7 @@ impl Sprite {
     /// * `rect`: The rectangle that defines the section.
     ///
     /// returns: A [`egui::Rect`] that represents the UV values of the underlying texture.
-    pub fn partial_uv(&self, rect: &art_extractor_core::geom_art::Rect) -> egui::Rect {
+    pub fn partial_uv(&self, rect: &ves_art_core::geom_art::Rect) -> egui::Rect {
         use crate::ToEgui as _;
 
         let egui_sprite_rect = self.rect.to_egui();
@@ -116,8 +116,8 @@ impl Sprite {
     }
 
     fn create_color_image(
-        palette: &art_extractor_core::sprite::Palette,
-        tile: &art_extractor_core::sprite::Tile,
+        palette: &ves_art_core::sprite::Palette,
+        tile: &ves_art_core::sprite::Tile,
     ) -> egui::ColorImage {
         let surf = tile.surface();
         let surf_data = surf.data();
@@ -125,7 +125,7 @@ impl Sprite {
         let mut raw_image = vec![0u8; surf.data().len() * 4]; // 4 bytes per pixel (RGBA)
         let mut raw_image_idx: usize = 0;
 
-        art_extractor_core::surface::surface_iterate(
+        ves_art_core::surface::surface_iterate(
             surf.size(),
             surf.size().as_rect(),
             false, // We do flipping in the mesh/Image instead of in the texture (using UV)
@@ -134,8 +134,8 @@ impl Sprite {
                 let color = &palette[surf_data[idx]];
 
                 let col_data = match color {
-                    art_extractor_core::sprite::Color::Opaque(col) => [col.r, col.g, col.b, 0xff],
-                    art_extractor_core::sprite::Color::Transparent => [0x00, 0x00, 0x00, 0x00],
+                    ves_art_core::sprite::Color::Opaque(col) => [col.r, col.g, col.b, 0xff],
+                    ves_art_core::sprite::Color::Transparent => [0x00, 0x00, 0x00, 0x00],
                 };
 
                 raw_image[raw_image_idx..raw_image_idx + 4].copy_from_slice(&col_data);

@@ -24,7 +24,7 @@ impl<'a> MovieFrame<'a> {
     pub fn show(
         &self,
         ui: &mut egui::Ui,
-        screen_size: art_extractor_core::geom_art::Size,
+        screen_size: ves_art_core::geom_art::Size,
         viewport: egui::Rect,
     ) {
         // TODO: It seems like the UI adds spacing of an extra 8px when an image is exactly on the edge, causing the scrollbars to resize
@@ -61,7 +61,7 @@ impl<'a> MovieFrame<'a> {
                 // Treat all other cases generically
                 intersection => {
                     intersection.for_each(|rect| {
-                        let egui_dest_rect = art_extractor_core::geom_art::Rect::new_from_size(
+                        let egui_dest_rect = ves_art_core::geom_art::Rect::new_from_size(
                             (
                                 rect.min_x() % screen_size.width,
                                 rect.min_y() % screen_size.height,
@@ -97,7 +97,7 @@ enum PlaybackState {
 }
 
 pub struct Movie {
-    movie: art_extractor_core::movie::Movie,
+    movie: ves_art_core::movie::Movie,
     frame_cursor: Cursor,
     frame_duration: Duration,
     playback_state: PlaybackState,
@@ -115,7 +115,7 @@ impl Movie {
     /// # Arguments
     ///
     /// * `movie`: The movie.
-    pub fn new(movie: art_extractor_core::movie::Movie) -> Self {
+    pub fn new(movie: ves_art_core::movie::Movie) -> Self {
         let frame_cursor = Cursor::new(movie.frames().len());
         let frame_duration = Duration::from_secs(1) / movie.frame_rate().fps();
         Self {

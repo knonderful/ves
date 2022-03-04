@@ -297,8 +297,8 @@ where
 /// # Example
 ///
 /// ```
-/// use art_extractor_core::surface::surface_iterate;
-/// use art_extractor_core::geom_art::{Size, Rect, Point};
+/// use ves_art_core::surface::surface_iterate;
+/// use ves_art_core::geom_art::{Size, Rect, Point};
 ///
 /// let mut exp_iter: std::slice::Iter<usize> = [
 ///     22, 23, 24, 25, 32, 33, 34, 35,
@@ -468,8 +468,8 @@ mod test_fn_surface_iterate {
 /// # Example
 ///
 /// ```
-/// use art_extractor_core::surface::surface_iterate_2;
-/// use art_extractor_core::geom_art::{Size, Rect, Point};
+/// use ves_art_core::surface::surface_iterate_2;
+/// use ves_art_core::geom_art::{Size, Rect, Point};
 ///
 /// let mut exp_iter: std::slice::Iter<(usize, usize)> = [
 ///     (22, 8080), (23, 8081), (24, 8082), (25, 8083), (32, 8180), (33, 8181), (34, 8182), (35, 8183),

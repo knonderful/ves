@@ -8,6 +8,7 @@ const INPUT_PATH: &'static str = "../../test_movie.bincode";
 fn main() -> Result<()> {
     let movie = load_movie_data()?;
     generate_static_code(&movie)?;
+    generate_vrom_data(&movie)?;
 
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed={INPUT_PATH}");
@@ -45,5 +46,15 @@ fn generate_static_code(movie: &Movie) -> Result<()> {
     rust_format::format_file(OUTPUT_TYPES_PATH)?;
     rust_format::format_file(OUTPUT_METHODS_PATH)?;
 
+    Ok(())
+}
+
+fn generate_vrom_data(movie: &Movie) -> Result<()> {
+    let mut path = PathBuf::new();
+    path.push(std::env::var("OUT_DIR")?);
+    path.push("vrom.bincode");
+
+    let mut vrom_file = File::create(&path)?;
+    bincode::serialize_into(&mut vrom_file, movie.tiles())?;
     Ok(())
 }

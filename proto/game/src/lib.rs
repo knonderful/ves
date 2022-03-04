@@ -11,6 +11,11 @@ use ves_proto_common::gpu::{
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
+/// This will be used by the Core to grab graphics data like tiles.
+#[allow(dead_code)]
+#[link_section = "vrom"]
+static ROM_DATA: [u8; 983752] = *include_bytes!(concat!(env!("OUT_DIR"), "/vrom.bincode"));
+
 static PALETTES: &'static [crate::generated::types::Palette] =
     crate::generated::methods::palettes();
 

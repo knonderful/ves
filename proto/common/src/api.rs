@@ -20,6 +20,20 @@ pub trait Core {
     fn palette_set(&self, palette: &PaletteTableIndex, index: &PaletteIndex, color: &PaletteColor);
 }
 
+/// The prototype game API.
+pub trait Game {
+    /// Create a game instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `core`: The bootstrap to the core API. This instance should be used by the game
+    ///           implementation to interact with the core.
+    fn new(core: CoreBootstrap) -> Self;
+
+    /// Advance the game by one step.
+    fn step(&mut self);
+}
+
 pub struct CoreBootstrap {
     core_gpu_oam_set: unsafe extern "C" fn(index: u8, entry: u64),
     core_gpu_palette_set: unsafe extern "C" fn(palette: u8, index: u8, color: u16),
@@ -69,20 +83,6 @@ impl Core for CoreBootstrap {
             (self.core_gpu_palette_set)(palette.into(), index.into(), color.into());
         }
     }
-}
-
-/// The prototype game API.
-pub trait Game {
-    /// Create a game instance.
-    ///
-    /// # Arguments
-    ///
-    /// * `core`: The bootstrap to the core API. This instance should be used by the game
-    ///           implementation to interact with the core.
-    fn new(core: CoreBootstrap) -> Self;
-
-    /// Advance the game by one step.
-    fn step(&mut self);
 }
 
 /// A macro for bootstrapping a game implementation.

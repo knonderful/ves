@@ -1,8 +1,7 @@
-mod core;
 mod generated;
 
-use crate::core::Core;
 use log::info;
+use ves_proto_common::api::{Core, CoreBootstrap, Game};
 use ves_proto_common::gpu::{
     OamTableEntry, OamTableIndex, PaletteColor, PaletteIndex, PaletteTableIndex,
 };
@@ -19,19 +18,8 @@ static ROM_DATA: [u8; 983752] = *include_bytes!(concat!(env!("OUT_DIR"), "/vrom.
 static PALETTES: &'static [crate::generated::types::Palette] =
     crate::generated::methods::palettes();
 
-#[no_mangle]
-pub fn create_instance() -> Box<Game> {
-    let core = Core::new();
-    Box::new(Game { core, frame_nr: 0 })
-}
-
-#[no_mangle]
-pub fn step(game: &mut Game) {
-    game.step();
-}
-
-pub struct Game {
-    core: Core,
+pub struct ProtoGame {
+    core: CoreBootstrap,
     frame_nr: u32,
 }
 
@@ -43,7 +31,14 @@ where
     TryFrom::try_from(a).unwrap()
 }
 
-impl Game {
+impl Game for ProtoGame {
+    fn new(core: CoreBootstrap) -> Self {
+        Self {
+            core,
+            frame_nr: 0,
+        }
+    }
+
     fn step(&mut self) {
         self.frame_nr += 1;
         info!("At frame {}", self.frame_nr);
@@ -74,3 +69,5 @@ impl Game {
         self.core.palette_set(&palette, &index, &color);
     }
 }
+
+ves_proto_common::create_game!(ProtoGame);

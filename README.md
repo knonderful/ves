@@ -37,6 +37,35 @@ The core architecture approach has the following advantages:
 In addition to this the VES project also seeks to provide components that are common between different core
 architectures, such as tooling for extracting and organizing artwork. 
 
+## Technical choices
+
+### Programming language
+
+Rust is used as the main language for the project. Its targets on both safety and speed in combination with a general
+focus on ergonomics and code clarity make it an excellent all-rounder for the different types of software components
+that the project requires. Additionally, the ecosystem provides a lot of libraries and tools that can be used off the
+shelf.
+
+### Containerization
+
+Although not a strict requirement for core architectures, it is assumed that WebAssembly is used as a bridge between the
+core and the game. The choice for WebAssembly is motivated by several aspects:
+
+* It provides an efficient and memory-safe sandboxed environment in which the core can execute the game code.
+* It is an open standard.
+* It is programming-language-agnostic.
+* Can easily be integrated on both desktop and web.
+* It is natively supported by Rust for both the host side (e.g. [`wasmtime`](https://crates.io/crates/wasmtime)) and the
+  sandboxed side (via a dedicated compilation target).
+
+### Serialization
+
+The [`serde`](https://crates.io/crates/serde) library is used for any serialization/deserialization of data, due to its
+low overhead and ergonomic integration into any Rust code.
+
+For binary serialization [`bincode`](https://crates.io/crates/bincode) is the format of choice. The main reasons for
+this are compactness and platform-independence (which is a must when storing data to files for later use).
+
 ## Project state
 
 The main development in the VES project is currently driven by a [prototype](proto) implementation that is a

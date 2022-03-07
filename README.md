@@ -2,8 +2,8 @@
 
 ## Introduction
 
-VES stands for Virtual Entertainment System. Essentially, VES is an umbrella for common game development architecture
-that is largely insprired by gaming consoles of the '80s and and '90s and initiatives like
+VES stands for Virtual Entertainment System. Essentially, VES is an umbrella project for common game development
+architecture that is largely inspired by gaming consoles of the '80s and and '90s and initiatives like
 [libretro](https://www.libretro.com/).
 
 ## Motivation

@@ -84,3 +84,22 @@ pub trait Game {
 ```
 
 `CoreBootstrap` is an implementation of the aforementioned `Core` trait.
+
+#### VROM
+
+In addition to the aforementioned traits, the core and game share read-only data via a WASM section called `vrom`. This
+section contains graphical assets, such as tiles, that are part of the game, but do not change over time. This section
+is loaded by the core as part of the initialization routine and is not used directly by the game code. However, the
+objects inside the VROM are can be referenced in the API calls between the core and the game. For instance, an OAM entry
+might include an index to the list of tiles in VROM, such that the core knows which tile to use for the sprite.
+
+The VROM is generated on the game side at build-time, in [`build.rs`](game/build.rs). It is serialized as `bincode`. The
+actual data structure is intentionally left unspecified in this document, since it is still subject to regular change.
+Have a look at the code for more details.
+
+The mains reason for having VROM, rather than sending the relevant data via API calls to the core, are:
+
+* API simplicity that favors the 99% use-case.
+* Reduced bandwidth over the WASM bus.
+* Reduced code on the game side.
+* A reusable approach for that can also be used for other core architectures.

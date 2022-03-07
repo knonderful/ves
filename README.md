@@ -58,6 +58,45 @@ core and the game. The choice for WebAssembly is motivated by several aspects:
 * It is natively supported by Rust for both the host side (e.g. [`wasmtime`](https://crates.io/crates/wasmtime)) and the
   sandboxed side (via a dedicated compilation target).
 
+The following is a graphical representation of a common Core-Game Architecture implementation using WebAssembly (WASM).
+
+```mermaid
+graph TD
+    core_fe[Front-end]
+    core[Core]
+    wasm_rt["WASM run-time"]
+    wasm_binding["WASM binding"]
+    game[Game]
+
+    core_fe -->|context| core
+    core -->|render frame| core_fe
+    core -->|game API calls| wasm_rt
+    wasm_rt -->|core API calls| core
+    wasm_rt -->|"(WASM) export calls"| wasm_binding
+    wasm_binding -->|"(WASM) import calls"| wasm_rt
+    wasm_binding -->|game API calls| game
+    game -->|core API calls| wasm_binding
+```
+
+* **Front-end:** Responsible for handling platform-specific components like user input (including gamepads), graphics,
+  audio, and whatever the architecture might require. A front-end can use arbitrary technology, as long as it is
+  compatible with the core. Front-ends can be implemented in, for example, [libretro](https://www.libretro.com/) or
+  [SDL](https://www.libsdl.org/). Note that, unlike the libretro approach, VES does not dictate anything about the
+  front-end/core relationship. This means that a front-end could be entirely Linux terminal-based or a controller could
+  have 34 buttons. On the one hand, this makes it harder to have a common front-end for different core types. On the
+  other hand, it can greatly simplify the core implementation. Note that an architecture *can* go the libretro route, it
+  just doesn't *have to*.
+* **Core:** A component that implements the core-side of the architecture (as desribed in some kind of specification)
+  and interacts with the front-end and WASM run-time to provide a complete game loop.
+* **WASM run-time:** The WebAssembly run-time. This is the component that is responsible for loading up the WASM game
+  file, providing exported functions from the game to the core and providing imported functions from the core to the
+  game. An example is [`wasmtime`](https://crates.io/crates/wasmtime).
+* **WASM binding:** The WebAssembly binding on the game side. The game is compiled as a WebAssembly binary file
+  (`.wasm`). The WASM binding provides exported functions from the game to the outside world and imports core functions
+  for use in the game code.
+* **Game:** The game implementation itself. Its API functions get called by the core, in response to which it can
+  execute its internal logic that represents the game.
+
 ### Serialization
 
 The [`serde`](https://crates.io/crates/serde) library is used for any serialization/deserialization of data, due to its

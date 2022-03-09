@@ -1,8 +1,8 @@
-use ves_art_core::movie::Movie;
+use anyhow::{anyhow, Result};
+use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use std::fs::File;
-use anyhow::Result;
+use ves_art_core::movie::Movie;
 
 const INPUT_PATH: &'static str = "../../test_movie.bincode";
 fn main() -> Result<()> {
@@ -24,19 +24,36 @@ fn load_movie_data() -> Result<Movie> {
 
 fn generate_static_code(movie: &Movie) -> Result<()> {
     const OUTPUT_METHODS_PATH: &'static str = "src/generated/methods.rs";
-    let mut generated_methods_file = File::create(OUTPUT_METHODS_PATH)?;
-    writeln!(generated_methods_file, "use crate::generated::types::*;")?;
-    writeln!(generated_methods_file, "")?;
-    writeln!(generated_methods_file, "pub const fn palettes() -> &'static [Palette] {{")?;
+    let generated_methods_file = File::create(OUTPUT_METHODS_PATH)?;
+    let mut serializer = staticgen::Serializer::new(generated_methods_file);
+    writeln!(serializer.out_mut(), "use crate::generated::types::*;")?;
+    writeln!(serializer.out_mut(), "")?;
+    writeln!(
+        serializer.out_mut(),
+        "pub const fn palettes() -> &'static [Palette] {{"
+    )?;
 
-    let mut serializer = staticgen::Serializer::new(&mut generated_methods_file);
     use serde::Serialize as _;
     movie.palettes().serialize(&mut serializer)?;
 
+    writeln!(serializer.out_mut(), "}}")?;
+    writeln!(serializer.out_mut(), "")?;
+    writeln!(
+        serializer.out_mut(),
+        "pub const fn frames() -> &'static [MovieFrame] {{"
+    )?;
+
+    let frames = movie
+        .frames()
+        .chunks(10)
+        .next()
+        .ok_or_else(|| anyhow!("Got no frames."))?;
+    frames.serialize(&mut serializer)?;
+
+    writeln!(serializer.out_mut(), "}}")?;
+
     let structs = std::mem::take(serializer.structs_mut());
     let enums = std::mem::take(serializer.enums_mut());
-
-    writeln!(generated_methods_file, "}}")?;
 
     const OUTPUT_TYPES_PATH: &'static str = "src/generated/types.rs";
     let mut generated_types_file = File::create(OUTPUT_TYPES_PATH)?;

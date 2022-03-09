@@ -37,9 +37,9 @@ impl Runtime {
         linker.func_wrap(
             "gpu",     // module
             "oam_set", // function
-            move |_caller: Caller<'_, ProtoCore>, index: u32, entry: u64| {
-                let entry = OamTableEntry::from(entry);
-                println!("gpu::oam_set() called with index: {index} and entry: {entry:?}");
+            move |_caller: Caller<'_, ProtoCore>, _index: u32, _entry: u64| {
+                // let entry = OamTableEntry::from(entry);
+                // println!("<  ENTRY: {entry:?}");
 
                 Ok(())
             },

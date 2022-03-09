@@ -13,14 +13,16 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 /// This will be used by the Core to grab graphics data like tiles.
 #[allow(dead_code)]
 #[link_section = "vrom"]
-static ROM_DATA: [u8; 983752] = *include_bytes!(concat!(env!("OUT_DIR"), "/vrom.bincode"));
+pub static ROM_DATA: [u8; 983752] = *include_bytes!(concat!(env!("OUT_DIR"), "/vrom.bincode"));
 
 static PALETTES: &'static [crate::generated::types::Palette] =
     crate::generated::methods::palettes();
 
+static FRAMES: &'static [crate::generated::types::MovieFrame] = crate::generated::methods::frames();
+
 pub struct ProtoGame {
     core: CoreBootstrap,
-    frame_nr: u32,
+    frame_nr: usize,
 }
 
 fn from_unchecked<A, B>(a: A) -> B
@@ -33,17 +35,15 @@ where
 
 impl Game for ProtoGame {
     fn new(core: CoreBootstrap) -> Self {
-        Self {
-            core,
-            frame_nr: 0,
-        }
+        Self { core, frame_nr: 0 }
     }
 
     fn step(&mut self) {
-        self.frame_nr += 1;
-        info!("At frame {}", self.frame_nr);
+        info!("Game frame number: {}.", self.frame_nr);
 
-        if self.frame_nr == 1 {
+        // Upload all palettes on the first frame
+        if self.frame_nr == 0 {
+            info!("Uploading all palettes.");
             for (pal_idx, palette) in PALETTES.iter().enumerate() {
                 for (col_idx, color) in palette.colors.iter().enumerate() {
                     use crate::generated::types::Color;
@@ -59,14 +59,22 @@ impl Game for ProtoGame {
             }
         }
 
-        let index = OamTableIndex::new(0);
-        let entry = OamTableEntry::new(10, 20, 3, 1, 0, 123);
-        self.core.oam_set(&index, &entry);
+        let movie_frame = &FRAMES[self.frame_nr % FRAMES.len()];
+        info!("Uploading movie frame #{}.", movie_frame.frame_number);
 
-        let palette = PaletteTableIndex::new(2);
-        let index = PaletteIndex::new(14);
-        let color = PaletteColor::new(3, 2, 1);
-        self.core.palette_set(&palette, &index, &color);
+        for (i, sprite) in movie_frame.sprites.iter().enumerate() {
+            let entry = OamTableEntry::new(
+                from_unchecked(sprite.position.x.0),
+                from_unchecked(sprite.position.y.0),
+                from_unchecked(sprite.palette.0),
+                u8::from(sprite.h_flip),
+                u8::from(sprite.v_flip),
+                from_unchecked(sprite.tile.0),
+            );
+            self.core.oam_set(&OamTableIndex::new(from_unchecked(i)), &entry);
+        }
+
+        self.frame_nr += 1;
     }
 }
 

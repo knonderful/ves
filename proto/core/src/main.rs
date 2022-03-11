@@ -1,9 +1,12 @@
+use std::path::{Path, PathBuf};
+
+use ::log::{info, LevelFilter};
+use anyhow::{anyhow, Result};
+
+use ves_art_core::sprite::Tile;
+
 use crate::log::Logger;
 use crate::runtime::Runtime;
-use anyhow::{anyhow, Result};
-use std::path::{Path, PathBuf};
-use ::log::{info, LevelFilter};
-use ves_art_core::sprite::Tile;
 
 mod log;
 mod runtime;
@@ -15,25 +18,8 @@ struct ProtoCore {
 
 impl ProtoCore {
     fn new(wasm_file: impl AsRef<Path>) -> Result<ProtoCore> {
-        // Vrom
         let vrom = Vrom::from_file(&wasm_file)?;
-
-        // Logger
-        let wasm_filename = wasm_file
-            .as_ref()
-            .file_name()
-            .ok_or_else(|| anyhow!("No file name found on path: {:?}", wasm_file.as_ref()))?
-            .to_str()
-            .ok_or_else(|| {
-                anyhow!(
-                    "Could not convert file name to string: {:?}",
-                    wasm_file.as_ref()
-                )
-            })?;
-        let mut log_dir = PathBuf::from("/tmp/ves_proto");
-        std::fs::create_dir_all(&log_dir)?;
-        log_dir.push(wasm_filename);
-        let logger = Logger::from_file(log_dir)?;
+        let logger = Logger::new();
 
         Ok(Self { logger, vrom })
     }

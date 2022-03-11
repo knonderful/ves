@@ -72,26 +72,31 @@ impl Vrom {
     }
 }
 
-fn main() {
+fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
-    let wasm_file = PathBuf::from(&args[1]).canonicalize().unwrap();
+    let wasm_file = PathBuf::from(&args[1]).canonicalize()?;
     println!("Running core.");
     println!(
         "Loading WASM file: {}",
-        wasm_file.as_path().to_str().unwrap()
+        wasm_file
+            .as_path()
+            .to_str()
+            .ok_or_else(|| anyhow!("The provided path can not be converted to a string."))?
     );
 
     let wasm_file = wasm_file.as_path();
-    let core = ProtoCore::new(wasm_file).unwrap();
-    let mut runtime = Runtime::from_path(wasm_file, core).unwrap();
+    let core = ProtoCore::new(wasm_file)?;
+    let mut runtime = Runtime::from_path(wasm_file, core)?;
     println!("Creating game instance.");
-    let instance_ptr = runtime.create_instance().unwrap();
+    let instance_ptr = runtime.create_instance()?;
 
     println!("Starting game loop.");
     // TODO: Implement actual game loop with SDL
-    runtime.step(instance_ptr).unwrap();
-    runtime.step(instance_ptr).unwrap();
-    runtime.step(instance_ptr).unwrap();
-    runtime.step(instance_ptr).unwrap();
-    runtime.step(instance_ptr).unwrap();
+    runtime.step(instance_ptr)?;
+    runtime.step(instance_ptr)?;
+    runtime.step(instance_ptr)?;
+    runtime.step(instance_ptr)?;
+    runtime.step(instance_ptr)?;
+
+    Ok(())
 }

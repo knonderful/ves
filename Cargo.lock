@@ -2186,6 +2186,7 @@ dependencies = [
 name = "ves-proto-common"
 version = "0.1.0"
 dependencies = [
+ "log",
  "paste",
 ]
 

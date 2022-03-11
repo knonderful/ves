@@ -46,22 +46,11 @@ impl Logger {
         mut self,
         max_level: Option<ves_proto_common::log::LogLevel>,
     ) -> Result<(), SetLoggerError> {
-        log::set_max_level(Self::level_from_proto(max_level));
+        log::set_max_level(Self::map_filter_level(max_level));
         log::set_boxed_logger(Box::new(self))
     }
 
-    fn level_to_proto(level: log::Level) -> ves_proto_common::log::LogLevel {
-        use ves_proto_common::log::LogLevel;
-        match level {
-            Level::Error => LogLevel::Error,
-            Level::Warn => LogLevel::Warn,
-            Level::Info => LogLevel::Info,
-            Level::Debug => LogLevel::Debug,
-            Level::Trace => LogLevel::Trace,
-        }
-    }
-
-    fn level_from_proto(max_level: Option<ves_proto_common::log::LogLevel>) -> log::LevelFilter {
+    fn map_filter_level(max_level: Option<ves_proto_common::log::LogLevel>) -> log::LevelFilter {
         if let Some(level) = max_level {
             use ves_proto_common::log::LogLevel;
             match level {
@@ -100,7 +89,7 @@ impl Log for Logger {
 
         let message = format!("{}", record.args());
 
-        self.send(Self::level_to_proto(record.metadata().level()), &message);
+        self.send(record.metadata().level().into(), &message);
     }
 
     fn flush(&self) {

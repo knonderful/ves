@@ -2,6 +2,7 @@ use crate::log::Logger;
 use crate::runtime::Runtime;
 use anyhow::{anyhow, Result};
 use std::path::{Path, PathBuf};
+use ::log::{info, LevelFilter};
 use ves_art_core::sprite::Tile;
 
 mod log;
@@ -65,18 +66,23 @@ impl Vrom {
     fn from_bincode(data: &[u8]) -> Result<Vrom> {
         let tiles: Vec<Tile> = bincode::deserialize_from(data)?;
 
-        println!("VROM summary:");
-        println!("  {} tiles", tiles.len());
+        info!("VROM summary:");
+        info!("  {} tiles", tiles.len());
 
         Ok(Self { tiles })
     }
 }
 
 fn main() -> Result<()> {
+    simple_logger::SimpleLogger::new()
+        .with_level(LevelFilter::Off)
+        .with_module_level("ves_proto_core", LevelFilter::Info)
+        .init()?;
+
     let args: Vec<String> = std::env::args().collect();
     let wasm_file = PathBuf::from(&args[1]).canonicalize()?;
-    println!("Running core.");
-    println!(
+    info!("Running core.");
+    info!(
         "Loading WASM file: {}",
         wasm_file
             .as_path()
@@ -87,10 +93,10 @@ fn main() -> Result<()> {
     let wasm_file = wasm_file.as_path();
     let core = ProtoCore::new(wasm_file)?;
     let mut runtime = Runtime::from_path(wasm_file, core)?;
-    println!("Creating game instance.");
+    info!("Creating game instance.");
     let instance_ptr = runtime.create_instance()?;
 
-    println!("Starting game loop.");
+    info!("Starting game loop.");
     // TODO: Implement actual game loop with SDL
     runtime.step(instance_ptr)?;
     runtime.step(instance_ptr)?;

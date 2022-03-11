@@ -1,6 +1,7 @@
 use crate::ProtoCore;
 use anyhow::Result;
 use std::path::Path;
+use log::trace;
 use ves_proto_common::gpu::{PaletteColor, PaletteIndex, PaletteTableIndex};
 use wasmtime::{
     AsContext, Caller, Engine, Extern, Linker, Memory, Module, Store, StoreContext, Trap, TypedFunc,
@@ -59,7 +60,7 @@ impl Runtime {
                     .map(PaletteColor::from)
                     .map_err(|_| Trap::new("Could not convert color value to u16."))?;
 
-                println!("gpu::palette_set() called with palette: {palette:?}, index: {index:?} and color: {color:?}");
+                trace!("gpu::palette_set() called with palette: {palette:?}, index: {index:?} and color: {color:?}");
 
                 Ok(())
             },

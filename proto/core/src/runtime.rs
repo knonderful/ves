@@ -1,7 +1,7 @@
 use crate::ProtoCore;
 use anyhow::Result;
 use std::path::Path;
-use ves_proto_common::gpu::{OamTableEntry, PaletteColor, PaletteIndex, PaletteTableIndex};
+use ves_proto_common::gpu::{PaletteColor, PaletteIndex, PaletteTableIndex};
 use wasmtime::{
     AsContext, Caller, Engine, Extern, Linker, Memory, Module, Store, StoreContext, Trap, TypedFunc,
 };

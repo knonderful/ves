@@ -76,7 +76,7 @@ impl Vrom {
 fn main() -> Result<()> {
     simple_logger::SimpleLogger::new()
         .with_level(LevelFilter::Off)
-        .with_module_level("ves_proto_core", LevelFilter::Info)
+        .with_module_level(env!("CARGO_CRATE_NAME"), LevelFilter::Info)
         .init()?;
 
     let args: Vec<String> = std::env::args().collect();

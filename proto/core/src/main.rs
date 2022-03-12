@@ -1,7 +1,10 @@
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use ::log::{info, LevelFilter};
 use anyhow::{anyhow, Result};
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
 
 use ves_art_core::sprite::Tile;
 
@@ -82,13 +85,48 @@ fn main() -> Result<()> {
     info!("Creating game instance.");
     let instance_ptr = runtime.create_instance()?;
 
+    info!("Initializing SDL.");
+    let sdl_context = sdl2::init().map_err(|e| anyhow!("Could not initialize SDL: {}", e))?;
+    let video_subsystem = sdl_context
+        .video()
+        .map_err(|e| anyhow!("Could not initialize SDL: {}", e))?;
+
+    info!("Initializing video subsystem.");
+    let window = video_subsystem
+        .window("SDL2", 640, 480)
+        .position_centered()
+        .build()?;
+
+    info!("Creating canvas.");
+    let mut canvas = window.into_canvas().accelerated().build()?;
+
     info!("Starting game loop.");
-    // TODO: Implement actual game loop with SDL
-    runtime.step(instance_ptr)?;
-    runtime.step(instance_ptr)?;
-    runtime.step(instance_ptr)?;
-    runtime.step(instance_ptr)?;
-    runtime.step(instance_ptr)?;
+    let mut event_pump = sdl_context
+        .event_pump()
+        .map_err(|e| anyhow!("Could not initialize SDL: {}", e))?;
+
+    let mut running = true;
+    while running {
+        runtime.step(instance_ptr)?;
+
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => {
+                    running = false;
+                }
+                _ => {}
+            }
+        }
+
+        canvas.clear();
+        canvas.present();
+
+        std::thread::sleep(Duration::from_millis(100));
+    }
 
     Ok(())
 }

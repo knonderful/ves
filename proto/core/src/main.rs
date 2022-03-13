@@ -244,7 +244,7 @@ fn render_oam(
 
         surface
             .blit(None, target, dest_rect)
-            .map_err(|err| anyhow!("Could not blit surface onto canvas: {err}"))?;
+            .map_err(|err| anyhow!("Could not blit surface onto target surface: {err}"))?;
     }
     Ok(())
 }

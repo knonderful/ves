@@ -71,7 +71,8 @@ impl Game for ProtoGame {
                 u8::from(sprite.v_flip),
                 from_unchecked(sprite.tile.0),
             );
-            self.core.oam_set(&OamTableIndex::new(from_unchecked(i)), &entry);
+            self.core
+                .oam_set(&OamTableIndex::new(from_unchecked(i)), &entry);
         }
 
         self.frame_nr += 1;

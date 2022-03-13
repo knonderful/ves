@@ -48,8 +48,8 @@ impl Game for ProtoGame {
                 for (col_idx, color) in palette.colors.iter().enumerate() {
                     use crate::generated::types::Color;
                     let color = match color {
-                        Color::Opaque(rgb) => PaletteColor::new(rgb.r, rgb.g, rgb.b),
-                        Color::Transparent => PaletteColor::new(0, 0, 0),
+                        Color::Opaque(rgb) => PaletteColor::from_real(rgb.r, rgb.g, rgb.b),
+                        Color::Transparent => PaletteColor::from_real(0, 0, 0),
                     };
 
                     let palette = PaletteTableIndex::new(from_unchecked(pal_idx));

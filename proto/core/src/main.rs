@@ -219,7 +219,7 @@ fn render_oam(
     palettes: &[sdl2::pixels::Palette],
     vrom: &Vrom,
 ) -> Result<()> {
-    for obj in oam {
+    for obj in oam.iter().rev() {
         let char_table_index = usize::try_from(obj.char_table_index())
             .map_err(|_| anyhow!("Could not convert char_table_index to usize."))?;
         let tile = &vrom.tiles[char_table_index];

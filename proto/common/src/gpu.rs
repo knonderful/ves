@@ -6,23 +6,29 @@ bit_struct!(
     /// The entry can be converted to an [u8] and sent from the game to the core.
     ///
     /// The internal format is as follows:
-    /// * Bits 0-4: Index value.
-    /// * Bits 5-7: Unused.
+    /// * Bits 0-6: Index value.
+    /// * Bit 7: Unused.
     #[derive(Copy, Clone, Eq, PartialEq, Default)]
     pub struct OamTableIndex {
         value: u8
     }
 
     impl {
-        #[bit_struct_field(shift = 0, mask = 0b11111)]
+        #[bit_struct_field(shift = 0, mask = 0b1111111)]
         fn value(&self) -> u8;
     }
 
     padding {
-        #[bit_struct_field(shift = 5, mask = 0b1111)]
+        #[bit_struct_field(shift = 7, mask = 0b1)]
         fn unused(&self) -> u8;
     }
 );
+
+impl From<OamTableIndex> for usize {
+    fn from(index: OamTableIndex) -> Self {
+        index.value.into()
+    }
+}
 
 bit_struct!(
     /// An entry in the OAM table.
@@ -59,7 +65,7 @@ bit_struct!(
         fn flip_y(&self) -> u8;
 
         #[bit_struct_field(shift = 32, mask = 0xFFFFFFFF)]
-        fn char_table_index(&self) -> u32;
+        pub fn char_table_index(&self) -> u32;
     }
 
     padding {
@@ -206,6 +212,12 @@ bit_struct!(
     }
 );
 
+impl From<PaletteTableIndex> for usize {
+    fn from(index: PaletteTableIndex) -> Self {
+        index.value.into()
+    }
+}
+
 #[cfg(test)]
 mod tests_palette_table_index {
     use super::PaletteTableIndex;
@@ -277,6 +289,12 @@ bit_struct!(
     }
 );
 
+impl From<PaletteIndex> for usize {
+    fn from(index: PaletteIndex) -> Self {
+        index.value.into()
+    }
+}
+
 #[cfg(test)]
 mod tests_palette_index {
     use super::PaletteIndex;
@@ -341,14 +359,23 @@ bit_struct!(
     impl {
         #[bit_struct_field(shift = 0, mask = 0b11111)]
         /// The red color component.
+        ///
+        /// **IMPORTANT:** Only the 5 least-significant bits are used. To get the "real" color, use
+        /// [`to_real()`], instead.
         pub fn r(&self) -> u8;
 
         #[bit_struct_field(shift = 5, mask = 0b11111)]
         /// The green color component.
+        ///
+        /// **IMPORTANT:** Only the 5 least-significant bits are used. To get the "real" color, use
+        /// [`to_real()`], instead.
         pub fn g(&self) -> u8;
 
         #[bit_struct_field(shift = 10, mask = 0b11111)]
         /// The blue color component.
+        ///
+        /// **IMPORTANT:** Only the 5 least-significant bits are used. To get the "real" color, use
+        /// [`to_real()`], instead.
         pub fn b(&self) -> u8;
     }
 
@@ -357,6 +384,34 @@ bit_struct!(
         fn unused(&self) -> u8;
     }
 );
+
+impl PaletteColor {
+    #[inline(always)]
+    fn component_to_real(bits: u8) -> u8 {
+        bits << 3 | (bits >> 2) & 0b00000111
+    }
+
+    #[inline(always)]
+    fn component_from_real(bits: u8) -> u8 {
+        bits >> 3
+    }
+
+    pub fn from_real(r: u8, g: u8, b: u8) -> Self {
+        Self::new(
+            Self::component_from_real(r),
+            Self::component_from_real(g),
+            Self::component_from_real(b),
+        )
+    }
+
+    pub fn to_real(&self) -> (u8, u8, u8) {
+        (
+            Self::component_to_real(self.r()),
+            Self::component_to_real(self.g()),
+            Self::component_to_real(self.b()),
+        )
+    }
+}
 
 #[cfg(test)]
 mod tests_palette_color {

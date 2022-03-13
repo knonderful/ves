@@ -173,7 +173,7 @@ fn main() -> Result<()> {
         let texture = texture_creator.create_texture_from_surface(&target)?;
 
         // Render onto the window canvas
-        canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 64, 0));
+        canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 64));
         canvas.clear();
         canvas
             .copy(&texture, None, sdl2::rect::Rect::new(0, 0, 256, 224))

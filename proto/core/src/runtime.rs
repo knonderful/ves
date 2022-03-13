@@ -1,7 +1,6 @@
 use crate::ProtoCore;
 use anyhow::Result;
 use std::path::Path;
-use log::trace;
 use ves_proto_common::gpu::{PaletteColor, PaletteIndex, PaletteTableIndex};
 use wasmtime::{
     AsContext, Caller, Engine, Extern, Linker, Memory, Module, Store, StoreContext, Trap, TypedFunc,
@@ -38,9 +37,11 @@ impl Runtime {
         linker.func_wrap(
             "gpu",     // module
             "oam_set", // function
-            move |_caller: Caller<'_, ProtoCore>, _index: u32, _entry: u64| {
-                // let entry = OamTableEntry::from(entry);
-                // println!("<  ENTRY: {entry:?}");
+            move |mut caller: Caller<'_, ProtoCore>, index: u32, entry: u64| {
+                let index = u8::try_from(index)
+                    .map_err(|_| Trap::new("Could not convert index value to u8."))?;
+
+                caller.data_mut().set_oam_entry(index.into(), entry.into());
 
                 Ok(())
             },
@@ -49,7 +50,7 @@ impl Runtime {
         linker.func_wrap(
             "gpu",         // module
             "palette_set", // function
-            move |_caller: Caller<'_, ProtoCore>, palette: u32, index: u32, color: u32| {
+            move |mut caller: Caller<'_, ProtoCore>, palette: u32, index: u32, color: u32| {
                 let palette = u8::try_from(palette)
                     .map(PaletteTableIndex::from)
                     .map_err(|_| Trap::new("Could not convert palette value to u8."))?;
@@ -60,7 +61,7 @@ impl Runtime {
                     .map(PaletteColor::from)
                     .map_err(|_| Trap::new("Could not convert color value to u16."))?;
 
-                trace!("gpu::palette_set() called with palette: {palette:?}, index: {index:?} and color: {color:?}");
+                caller.data_mut().set_palette_entry(palette, index, color);
 
                 Ok(())
             },
@@ -80,12 +81,13 @@ impl Runtime {
         })
     }
 
-    pub fn create_instance(&mut self) -> Result<u32, Trap> {
+    pub(crate) fn create_instance(&mut self) -> Result<u32, Trap> {
         self.create_instance_fn.call(&mut self.store, ())
     }
 
-    pub fn step(&mut self, args: u32) -> Result<(), Trap> {
-        self.step_fn.call(&mut self.store, args)
+    pub(crate) fn step(&mut self, args: u32) -> Result<&ProtoCore, Trap> {
+        self.step_fn.call(&mut self.store, args)?;
+        Ok(self.store.data())
     }
 
     fn get_memory<T>(caller: &mut Caller<'_, T>) -> std::result::Result<Memory, Trap> {

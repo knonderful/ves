@@ -159,15 +159,13 @@ fn main() -> Result<()> {
             }
         }
 
-        // Get palettes from core and convert them to SDL palettes (inefficient, but first impl)
-        let sdl_palettes = create_sdl_palettes(&core.palettes)?;
-
         // Create temporary surface to render our scene onto
-        let mut target = sdl2::surface::Surface::new(256, 224, canvas.default_pixel_format())
-            .map_err(|err| anyhow!("Could not create target surface: {err}"))?;
+        let mut target =
+            sdl2::surface::Surface::new(256, 224, sdl2::pixels::PixelFormatEnum::RGBA32)
+                .map_err(|err| anyhow!("Could not create target surface: {err}"))?;
 
         // Render the scene
-        render_oam(&mut target, &core.oam, &sdl_palettes, &core.vrom)?;
+        render_oam(&mut target, &core.oam, &core.palettes, &core.vrom)?;
 
         // Create a texture for the scene surface
         let texture = texture_creator.create_texture_from_surface(&target)?;
@@ -187,59 +185,26 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn create_sdl_palettes(palettes: &[Palette]) -> Result<Vec<sdl2::pixels::Palette>> {
-    let mut sdl_palettes = Vec::with_capacity(palettes.len());
-    for pal in palettes {
-        let sdl_colors: Vec<sdl2::pixels::Color> = pal
-            .colors
-            .iter()
-            .enumerate()
-            .map(|(idx, col)| {
-                // First color in a palette is transparent
-                if idx == 0 {
-                    sdl2::pixels::Color::RGBA(0, 0, 0, 0)
-                } else {
-                    let (r, g, b) = col.to_real();
-                    sdl2::pixels::Color::RGB(r, g, b)
-                }
-            })
-            .collect();
-        sdl_palettes.push(
-            sdl2::pixels::Palette::with_colors(&sdl_colors)
-                .map_err(|err| anyhow!("Could not create palette: {err}"))?,
-        );
-    }
-
-    Ok(sdl_palettes)
-}
-
 fn render_oam(
     target: &mut Surface,
     oam: &[OamTableEntry],
-    palettes: &[sdl2::pixels::Palette],
+    palettes: &[Palette],
     vrom: &Vrom,
 ) -> Result<()> {
     for obj in oam.iter().rev() {
         let char_table_index = usize::try_from(obj.char_table_index())
             .map_err(|_| anyhow!("Could not convert char_table_index to usize."))?;
         let tile = &vrom.tiles[char_table_index];
-        let mut surf_data = tile_to_raw_bytes(tile);
-
-        use ves_art_core::surface::Surface as _;
-        let width = tile.surface().size().width.raw();
-        let height = tile.surface().size().height.raw();
-        let mut surface = create_sdl_surface(surf_data.as_mut_slice(), width, height)?;
 
         let palette = &palettes[usize::from(obj.palette_table_index())];
-        surface
-            .set_palette(palette)
-            .map_err(|err| anyhow!("Could not set palette on surface: {err}"))?;
+        let surface = create_sdl_surface(&tile, palette, obj.h_flip(), obj.v_flip())?;
 
+        use ves_art_core::surface::Surface as _;
         let dest_rect = sdl2::rect::Rect::new(
             obj.position().0.into(),
             obj.position().1.into(),
-            width,
-            height,
+            tile.surface().size().width.raw(),
+            tile.surface().size().height.raw(),
         );
 
         surface
@@ -249,18 +214,44 @@ fn render_oam(
     Ok(())
 }
 
-fn tile_to_raw_bytes(tile: &Tile) -> Vec<u8> {
+fn create_sdl_surface(
+    tile: &Tile,
+    palette: &Palette,
+    hflip: bool,
+    vflip: bool,
+) -> Result<sdl2::surface::Surface<'static>> {
     use ves_art_core::surface::Surface as _;
-    tile.surface().data().iter().map(|v| v.value()).collect()
-}
+    let surf = tile.surface();
+    let size = surf.size();
+    let width = size.width.raw();
+    let height = size.height.raw();
 
-fn create_sdl_surface(data: &mut [u8], width: u32, height: u32) -> Result<sdl2::surface::Surface> {
-    sdl2::surface::Surface::from_data(
-        data,
-        width,
-        height,
-        width, // pitch == width, because we have 1 byte per pixel
-        sdl2::pixels::PixelFormatEnum::Index8,
-    )
-    .map_err(|err| anyhow!("Could not create surface: {err}"))
+    // NOTE: Using RGBA32 and not RGBA8888, since that gives us a platform-indepenent lay-out in
+    //       memory.
+    let mut out_surface =
+        sdl2::surface::Surface::new(width, height, sdl2::pixels::PixelFormatEnum::RGBA32)
+            .map_err(|err| anyhow!("Could not create surface: {err}"))?;
+    let mut dest_iter = out_surface
+        .without_lock_mut() // we just created the surface, so we know it's a software surface
+        .ok_or_else(|| anyhow!("Could not lock surface data."))?
+        .iter_mut();
+
+    let src_data = surf.data();
+    ves_art_core::surface::surface_iterate(size, size.as_rect(), hflip, vflip, |_, src_idx| {
+        let pal_idx: usize = src_data[src_idx].value().into();
+        let (r, g, b) = palette.colors[pal_idx].to_real();
+        // The first entry in the palette is reserved for transparency
+        let a = if pal_idx == 0 {
+            0
+        } else {
+            255
+        };
+        *dest_iter.next().unwrap() = r;
+        *dest_iter.next().unwrap() = g;
+        *dest_iter.next().unwrap() = b;
+        *dest_iter.next().unwrap() = a;
+    })
+    .map_err(|err| anyhow!("Could not generate output surface data: {err}"))?;
+
+    Ok(out_surface)
 }

@@ -197,7 +197,7 @@ fn render_oam(
         let tile = &vrom.tiles[char_table_index];
 
         let palette = &palettes[usize::from(obj.palette_table_index())];
-        let surface = create_sdl_surface(&tile, palette, obj.h_flip(), obj.v_flip())?;
+        let surface = create_sdl_surface(tile, palette, obj.h_flip(), obj.v_flip())?;
 
         use ves_art_core::surface::Surface as _;
         let dest_rect = sdl2::rect::Rect::new(

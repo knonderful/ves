@@ -4,7 +4,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use ves_art_core::movie::Movie;
 
-const INPUT_PATH: &'static str = "../../test_movie.bincode";
+const INPUT_PATH: &str = "../../test_movie.bincode";
 fn main() -> Result<()> {
     let movie = load_movie_data()?;
     generate_static_code(&movie)?;
@@ -23,11 +23,11 @@ fn load_movie_data() -> Result<Movie> {
 }
 
 fn generate_static_code(movie: &Movie) -> Result<()> {
-    const OUTPUT_METHODS_PATH: &'static str = "src/generated/methods.rs";
+    const OUTPUT_METHODS_PATH: &str = "src/generated/methods.rs";
     let generated_methods_file = File::create(OUTPUT_METHODS_PATH)?;
     let mut serializer = staticgen::Serializer::new(generated_methods_file);
     writeln!(serializer.out_mut(), "use crate::generated::types::*;")?;
-    writeln!(serializer.out_mut(), "")?;
+    writeln!(serializer.out_mut())?;
     writeln!(
         serializer.out_mut(),
         "pub const fn palettes() -> &'static [Palette] {{"
@@ -37,7 +37,7 @@ fn generate_static_code(movie: &Movie) -> Result<()> {
     movie.palettes().serialize(&mut serializer)?;
 
     writeln!(serializer.out_mut(), "}}")?;
-    writeln!(serializer.out_mut(), "")?;
+    writeln!(serializer.out_mut())?;
     writeln!(
         serializer.out_mut(),
         "pub const fn frames() -> &'static [MovieFrame] {{"
@@ -55,7 +55,7 @@ fn generate_static_code(movie: &Movie) -> Result<()> {
     let structs = std::mem::take(serializer.structs_mut());
     let enums = std::mem::take(serializer.enums_mut());
 
-    const OUTPUT_TYPES_PATH: &'static str = "src/generated/types.rs";
+    const OUTPUT_TYPES_PATH: &str = "src/generated/types.rs";
     let mut generated_types_file = File::create(OUTPUT_TYPES_PATH)?;
     structs.write(&mut generated_types_file)?;
     enums.write(&mut generated_types_file)?;

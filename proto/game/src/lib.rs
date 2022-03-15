@@ -15,10 +15,10 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[link_section = "vrom"]
 pub static ROM_DATA: [u8; 983752] = *include_bytes!(concat!(env!("OUT_DIR"), "/vrom.bincode"));
 
-static PALETTES: &'static [crate::generated::types::Palette] =
+static PALETTES: &[crate::generated::types::Palette] =
     crate::generated::methods::palettes();
 
-static FRAMES: &'static [crate::generated::types::MovieFrame] = crate::generated::methods::frames();
+static FRAMES: &[crate::generated::types::MovieFrame] = crate::generated::methods::frames();
 
 pub struct ProtoGame {
     core: CoreBootstrap,

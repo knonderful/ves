@@ -43,11 +43,16 @@ fn generate_static_code(movie: &Movie) -> Result<()> {
         "pub const fn frames() -> &'static [MovieFrame] {{"
     )?;
 
-    let frames = movie
-        .frames()
-        .chunks(10)
-        .next()
-        .ok_or_else(|| anyhow!("Got no frames."))?;
+    let frames = if option_env!("FULL_FRAMES").is_some() {
+        movie.frames()
+    } else {
+        movie
+            .frames()
+            .chunks(10)
+            .next()
+            .ok_or_else(|| anyhow!("Got no frames."))?
+    };
+
     frames.serialize(&mut serializer)?;
 
     writeln!(serializer.out_mut(), "}}")?;

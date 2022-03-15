@@ -1,5 +1,4 @@
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 
 use ::log::{info, LevelFilter};
 use anyhow::{anyhow, Result};
@@ -140,6 +139,10 @@ fn main() -> Result<()> {
         &canvas.default_pixel_format()
     );
 
+    let mut fps_manager = sdl2::gfx::framerate::FPSManager::new();
+    fps_manager.set_framerate(60)
+        .map_err(|err| anyhow!("Can not set framerate: {err}"))?;
+
     let mut running = true;
     while running {
         // Advance game state
@@ -178,8 +181,7 @@ fn main() -> Result<()> {
             .map_err(|err| anyhow!("Could not copy texture onto window canvas: {err}"))?;
         canvas.present();
 
-        // Slow down (for now)
-        std::thread::sleep(Duration::from_millis(100));
+        fps_manager.delay();
     }
 
     Ok(())

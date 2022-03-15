@@ -11,6 +11,6 @@ chrono = "0.4.19"
 ves-art-core = { path = "../../art/core", features = ["serde_support"] }
 bincode = ">= 1.3, <2"
 parity-wasm = "0.42.2"
-sdl2 = ">= 0.35, <1"
+sdl2 = { version = ">= 0.35, <1", features = ["gfx"] }
 log = ">= 0.4, <1"
 simple_logger = ">= 2.1, <3"

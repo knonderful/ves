@@ -238,8 +238,8 @@ fn render_oam(
         let dest_rect = sdl2::rect::Rect::new(
             obj.position().0.into(),
             obj.position().1.into(),
-            tile.surface().size().width.raw(),
-            tile.surface().size().height.raw(),
+            width,
+            height,
         );
 
         surface

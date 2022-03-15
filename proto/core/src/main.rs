@@ -176,7 +176,7 @@ fn main() -> Result<()> {
         canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 64));
         canvas.clear();
         canvas
-            .copy(&texture, None, sdl2::rect::Rect::new(0, 0, 256, 224))
+            .copy(&texture, None, None)
             .map_err(|err| anyhow!("Could not copy texture onto window canvas: {err}"))?;
         canvas.present();
 

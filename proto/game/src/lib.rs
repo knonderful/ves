@@ -39,11 +39,9 @@ impl Game for ProtoGame {
     }
 
     fn step(&mut self) {
-        info!("Game frame number: {}.", self.frame_nr);
-
         // Upload all palettes on the first frame
         if self.frame_nr == 0 {
-            info!("Uploading all palettes.");
+            info!("Uploading {} palettes.", PALETTES.len());
             for (pal_idx, palette) in PALETTES.iter().enumerate() {
                 for (col_idx, color) in palette.colors.iter().enumerate() {
                     use crate::generated::types::Color;
@@ -60,8 +58,6 @@ impl Game for ProtoGame {
         }
 
         let movie_frame = &FRAMES[self.frame_nr % FRAMES.len()];
-        info!("Uploading movie frame #{}.", movie_frame.frame_number);
-
         for (i, sprite) in movie_frame.sprites.iter().enumerate() {
             let entry = OamTableEntry::new(
                 from_unchecked(sprite.position.x.0),

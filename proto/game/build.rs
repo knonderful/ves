@@ -57,6 +57,7 @@ fn generate_static_code(movie: &Movie) -> Result<()> {
 
     const OUTPUT_TYPES_PATH: &str = "src/generated/types.rs";
     let mut generated_types_file = File::create(OUTPUT_TYPES_PATH)?;
+    writeln!(&mut generated_types_file, "#![allow(clippy::all)]")?;
     structs.write(&mut generated_types_file)?;
     enums.write(&mut generated_types_file)?;
 

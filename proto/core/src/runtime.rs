@@ -3,7 +3,7 @@ use anyhow::Result;
 use std::path::Path;
 use ves_proto_common::gpu::{PaletteColor, PaletteIndex, PaletteTableIndex};
 use wasmtime::{
-    AsContext, Caller, Engine, Extern, Linker, Memory, Module, Store, StoreContext, Trap, TypedFunc,
+    AsContext, Caller, Config, Engine, Extern, Linker, Memory, Module, Store, StoreContext, Trap, TypedFunc,
 };
 
 pub struct Runtime {
@@ -15,7 +15,7 @@ pub struct Runtime {
 impl Runtime {
     pub(crate) fn from_path(path: &Path, core: ProtoCore) -> Result<Self> {
         let wasm_file = std::fs::canonicalize(path)?;
-        let engine = Engine::default();
+        let engine = Engine::new(Config::new().debug_info(true))?;
         let module = Module::from_file(&engine, &wasm_file)?;
         let mut store = Store::new(&engine, core);
 

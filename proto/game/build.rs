@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
@@ -18,13 +18,19 @@ fn main() -> Result<()> {
 
 fn load_movie_data() -> Result<Movie> {
     let movie_file_path = PathBuf::from(INPUT_PATH);
-    let movie_file = File::open(&movie_file_path)?;
-    Ok(bincode::deserialize_from(movie_file)?)
+    let movie_file =
+        File::open(&movie_file_path).with_context(|| format!("Failed to open {}", INPUT_PATH))?;
+    Ok(bincode::deserialize_from(movie_file)
+        .with_context(|| format!("Failed to deserialize {}", INPUT_PATH))?)
 }
 
 fn generate_static_code(movie: &Movie) -> Result<()> {
-    const OUTPUT_METHODS_PATH: &str = "src/generated/methods.rs";
-    let generated_methods_file = File::create(OUTPUT_METHODS_PATH)?;
+    const OUTPUT_DIR :&str = "src/generated";
+    std::fs::create_dir_all(OUTPUT_DIR)?;
+
+    let mut output_methods_path = PathBuf::from(OUTPUT_DIR);
+    output_methods_path.push("methods.rs");
+    let generated_methods_file = File::create(&output_methods_path)?;
     let mut serializer = staticgen::Serializer::new(generated_methods_file);
     writeln!(serializer.out_mut(), "use crate::generated::types::*;")?;
     writeln!(serializer.out_mut())?;
@@ -60,14 +66,15 @@ fn generate_static_code(movie: &Movie) -> Result<()> {
     let structs = std::mem::take(serializer.structs_mut());
     let enums = std::mem::take(serializer.enums_mut());
 
-    const OUTPUT_TYPES_PATH: &str = "src/generated/types.rs";
-    let mut generated_types_file = File::create(OUTPUT_TYPES_PATH)?;
+    let mut output_types_path = PathBuf::from(OUTPUT_DIR);
+    output_types_path.push("types.rs");
+    let mut generated_types_file = File::create(&output_types_path)?;
     writeln!(&mut generated_types_file, "#![allow(clippy::all)]")?;
     structs.write(&mut generated_types_file)?;
     enums.write(&mut generated_types_file)?;
 
-    rust_format::format_file(OUTPUT_TYPES_PATH)?;
-    rust_format::format_file(OUTPUT_METHODS_PATH)?;
+    rust_format::format_file(&output_types_path)?;
+    rust_format::format_file(&output_methods_path)?;
 
     Ok(())
 }

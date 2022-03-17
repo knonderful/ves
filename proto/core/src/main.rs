@@ -17,6 +17,16 @@ use crate::runtime::Runtime;
 mod log;
 mod runtime;
 
+/// The width of the visible screen area in pixels.
+const SCREEN_VISIBLE_WIDTH: u32 = 256;
+/// The height of the visible screen area in pixels.
+const SCREEN_VISIBLE_HEIGHT: u32 = 224;
+
+/// The width of the screen buffer in pixels.
+const SCREEN_BUFFER_WIDTH: u32 = 512;
+/// The height of the screen buffer in pixels.
+const SCREEN_BUFFER_HEIGHT: u32 = 256;
+
 struct ProtoCore {
     logger: Logger,
     vrom: Vrom,
@@ -121,7 +131,7 @@ fn main() -> Result<()> {
         .map_err(|e| anyhow!("Could not initialize SDL: {}", e))?;
     info!("Initializing video subsystem.");
     let window = video_subsystem
-        .window("SDL2", 512, 448)
+        .window("SDL2", SCREEN_VISIBLE_WIDTH * 2, SCREEN_VISIBLE_HEIGHT * 2)
         .position_centered()
         .build()?;
 
@@ -140,7 +150,8 @@ fn main() -> Result<()> {
     );
 
     let mut fps_manager = sdl2::gfx::framerate::FPSManager::new();
-    fps_manager.set_framerate(60)
+    fps_manager
+        .set_framerate(60)
         .map_err(|err| anyhow!("Can not set framerate: {err}"))?;
 
     let mut running = true;
@@ -163,9 +174,14 @@ fn main() -> Result<()> {
         }
 
         // Create temporary surface to render our scene onto
-        let mut target =
-            sdl2::surface::Surface::new(256, 224, sdl2::pixels::PixelFormatEnum::RGBA32)
-                .map_err(|err| anyhow!("Could not create target surface: {err}"))?;
+        // NOTE: Using RGBA32 and not RGBA8888, since that gives us a platform-indepenent lay-out in
+        //       memory.
+        let mut target = sdl2::surface::Surface::new(
+            SCREEN_BUFFER_WIDTH,
+            SCREEN_BUFFER_HEIGHT,
+            sdl2::pixels::PixelFormatEnum::RGBA32,
+        )
+        .map_err(|err| anyhow!("Could not create target surface: {err}"))?;
 
         // Render the scene
         render_oam(&mut target, &core.oam, &core.palettes, &core.vrom)?;
@@ -177,7 +193,11 @@ fn main() -> Result<()> {
         canvas.set_draw_color(sdl2::pixels::Color::RGB(0, 0, 64));
         canvas.clear();
         canvas
-            .copy(&texture, None, None)
+            .copy(
+                &texture,
+                sdl2::rect::Rect::new(0, 0, SCREEN_VISIBLE_WIDTH, SCREEN_VISIBLE_HEIGHT),
+                None,
+            )
             .map_err(|err| anyhow!("Could not copy texture onto window canvas: {err}"))?;
         canvas.present();
 
@@ -188,7 +208,7 @@ fn main() -> Result<()> {
 }
 
 fn render_oam(
-    target: &mut Surface,
+    screen_buffer: &mut Surface,
     oam: &[OamTableEntry],
     palettes: &[Palette],
     vrom: &Vrom,
@@ -199,61 +219,68 @@ fn render_oam(
         let tile = &vrom.tiles[char_table_index];
 
         let palette = &palettes[usize::from(obj.palette_table_index())];
-        let surface = create_sdl_surface(tile, palette, obj.h_flip(), obj.v_flip())?;
-
-        use ves_art_core::surface::Surface as _;
-        let dest_rect = sdl2::rect::Rect::new(
-            obj.position().0.into(),
-            obj.position().1.into(),
-            tile.surface().size().width.raw(),
-            tile.surface().size().height.raw(),
-        );
-
-        surface
-            .blit(None, target, dest_rect)
-            .map_err(|err| anyhow!("Could not blit surface onto target surface: {err}"))?;
+        render_tile(
+            screen_buffer,
+            tile,
+            palette,
+            obj.position(),
+            obj.h_flip(),
+            obj.v_flip(),
+        )?;
     }
     Ok(())
 }
 
-fn create_sdl_surface(
+fn render_tile(
+    screen_buffer: &mut Surface,
     tile: &Tile,
     palette: &Palette,
+    position: (u16, u16),
     hflip: bool,
     vflip: bool,
-) -> Result<sdl2::surface::Surface<'static>> {
+) -> Result<()> {
+    // Checking some presumptions about the calling code
+    debug_assert!(!screen_buffer.must_lock());
+    debug_assert_eq!(
+        screen_buffer.pixel_format_enum(),
+        sdl2::pixels::PixelFormatEnum::RGBA32
+    );
+
     use ves_art_core::surface::Surface as _;
     let surf = tile.surface();
-    let size = surf.size();
-    let width = size.width.raw();
-    let height = size.height.raw();
-
-    // NOTE: Using RGBA32 and not RGBA8888, since that gives us a platform-indepenent lay-out in
-    //       memory.
-    let mut out_surface =
-        sdl2::surface::Surface::new(width, height, sdl2::pixels::PixelFormatEnum::RGBA32)
-            .map_err(|err| anyhow!("Could not create surface: {err}"))?;
-    let mut dest_iter = out_surface
-        .without_lock_mut() // we just created the surface, so we know it's a software surface
-        .ok_or_else(|| anyhow!("Could not lock surface data."))?
-        .iter_mut();
-
+    let src_size = surf.size();
     let src_data = surf.data();
-    ves_art_core::surface::surface_iterate(size, size.as_rect(), hflip, vflip, |_, src_idx| {
-        let pal_idx: usize = src_data[src_idx].value().into();
-        let (r, g, b) = palette.colors[pal_idx].to_real();
-        // The first entry in the palette is reserved for transparency
-        let a = if pal_idx == 0 {
-            0
-        } else {
-            255
-        };
-        *dest_iter.next().unwrap() = r;
-        *dest_iter.next().unwrap() = g;
-        *dest_iter.next().unwrap() = b;
-        *dest_iter.next().unwrap() = a;
-    })
-    .map_err(|err| anyhow!("Could not generate output surface data: {err}"))?;
 
-    Ok(out_surface)
+    let dest_data = screen_buffer
+        .without_lock_mut() // we just created the surface, so we know it's a software surface
+        .ok_or_else(|| anyhow!("Could not lock surface data."))?;
+
+    ves_art_core::surface::surface_iterate_2(
+        src_size,
+        src_size.as_rect(),
+        ves_art_core::geom_art::Size::new(SCREEN_BUFFER_WIDTH, SCREEN_BUFFER_HEIGHT),
+        ves_art_core::geom_art::Point::new(u32::from(position.0), u32::from(position.1)),
+        hflip,
+        vflip,
+        |_, src_idx, _, dest_idx| {
+            // Get the index in the palette
+            let pal_idx: usize = src_data[src_idx].value().into();
+            // The first entry in the palette is reserved for transparency (aka: write nothing)
+            if pal_idx == 0 {
+                return;
+            }
+            // Get the color value
+            let (r, g, b) = palette.colors[pal_idx].to_real();
+
+            // Write the color to the target surface
+            let i = 4 * dest_idx; // because RGBA32 is 4 bytes per pixel
+            dest_data[i] = r;
+            dest_data[i + 1] = g;
+            dest_data[i + 2] = b;
+            dest_data[i + 3] = 255;
+        },
+    )
+    .map_err(|err| anyhow!("Could not render object onto screen buffer: {err}"))?;
+
+    Ok(())
 }

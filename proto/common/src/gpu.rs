@@ -38,10 +38,10 @@ bit_struct!(
     /// The internal format is as follows:
     /// * Bits 0-8: X-position.
     /// * Bits 9-17: Y-position.
-    /// * Bits 18-20: Palette table index.
-    /// * Bit 21: Horizontal flip flag.
-    /// * Bit 22: Vertical flip flag.
-    /// * Bits 23-31: Unused.
+    /// * Bits 18-25: Palette table index.
+    /// * Bit 26: Horizontal flip flag.
+    /// * Bit 27: Vertical flip flag.
+    /// * Bits 28-31: Unused.
     /// * Bits 32-63: Character table index.
     #[derive(Copy, Clone, Eq, PartialEq, Default)]
     pub struct OamTableEntry {
@@ -55,13 +55,13 @@ bit_struct!(
         #[bit_struct_field(shift = 9, mask = 0x1FF)]
         fn pos_y(&self) -> u16;
 
-        #[bit_struct_field(shift = 18, mask = 0b111)]
+        #[bit_struct_field(shift = 18, mask = 0xFF)]
         fn palette_table_index_u8(&self) -> u8;
 
-        #[bit_struct_field(shift = 21, mask = 0b1)]
+        #[bit_struct_field(shift = 26, mask = 0b1)]
         fn flip_x(&self) -> u8;
 
-        #[bit_struct_field(shift = 22, mask = 0b1)]
+        #[bit_struct_field(shift = 27, mask = 0b1)]
         fn flip_y(&self) -> u8;
 
         #[bit_struct_field(shift = 32, mask = 0xFFFFFFFF)]
@@ -69,7 +69,7 @@ bit_struct!(
     }
 
     padding {
-        #[bit_struct_field(shift = 23, mask = 0x1FF)]
+        #[bit_struct_field(shift = 28, mask = 0xF)]
         fn unused(&self) -> u8;
     }
 );
@@ -132,8 +132,8 @@ mod tests_oam_entry {
     // flip_x: 1
     // flip_y: 0
     // char_table_index: 5
-    //                      chr_idx                          unused    y x pal pos_y     pos_x
-    const TEST_VAL: u64 = 0b00000000000000000000000000000101_000000000_0_1_100_000010011_110101100;
+    //                      chr_idx                          pad  y x pal      pos_y     pos_x
+    const TEST_VAL: u64 = 0b00000000000000000000000000000101_0000_0_1_00000100_000010011_110101100;
 
     #[test]
     fn zero() {

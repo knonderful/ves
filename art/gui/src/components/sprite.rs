@@ -1,6 +1,6 @@
 use crate::egui;
-use ves_art_core::surface::Surface;
 use std::ops::Index;
+use ves_art_core::surface::Surface;
 
 pub const DEFAULT_UV: egui::Rect =
     egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
@@ -45,14 +45,8 @@ impl Sprite {
     /// returns: The [`Sprite`].
     pub fn create(
         sprite: &ves_art_core::sprite::Sprite,
-        palettes: &impl Index<
-            ves_art_core::sprite::PaletteRef,
-            Output = ves_art_core::sprite::Palette,
-        >,
-        tiles: &impl Index<
-            ves_art_core::sprite::TileRef,
-            Output = ves_art_core::sprite::Tile,
-        >,
+        palettes: &impl Index<ves_art_core::sprite::PaletteRef, Output = ves_art_core::sprite::Palette>,
+        tiles: &impl Index<ves_art_core::sprite::TileRef, Output = ves_art_core::sprite::Tile>,
         mut texture_factory: impl FnMut(egui::ColorImage) -> egui::TextureHandle,
     ) -> Self {
         let palette = &palettes[sprite.palette()];
@@ -60,10 +54,8 @@ impl Sprite {
         let color_image = Self::create_color_image(palette, tile);
 
         let texture = texture_factory(color_image);
-        let rect = ves_art_core::geom_art::Rect::new_from_size(
-            sprite.position(),
-            tile.surface().size(),
-        );
+        let rect =
+            ves_art_core::geom_art::Rect::new_from_size(sprite.position(), tile.surface().size());
 
         Self {
             rect,

@@ -2,11 +2,11 @@ mod components;
 
 use crate::components::movie::Movie;
 use crate::components::sprite_table::SpriteTable;
-use ves_art_core::geom_art::ArtworkSpaceUnit;
 use chrono::{DateTime, Local};
 use eframe::{egui, epi};
 use std::collections::VecDeque;
 use std::time::Instant;
+use ves_art_core::geom_art::ArtworkSpaceUnit;
 
 struct LogEntry {
     timestamp: DateTime<Local>,

@@ -25,7 +25,7 @@ fn load_movie_data() -> Result<Movie> {
 }
 
 fn generate_static_code(movie: &Movie) -> Result<()> {
-    const OUTPUT_DIR :&str = "src/generated";
+    const OUTPUT_DIR: &str = "src/generated";
     std::fs::create_dir_all(OUTPUT_DIR)?;
 
     let mut output_methods_path = PathBuf::from(OUTPUT_DIR);

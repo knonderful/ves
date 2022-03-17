@@ -3,7 +3,8 @@ use anyhow::Result;
 use std::path::Path;
 use ves_proto_common::gpu::{PaletteColor, PaletteIndex, PaletteTableIndex};
 use wasmtime::{
-    AsContext, Caller, Config, Engine, Extern, Linker, Memory, Module, Store, StoreContext, Trap, TypedFunc,
+    AsContext, Caller, Config, Engine, Extern, Linker, Memory, Module, Store, StoreContext, Trap,
+    TypedFunc,
 };
 
 pub struct Runtime {

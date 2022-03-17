@@ -15,8 +15,7 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[link_section = "vrom"]
 pub static ROM_DATA: [u8; 983752] = *include_bytes!(concat!(env!("OUT_DIR"), "/vrom.bincode"));
 
-static PALETTES: &[crate::generated::types::Palette] =
-    crate::generated::methods::palettes();
+static PALETTES: &[crate::generated::types::Palette] = crate::generated::methods::palettes();
 
 static FRAMES: &[crate::generated::types::MovieFrame] = crate::generated::methods::frames();
 

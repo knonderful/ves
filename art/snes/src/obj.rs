@@ -5,14 +5,14 @@
 #![allow(dead_code)]
 
 use anyhow::{anyhow, bail, Result};
+use std::borrow::Cow;
+use std::usize;
 use ves_art_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
 use ves_art_core::movie::MovieFrame;
 use ves_art_core::sprite::{
     Color, Palette, PaletteIndex, PaletteRef, Sprite, Tile, TileRef, TileSurface,
 };
 use ves_art_core::surface::Surface;
-use std::borrow::Cow;
-use std::usize;
 use ves_cache::VecCacheMut;
 
 /// A trait for constructing objects from (raw) SNES data.
@@ -313,9 +313,9 @@ impl FromSnesData<(&[u8], &[u8])> for ObjNameTable {
 mod test_obj_name_table {
     use super::{FromSnesData, ObjNameTable};
     use crate::mesen::Frame;
+    use bmp::Pixel;
     use ves_art_core::sprite::{Color, Palette, PaletteIndex};
     use ves_art_core::surface::Surface;
-    use bmp::Pixel;
 
     #[test]
     fn test_apply_planes_to_row() {

@@ -1,7 +1,7 @@
 use crate::mesen::Frame;
+use std::path::Path;
 use ves_art_core::geom_art::Size;
 use ves_art_core::movie::{FrameRate, Movie};
-use std::path::Path;
 use ves_cache::VecCacheMut;
 
 mod mesen;
@@ -39,8 +39,8 @@ pub fn create_movie(
 #[cfg(test)]
 mod test_create_movie {
     use super::create_movie;
-    use ves_art_core::movie::Movie;
     use std::fs::File;
+    use ves_art_core::movie::Movie;
     use ves_cache::SliceCache;
 
     #[test]

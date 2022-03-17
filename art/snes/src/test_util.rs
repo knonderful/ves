@@ -1,9 +1,9 @@
+use bmp::Pixel;
+use std::ops::Index;
 use ves_art_core::geom_art::{ArtworkSpaceUnit, Point, Rect, Size};
 use ves_art_core::movie::MovieFrame;
 use ves_art_core::sprite::{Color, Palette, PaletteRef, Tile, TileRef};
 use ves_art_core::surface::{surface_iterate, Surface};
-use bmp::Pixel;
-use std::ops::Index;
 
 ves_art_core::sized_surface!(
     ScreenSurface,

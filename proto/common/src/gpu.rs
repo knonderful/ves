@@ -122,6 +122,7 @@ impl OamTableEntry {
 }
 
 #[cfg(test)]
+#[allow(clippy::unusual_byte_groupings)]
 mod tests_oam_entry {
     use super::OamTableEntry;
 
@@ -414,6 +415,7 @@ impl PaletteColor {
 }
 
 #[cfg(test)]
+#[allow(clippy::unusual_byte_groupings)]
 mod tests_palette_color {
     use super::PaletteColor;
 

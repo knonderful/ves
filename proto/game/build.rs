@@ -20,8 +20,8 @@ fn load_movie_data() -> Result<Movie> {
     let movie_file_path = PathBuf::from(INPUT_PATH);
     let movie_file =
         File::open(&movie_file_path).with_context(|| format!("Failed to open {}", INPUT_PATH))?;
-    Ok(bincode::deserialize_from(movie_file)
-        .with_context(|| format!("Failed to deserialize {}", INPUT_PATH))?)
+    bincode::deserialize_from(movie_file)
+        .with_context(|| format!("Failed to deserialize {}", INPUT_PATH))
 }
 
 fn generate_static_code(movie: &Movie) -> Result<()> {

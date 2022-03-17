@@ -22,5 +22,5 @@ cd ../core
 cargo build ${CARGO_ARGS}
 cd ../game
 # shellcheck disable=SC2086
-cargo build ${CARGO_ARGS} --target wasm32-unknown-unknown
+cargo build ${CARGO_ARGS}
 "${SCRIPT_DIR}/../generate_wat.sh"

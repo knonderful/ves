@@ -102,4 +102,4 @@ The mains reason for having VROM, rather than sending the relevant data via API 
 * API simplicity that favors the 99% use-case.
 * Reduced bandwidth over the WASM bus.
 * Reduced code on the game side.
-* A reusable approach for that can also be used for other core architectures.
+* A reusable approach that can also be used for other core architectures.

@@ -650,9 +650,9 @@ mod test_obj_data {
                 .unwrap();
         assert_eq!(ObjNameTableIndex::for_select(93), obj.obj_name_table_index);
         assert_eq!(2, obj.palette);
-        assert_eq!(false, obj.h_flip);
-        assert_eq!(true, obj.v_flip);
-        assert_eq!(true, obj.size_large);
+        assert!(!obj.h_flip);
+        assert!(obj.v_flip);
+        assert!(obj.size_large);
         assert_eq!(Point::new(357, 111), obj.position);
 
         let obj =
@@ -660,9 +660,9 @@ mod test_obj_data {
                 .unwrap();
         assert_eq!(ObjNameTableIndex::for_base(69), obj.obj_name_table_index);
         assert_eq!(7, obj.palette);
-        assert_eq!(true, obj.h_flip);
-        assert_eq!(false, obj.v_flip);
-        assert_eq!(false, obj.size_large);
+        assert!(obj.h_flip);
+        assert!(!obj.v_flip);
+        assert!(!obj.size_large);
         assert_eq!(Point::new(116, 104), obj.position);
     }
 }

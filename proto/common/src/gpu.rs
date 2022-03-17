@@ -138,10 +138,10 @@ mod tests_oam_entry {
     fn zero() {
         let subject: OamTableEntry = 0.into();
         assert_eq!(subject.value, 0);
-        assert_eq!(subject.position(), (0, 0).into());
-        assert_eq!(subject.h_flip(), false);
-        assert_eq!(subject.v_flip(), false);
-        assert_eq!(subject.char_table_index(), 0u32.into());
+        assert_eq!(subject.position(), (0, 0));
+        assert!(!subject.h_flip());
+        assert!(!subject.v_flip());
+        assert_eq!(subject.char_table_index(), 0u32);
         assert_eq!(u8::from(subject.palette_table_index()), 0);
     }
 
@@ -149,10 +149,10 @@ mod tests_oam_entry {
     fn getters() {
         let subject: OamTableEntry = TEST_VAL.into();
         assert_eq!(subject.value, TEST_VAL);
-        assert_eq!(subject.position(), (0x1AC, 0x13).into());
-        assert_eq!(subject.h_flip(), true);
-        assert_eq!(subject.v_flip(), false);
-        assert_eq!(subject.char_table_index(), 5u32.into());
+        assert_eq!(subject.position(), (0x1AC, 0x13));
+        assert!(subject.h_flip());
+        assert!(!subject.v_flip());
+        assert_eq!(subject.char_table_index(), 5u32);
         assert_eq!(u8::from(subject.palette_table_index()), 4);
     }
 
@@ -169,7 +169,7 @@ mod tests_oam_entry {
         let position = (0x11, 0x22);
         let h_flip = true;
         let v_flip = true;
-        let char_table_index = 12u32.into();
+        let char_table_index = 12u32;
         let palette_table_index = 1.into();
 
         subject.set_position(position.0, position.1);

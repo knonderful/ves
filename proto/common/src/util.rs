@@ -143,6 +143,7 @@ macro_rules! bit_struct {
                 /// "cancel out" and this test will not fail. This is just intended to be a test for the most common types
                 /// of declarative errors.
                 #[test]
+                #[allow(clippy::unnecessary_cast)]
                 fn field_conflicts() {
                     let full_bitmask = 0
                     $(

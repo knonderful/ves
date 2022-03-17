@@ -188,6 +188,7 @@ mod test_vec_cache_mut {
         }
     }
 
+    #[allow(clippy::derive_hash_xor_eq)]
     impl Hash for Val {
         fn hash<H: Hasher>(&self, state: &mut H) {
             state.write_u64(self.hash_seed)
@@ -217,7 +218,7 @@ mod test_vec_cache_mut {
         let mut value_iter = cache.hashes.values();
         assert_eq!(2, value_iter.next().unwrap().len());
         assert_eq!(2, value_iter.next().unwrap().len());
-        assert_eq!(true, value_iter.next().is_none());
+        assert!(value_iter.next().is_none());
     }
 
     #[test]

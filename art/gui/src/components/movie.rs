@@ -195,7 +195,7 @@ impl Movie {
             let gui_sprite = Sprite::create(sprite, &palettes, &tiles, |color_image| {
                 ctx.load_texture("something", ImageData::Color(color_image))
             });
-            let selection_state = if i % 2 == 0 {
+            let selection_state = if i == 22 {
                 SelectionState::Selected
             } else {
                 SelectionState::Unselected

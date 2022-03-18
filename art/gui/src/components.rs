@@ -4,6 +4,7 @@ pub mod movie;
 pub mod selection;
 pub mod sprite;
 pub mod sprite_table;
+pub mod sprite_details;
 
 use crate::egui;
 

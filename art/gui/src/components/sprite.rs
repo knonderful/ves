@@ -26,6 +26,7 @@ fn correct_uv(rect: egui::Rect, hflip: bool, vflip: bool) -> egui::Rect {
 }
 
 pub struct Sprite {
+    sprite: ves_art_core::sprite::Sprite,
     rect: ves_art_core::geom_art::Rect,
     texture: egui::TextureHandle,
     hflip: bool,
@@ -58,11 +59,17 @@ impl Sprite {
             ves_art_core::geom_art::Rect::new_from_size(sprite.position(), tile.surface().size());
 
         Self {
+            sprite: sprite.clone(),
             rect,
             texture,
             hflip: sprite.h_flip(),
             vflip: sprite.v_flip(),
         }
+    }
+
+    /// Retrieves the original [`Sprite`](ves_art_core::sprite::Sprite).
+    pub fn sprite(&self) -> &ves_art_core::sprite::Sprite {
+        &self.sprite
     }
 
     /// Retrieves the [`TextureHandle`](egui::TextureHandle).

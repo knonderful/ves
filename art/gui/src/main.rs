@@ -1,12 +1,14 @@
 mod components;
 
 use crate::components::movie::Movie;
+use crate::components::selection::SelectionState;
 use crate::components::sprite_table::SpriteTable;
 use chrono::{DateTime, Local};
 use eframe::{egui, epi};
 use std::collections::VecDeque;
 use std::time::Instant;
 use ves_art_core::geom_art::ArtworkSpaceUnit;
+use crate::components::sprite_details::SpriteDetails;
 
 struct LogEntry {
     timestamp: DateTime<Local>,
@@ -123,6 +125,33 @@ impl epi::App for ArtDirectorApp {
                     }
                     Some(sprites) => {
                         SpriteTable::new(sprites, 8).show(ui);
+                    }
+                }
+            });
+
+            egui::Window::new("Sprite Details").show(ui.ctx(), |ui| {
+                match self.movie.as_ref().and_then(|movie| movie.sprites()) {
+                    None => {
+                        ui.label("No movie loaded.");
+                    }
+                    Some(sprites) => {
+                        let selected_sprites: Vec<_> = sprites
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, s)| s.state == SelectionState::Selected)
+                            .collect();
+                        match selected_sprites.len() {
+                            0 => {
+                                ui.label("No sprite selected.");
+                            }
+                            1 => {
+                                let (index, sprite) = selected_sprites[0];
+                                SpriteDetails::new(index, &sprite.item).show(ui);
+                            }
+                            _ => {
+                                ui.label("Multiple sprites selected.");
+                            }
+                        };
                     }
                 }
             });

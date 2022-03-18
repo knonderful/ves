@@ -252,7 +252,7 @@ fn render_tile(
     let src_data = surf.data();
 
     let dest_data = screen_buffer
-        .without_lock_mut() // we just created the surface, so we know it's a software surface
+        .without_lock_mut()
         .ok_or_else(|| anyhow!("Could not lock surface data."))?;
 
     ves_art_core::surface::surface_iterate_2(

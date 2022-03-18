@@ -26,10 +26,10 @@ fn correct_uv(rect: egui::Rect, hflip: bool, vflip: bool) -> egui::Rect {
 }
 
 pub struct Sprite {
-    pub rect: ves_art_core::geom_art::Rect,
-    pub texture: egui::TextureHandle,
-    pub hflip: bool,
-    pub vflip: bool,
+    rect: ves_art_core::geom_art::Rect,
+    texture: egui::TextureHandle,
+    hflip: bool,
+    vflip: bool,
 }
 
 impl Sprite {
@@ -63,6 +63,28 @@ impl Sprite {
             hflip: sprite.h_flip(),
             vflip: sprite.v_flip(),
         }
+    }
+
+    /// Retrieves the [`TextureHandle`](egui::TextureHandle).
+    pub fn texture(&self) -> &egui::TextureHandle {
+        &self.texture
+    }
+
+    /// Retrieves the [`Rect`](ves_art_core::geom_art::Rect).
+    pub fn rect(&self) -> ves_art_core::geom_art::Rect {
+        self.rect
+    }
+
+    /// Retrieves the horizontal flipping flag.
+    #[allow(unused)]
+    pub fn hflip(&self) -> bool {
+        self.hflip
+    }
+
+    /// Retrieves the vertical flipping flag.
+    #[allow(unused)]
+    pub fn vflip(&self) -> bool {
+        self.vflip
     }
 
     /// Create an [`egui::Image`] from this [`Sprite`].

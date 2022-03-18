@@ -30,7 +30,7 @@ impl<'a> SpriteTable<'a> {
                     .for_each(|(idx, selectable_sprite)| {
                         let state = &selectable_sprite.state;
                         let sprite = &selectable_sprite.item;
-                        let egui_sprite_rect = sprite.rect.to_egui();
+                        let egui_sprite_rect = sprite.rect().to_egui();
 
                         let rect = transform.transform_rect(egui_sprite_rect);
                         let response = ui.add(sprite.to_image(rect.size()));

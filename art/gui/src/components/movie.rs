@@ -51,10 +51,11 @@ impl<'a> MovieFrame<'a> {
         self.sprites.iter().rev().for_each(|selectable_sprite| {
             let state = &selectable_sprite.state;
             let sprite = &selectable_sprite.item;
-            match sprite.rect.intersect_point(intersect_pos) {
+            let sprite_rect = sprite.rect();
+            match sprite_rect.intersect_point(intersect_pos) {
                 // No intersections; this means the sprite fits entirely on the screen
                 RectIntersection::None => {
-                    let rect = transform.transform_rect(sprite.rect.to_egui());
+                    let rect = transform.transform_rect(sprite_rect.to_egui());
                     ui.put(rect, sprite.to_image(rect.size()));
                     states_with_rect.push((state, rect));
                 }
@@ -71,7 +72,7 @@ impl<'a> MovieFrame<'a> {
                         .to_egui();
 
                         let dest_rect = transform.transform_rect(egui_dest_rect);
-                        let image = egui::Image::new(&sprite.texture, dest_rect.size())
+                        let image = egui::Image::new(sprite.texture(), dest_rect.size())
                             .uv(sprite.partial_uv(rect));
 
                         ui.put(dest_rect, image);

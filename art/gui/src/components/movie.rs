@@ -261,7 +261,9 @@ impl Movie {
             // Some space between controls and render window
             ui.add_space(8.0);
 
-            if let Some(frame) = self.current_frame.as_ref().map(|current_frame| current_frame.sprites()) {
+            if let Some(current_frame) = self.current_frame.as_ref() {
+                let frame_nr = current_frame.frame_nr();
+                let sprites = current_frame.sprites();
                 let screen_size = self.movie.screen_size();
                 let movie_frame_size = screen_size.to_egui() * ZOOM;
 
@@ -277,7 +279,7 @@ impl Movie {
                                 // Make sure the movie canvas doesn't shrink too far
                                 ui.set_min_size(movie_frame_size);
 
-                                MovieFrame::new(frame).show(ui, screen_size, viewport);
+                                MovieFrame::new(sprites).show(ui, screen_size, viewport);
 
                                 // This also "steals" the interaction of the parent, which in this
                                 // case causes the ScrollArea not to scroll on drag (which is what
@@ -312,6 +314,11 @@ impl Movie {
                             });
                     },
                 );
+
+                ui.horizontal(|ui| {
+                    ui.label("Frame nr");
+                    ui.label(format!("{}", frame_nr));
+                });
 
                 // HACK: This seems to be necessary to prevent the scroll area from rendering into
                 //       the window header.

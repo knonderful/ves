@@ -96,6 +96,25 @@ enum PlaybackState {
     Playing(Instant),
 }
 
+pub struct CurrentFrame {
+    frame_nr: usize,
+    sprites: Vec<Selectable<Sprite>>,
+}
+
+impl CurrentFrame {
+    fn new(frame_nr: usize, sprites: Vec<Selectable<Sprite>>) -> Self {
+        Self { frame_nr, sprites }
+    }
+
+    pub fn frame_nr(&self) -> usize {
+        self.frame_nr
+    }
+
+    pub fn sprites(&self) -> &[Selectable<Sprite>] {
+        self.sprites.as_slice()
+    }
+}
+
 pub struct Movie {
     movie: ves_art_core::movie::Movie,
     frame_cursor: Cursor,
@@ -104,7 +123,7 @@ pub struct Movie {
     playback_repeat: bool,
     /// The current frame. The first item is the current frame number. The second are the sprites in
     /// the frame.
-    current_frame: Option<(usize, Vec<Selectable<Sprite>>)>,
+    current_frame: Option<CurrentFrame>,
     control_messages: Vec<MovieControlMessage>,
     mouse_tracker: MouseInteractionTracker,
 }
@@ -174,8 +193,8 @@ impl Movie {
     fn render_frame(&mut self, ctx: &egui::Context) -> bool {
         let pos = self.frame_cursor.position();
         // Only render the frame if the position has changed
-        if let Some((last_pos, _)) = &self.current_frame {
-            if pos == *last_pos {
+        if let Some(last_pos) = self.current_frame.as_ref().map(|current_frame| current_frame.frame_nr()) {
+            if pos == last_pos {
                 return false;
             }
         }
@@ -184,9 +203,9 @@ impl Movie {
         let tiles = SliceCache::new(self.movie.tiles());
         let movie_frame = &self.movie.frames()[pos];
 
-        let mut sprites = if let Some((_, mut sprites)) = self.current_frame.take() {
-            sprites.clear();
-            sprites
+        let mut sprites = if let Some(mut current_frame) = self.current_frame.take() {
+            current_frame.sprites.clear();
+            current_frame.sprites
         } else {
             Vec::with_capacity(movie_frame.sprites().len())
         };
@@ -203,7 +222,7 @@ impl Movie {
             sprites.push(Selectable::new(gui_sprite, selection_state));
         }
 
-        self.current_frame = Some((pos, sprites));
+        self.current_frame = Some(CurrentFrame::new(pos, sprites));
 
         true
     }
@@ -244,7 +263,7 @@ impl Movie {
             // Some space between controls and render window
             ui.add_space(8.0);
 
-            if let Some((_, frame)) = &self.current_frame {
+            if let Some(frame) = self.current_frame.as_ref().map(|current_frame| current_frame.sprites()) {
                 let screen_size = self.movie.screen_size();
                 let movie_frame_size = screen_size.to_egui() * ZOOM;
 
@@ -306,11 +325,7 @@ impl Movie {
     }
 
     pub fn sprites(&self) -> Option<&[Selectable<Sprite>]> {
-        if let Some((_, sprites)) = &self.current_frame {
-            Some(sprites.as_slice())
-        } else {
-            None
-        }
+        self.current_frame.as_ref().map(|current_frame| current_frame.sprites())
     }
 }
 

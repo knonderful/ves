@@ -81,8 +81,7 @@ impl<'a> MovieFrame<'a> {
             }
         });
 
-        for state in states_with_rect {
-            let (state, rect) = state;
+        for (state, rect) in states_with_rect {
             state.show(ui, rect, ZOOM);
         }
     }

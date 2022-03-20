@@ -209,6 +209,17 @@ impl Movie {
         let tiles = SliceCache::new(self.movie.tiles());
         let movie_frame = &self.movie.frames()[pos];
 
+        let selected_indices: Vec<usize> = if let Some(current_frame) = &self.current_frame {
+            current_frame.sprites
+                .iter()
+                .enumerate()
+                .filter(|(_, sprite)| sprite.state.selected())
+                .map(|(idx, _)| idx)
+                .collect()
+        } else {
+            Vec::new()
+        };
+
         let mut sprites = if let Some(mut current_frame) = self.current_frame.take() {
             current_frame.sprites.clear();
             current_frame.sprites
@@ -220,7 +231,9 @@ impl Movie {
             let gui_sprite = Sprite::create(sprite, &palettes, &tiles, |color_image| {
                 ctx.load_texture("something", ImageData::Color(color_image))
             });
-            let selection_state = if i == 22 {
+
+            let selected = selected_indices.contains(&i);
+            let selection_state = if selected {
                 SelectionState::Selected
             } else {
                 SelectionState::Unselected
@@ -338,11 +351,15 @@ impl Movie {
     }
 
     pub fn sprites(&self) -> Option<&[Selectable<Sprite>]> {
-        self.current_frame.as_ref().map(|current_frame| current_frame.sprites())
+        self.current_frame
+            .as_ref()
+            .map(|current_frame| current_frame.sprites())
     }
 
     pub fn sprites_mut(&mut self) -> Option<&mut [Selectable<Sprite>]> {
-        self.current_frame.as_mut().map(|current_frame| current_frame.sprites_mut())
+        self.current_frame
+            .as_mut()
+            .map(|current_frame| current_frame.sprites_mut())
     }
 }
 

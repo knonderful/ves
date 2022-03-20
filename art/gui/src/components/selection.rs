@@ -44,6 +44,10 @@ impl SelectionState {
     pub fn unselect(&mut self) {
         *self = SelectionState::Unselected;
     }
+
+    pub fn selected(&self) -> bool {
+        *self == SelectionState::Selected
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

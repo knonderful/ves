@@ -51,7 +51,7 @@ impl epi::App for ArtDirectorApp {
         // Auto-load hack
         if self.movie.is_none() {
             let mut input_file = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-            input_file.push("../../test_movie.bincode");
+            input_file.push("../../yoshi_run.bincode");
             let file = std::fs::File::open(input_file).unwrap();
             match bincode::deserialize_from::<_, ves_art_core::movie::Movie>(file) {
                 Ok(core_movie) => {

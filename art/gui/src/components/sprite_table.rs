@@ -17,7 +17,7 @@ impl<'a> SpriteTable<'a> {
 
     pub fn show(&mut self, ui: &mut egui::Ui) {
         egui::Grid::new("sprite_table")
-            .spacing(egui::vec2(2.0, 2.0))
+            .spacing(egui::vec2(4.0, 4.0))
             .show(ui, |ui| {
                 let from_rect = egui::Rect::from_min_size(egui::Pos2::ZERO, ui.available_size());
                 let to_rect =

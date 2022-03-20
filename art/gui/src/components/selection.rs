@@ -21,6 +21,29 @@ impl SelectionState {
             }
         }
     }
+
+    pub fn toggle(&mut self) {
+        match self {
+            SelectionState::Unselected => *self = SelectionState::Selected,
+            SelectionState::Selected => *self = SelectionState::Unselected,
+        }
+    }
+
+    pub fn set(&mut self, selected: bool) {
+        if selected {
+            self.select();
+        } else {
+            self.unselect();
+        }
+    }
+
+    pub fn select(&mut self) {
+        *self = SelectionState::Selected;
+    }
+
+    pub fn unselect(&mut self) {
+        *self = SelectionState::Unselected;
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

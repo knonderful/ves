@@ -1,17 +1,18 @@
 use crate::components::selection::Selectable;
 use crate::components::sprite::Sprite;
 use crate::egui;
+use crate::egui::Sense;
 use crate::ToEgui as _;
 
 const ZOOM: f32 = 2.0;
 
 pub struct SpriteTable<'a> {
-    sprites: &'a [Selectable<Sprite>],
+    sprites: &'a mut [Selectable<Sprite>],
     columns: usize,
 }
 
 impl<'a> SpriteTable<'a> {
-    pub fn new(sprites: &'a [Selectable<Sprite>], columns: usize) -> Self {
+    pub fn new(sprites: &'a mut [Selectable<Sprite>], columns: usize) -> Self {
         Self { sprites, columns }
     }
 
@@ -24,6 +25,7 @@ impl<'a> SpriteTable<'a> {
                     egui::Rect::from_min_size(egui::Pos2::ZERO, super::zoom_vec2(ui, ZOOM));
                 let transform = egui::emath::RectTransform::from_to(from_rect, to_rect);
 
+                let mut clicked_sprite_idx = None;
                 self.sprites
                     .iter()
                     .enumerate()
@@ -33,13 +35,27 @@ impl<'a> SpriteTable<'a> {
                         let egui_sprite_rect = sprite.rect().to_egui();
 
                         let rect = transform.transform_rect(egui_sprite_rect);
-                        let response = ui.add(sprite.to_image(rect.size()));
+                        let response = ui.add(sprite.to_image(rect.size()).sense(Sense::click()));
+                        if response.clicked() {
+                            clicked_sprite_idx = Some(idx);
+                        }
                         state.show(ui, response.rect, ZOOM);
 
                         if idx > 0 && idx % self.columns == 0 {
                             ui.end_row()
                         }
                     });
+
+                if let Some(clicked_idx) = clicked_sprite_idx {
+                    let modifiers = ui.input().modifiers;
+                    if modifiers.ctrl {
+                        self.sprites[clicked_idx].state.toggle();
+                    } else {
+                        for (idx, selectable_sprite) in self.sprites.iter_mut().enumerate() {
+                            selectable_sprite.state.set(idx == clicked_idx);
+                        }
+                    }
+                }
             });
     }
 }

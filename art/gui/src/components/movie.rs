@@ -113,6 +113,10 @@ impl CurrentFrame {
     pub fn sprites(&self) -> &[Selectable<Sprite>] {
         self.sprites.as_slice()
     }
+
+    pub fn sprites_mut(&mut self) -> &mut [Selectable<Sprite>] {
+        self.sprites.as_mut_slice()
+    }
 }
 
 pub struct Movie {
@@ -331,6 +335,10 @@ impl Movie {
 
     pub fn sprites(&self) -> Option<&[Selectable<Sprite>]> {
         self.current_frame.as_ref().map(|current_frame| current_frame.sprites())
+    }
+
+    pub fn sprites_mut(&mut self) -> Option<&mut [Selectable<Sprite>]> {
+        self.current_frame.as_mut().map(|current_frame| current_frame.sprites_mut())
     }
 }
 

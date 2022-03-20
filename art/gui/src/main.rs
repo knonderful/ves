@@ -119,7 +119,7 @@ impl epi::App for ArtDirectorApp {
             });
 
             egui::Window::new("Sprites").show(ui.ctx(), |ui| {
-                match self.movie.as_ref().and_then(|movie| movie.sprites()) {
+                match self.movie.as_mut().and_then(|movie| movie.sprites_mut()) {
                     None => {
                         ui.label("No movie loaded.");
                     }

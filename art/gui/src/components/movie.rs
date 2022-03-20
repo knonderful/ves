@@ -195,7 +195,11 @@ impl Movie {
     fn render_frame(&mut self, ctx: &egui::Context) -> bool {
         let pos = self.frame_cursor.position();
         // Only render the frame if the position has changed
-        if let Some(last_pos) = self.current_frame.as_ref().map(|current_frame| current_frame.frame_nr()) {
+        if let Some(last_pos) = self
+            .current_frame
+            .as_ref()
+            .map(|current_frame| current_frame.frame_nr())
+        {
             if pos == last_pos {
                 return false;
             }

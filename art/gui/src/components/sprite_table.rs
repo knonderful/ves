@@ -9,11 +9,16 @@ const ZOOM: f32 = 2.0;
 pub struct SpriteTable<'a> {
     sprites: &'a mut [Selectable<Sprite>],
     columns: usize,
+    pub selection_root: Option<usize>,
 }
 
 impl<'a> SpriteTable<'a> {
-    pub fn new(sprites: &'a mut [Selectable<Sprite>], columns: usize) -> Self {
-        Self { sprites, columns }
+    pub fn new(sprites: &'a mut [Selectable<Sprite>], columns: usize, selection_root: Option<usize>) -> Self {
+        Self {
+            sprites,
+            columns,
+            selection_root,
+        }
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui) {
@@ -48,11 +53,35 @@ impl<'a> SpriteTable<'a> {
 
                 if let Some(clicked_idx) = clicked_sprite_idx {
                     let modifiers = ui.input().modifiers;
-                    if modifiers.ctrl {
-                        self.sprites[clicked_idx].state.toggle();
+                    if modifiers.shift {
+                        let range = if let Some(root) = self.selection_root {
+                            if root < clicked_idx {
+                                root..=clicked_idx
+                            } else {
+                                clicked_idx..=root
+                            }
+                        } else {
+                            1..=0
+                        };
+
+                        if modifiers.ctrl {
+                            for idx in range {
+                                self.sprites[idx].state.select();
+                            }
+                        } else {
+                            for (idx, selectable_sprite) in self.sprites.iter_mut().enumerate() {
+                                selectable_sprite.state.set(range.contains(&idx));
+                            }
+                        }
+
                     } else {
-                        for (idx, selectable_sprite) in self.sprites.iter_mut().enumerate() {
-                            selectable_sprite.state.set(idx == clicked_idx);
+                        self.selection_root = Some(clicked_idx);
+                        if modifiers.ctrl {
+                            self.sprites[clicked_idx].state.toggle();
+                        } else {
+                            for (idx, selectable_sprite) in self.sprites.iter_mut().enumerate() {
+                                selectable_sprite.state.set(idx == clicked_idx);
+                            }
                         }
                     }
                 }

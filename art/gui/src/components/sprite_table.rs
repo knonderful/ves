@@ -14,11 +14,11 @@ struct State {
 
 impl State {
     pub fn load(ctx: &egui::Context) -> Option<Self> {
-        ctx.data().get_persisted(egui::Id::new("scroll_area"))
+        ctx.data().get_persisted(egui::Id::new("sprite_table"))
     }
 
     pub fn store(self, ctx: &egui::Context) {
-        ctx.data().insert_persisted(egui::Id::new("scroll_area"), self);
+        ctx.data().insert_persisted(egui::Id::new("sprite_table"), self);
     }
 }
 

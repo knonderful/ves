@@ -61,3 +61,60 @@ impl<T> Selectable<T> {
         Self { item, state }
     }
 }
+
+/// A range of GUI elements that have a [`SelectionState`].
+#[derive(Clone, Debug, Default)]
+pub struct SelectionRange {
+    selection_root: Option<usize>,
+}
+
+impl SelectionRange {
+    /// Updates the selection.
+    ///
+    /// # Arguments
+    ///
+    /// * `ui`: The [`Ui`](egui::Ui).
+    /// * `clicked_idx`: The index of the item that was clicked.
+    /// * `values`: A slice of all available items.
+    /// * `map_fn`: A mapping function from `T` to [`SelectionState`].
+    pub fn update<T>(
+        &mut self,
+        ui: &egui::Ui,
+        clicked_idx: usize,
+        values: &mut [T],
+        map_fn: impl Fn(&mut T) -> &mut SelectionState,
+    ) {
+        let modifiers = ui.input().modifiers;
+        if modifiers.shift {
+            let range = if let Some(root) = self.selection_root {
+                if root < clicked_idx {
+                    root..=clicked_idx
+                } else {
+                    clicked_idx..=root
+                }
+            } else {
+                1..=0
+            };
+
+            if modifiers.ctrl {
+                for idx in range {
+                    let map_fn1 = map_fn(&mut values[idx]);
+                    map_fn1.select();
+                }
+            } else {
+                for (idx, selectable_sprite) in values.iter_mut().enumerate() {
+                    map_fn(selectable_sprite).set(range.contains(&idx));
+                }
+            }
+        } else {
+            self.selection_root = Some(clicked_idx);
+            if modifiers.ctrl {
+                map_fn(&mut values[clicked_idx]).toggle();
+            } else {
+                for (idx, selectable_sprite) in values.iter_mut().enumerate() {
+                    map_fn(selectable_sprite).set(idx == clicked_idx);
+                }
+            }
+        }
+    }
+}

@@ -89,7 +89,6 @@ impl<'a> SpriteTable<'a> {
                                 selectable_sprite.state.set(range.contains(&idx));
                             }
                         }
-
                     } else {
                         state.selection_root = Some(clicked_idx);
                         if modifiers.ctrl {

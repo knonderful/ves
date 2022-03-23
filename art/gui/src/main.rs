@@ -20,7 +20,6 @@ struct ArtDirectorApp {
     show_log: bool,
     log: VecDeque<LogEntry>,
     movie: Option<Movie>,
-    selection_root: Option<usize>,
 }
 
 impl ArtDirectorApp {
@@ -125,9 +124,7 @@ impl epi::App for ArtDirectorApp {
                         ui.label("No movie loaded.");
                     }
                     Some(sprites) => {
-                        let mut table = SpriteTable::new(sprites, 8, self.selection_root);
-                        table.show(ui);
-                        self.selection_root = table.selection_root;
+                        SpriteTable::new(sprites, 8).show(ui);
                     }
                 }
             });

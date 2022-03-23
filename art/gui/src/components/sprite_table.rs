@@ -6,22 +6,38 @@ use crate::ToEgui as _;
 
 const ZOOM: f32 = 2.0;
 
+#[derive(Clone, Copy, Debug, Default)]
+#[must_use = "You should call .store()"]
+struct State {
+    selection_root: Option<usize>,
+}
+
+impl State {
+    pub fn load(ctx: &egui::Context) -> Option<Self> {
+        ctx.data().get_persisted(egui::Id::new("scroll_area"))
+    }
+
+    pub fn store(self, ctx: &egui::Context) {
+        ctx.data().insert_persisted(egui::Id::new("scroll_area"), self);
+    }
+}
+
 pub struct SpriteTable<'a> {
     sprites: &'a mut [Selectable<Sprite>],
     columns: usize,
-    pub selection_root: Option<usize>,
 }
 
 impl<'a> SpriteTable<'a> {
-    pub fn new(sprites: &'a mut [Selectable<Sprite>], columns: usize, selection_root: Option<usize>) -> Self {
+    pub fn new(sprites: &'a mut [Selectable<Sprite>], columns: usize) -> Self {
         Self {
             sprites,
             columns,
-            selection_root,
         }
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui) {
+        let mut state = State::load(ui.ctx()).unwrap_or_default();
+
         egui::Grid::new("sprite_table")
             .spacing(egui::vec2(4.0, 4.0))
             .show(ui, |ui| {
@@ -54,7 +70,7 @@ impl<'a> SpriteTable<'a> {
                 if let Some(clicked_idx) = clicked_sprite_idx {
                     let modifiers = ui.input().modifiers;
                     if modifiers.shift {
-                        let range = if let Some(root) = self.selection_root {
+                        let range = if let Some(root) = state.selection_root {
                             if root < clicked_idx {
                                 root..=clicked_idx
                             } else {
@@ -75,7 +91,7 @@ impl<'a> SpriteTable<'a> {
                         }
 
                     } else {
-                        self.selection_root = Some(clicked_idx);
+                        state.selection_root = Some(clicked_idx);
                         if modifiers.ctrl {
                             self.sprites[clicked_idx].state.toggle();
                         } else {
@@ -86,5 +102,7 @@ impl<'a> SpriteTable<'a> {
                     }
                 }
             });
+
+        state.store(ui.ctx());
     }
 }

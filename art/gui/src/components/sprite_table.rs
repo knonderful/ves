@@ -41,7 +41,7 @@ impl<'a> SpriteTable<'a> {
                         }
                         state.show(ui, response.rect, ZOOM);
 
-                        if idx > 0 && idx % self.columns == 0 {
+                        if idx > 0 && (idx - 1) % self.columns == 0 {
                             ui.end_row()
                         }
                     });

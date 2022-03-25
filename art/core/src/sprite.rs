@@ -336,14 +336,37 @@ pub struct AnimationFrame {
     cel: CelRef,
 }
 
+impl AnimationFrame {
+    /// Creates a new instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `cel`: The [`CelRef`].
+    pub fn new(cel: CelRef) -> Self {
+        Self { cel }
+    }
+}
+
 /// An animation. This is a sequence of [`AnimationFrame`]s.
 #[cfg_attr(
     feature = "serde_support",
     derive(serde::Serialize, serde::Deserialize)
 )]
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Hash)]
 pub struct Animation {
     frames: Vec<AnimationFrame>,
+}
+
+impl AsRef<Vec<AnimationFrame>> for Animation {
+    fn as_ref(& self) -> &Vec<AnimationFrame> {
+        &self.frames
+    }
+}
+
+impl AsMut<Vec<AnimationFrame>> for Animation {
+    fn as_mut(&mut self) -> &mut Vec<AnimationFrame> {
+        &mut self.frames
+    }
 }
 
 /// Alternative to `std::panic::catch_unwind()` that is silent in its output.

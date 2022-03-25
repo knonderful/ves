@@ -1,4 +1,5 @@
 pub mod cursor;
+pub mod entities;
 pub mod mouse;
 pub mod movie;
 pub mod selection;

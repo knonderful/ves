@@ -1757,6 +1757,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ron"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b861ecaade43ac97886a512b360d01d66be9f41f3c61088b42cedf92e03d678"
+dependencies = [
+ "base64",
+ "bitflags",
+ "serde",
+]
+
+[[package]]
 name = "rust-format"
 version = "0.1.0"
 source = "git+https://github.com/knonderful/rust-format?rev=4c9a649#4c9a6497a93994f4c2cb5aaa729bf913db9330c7"
@@ -2149,6 +2160,9 @@ dependencies = [
  "bincode",
  "chrono",
  "eframe",
+ "linked-hash-map",
+ "ron",
+ "serde",
  "ves-art-core",
  "ves-cache",
  "ves-geom",

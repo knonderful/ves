@@ -1,0 +1,68 @@
+{
+    "yoshi": (
+        animations: {
+            "walk": (
+                frames: [
+                    (
+                        cel: 12,
+                    ),
+                    (
+                        cel: 13,
+                    ),
+                    (
+                        cel: 14,
+                    ),
+                    (
+                        cel: 15,
+                    ),
+                ],
+            ),
+            "run": (
+                frames: [
+                    (
+                        cel: 77,
+                    ),
+                    (
+                        cel: 88,
+                    ),
+                    (
+                        cel: 99,
+                    ),
+                ],
+            ),
+        },
+    ),
+    "shy_guy": (
+        animations: {
+            "walk": (
+                frames: [
+                    (
+                        cel: 100,
+                    ),
+                    (
+                        cel: 200,
+                    ),
+                    (
+                        cel: 300,
+                    ),
+                    (
+                        cel: 400,
+                    ),
+                ],
+            ),
+            "dance": (
+                frames: [
+                    (
+                        cel: 901,
+                    ),
+                    (
+                        cel: 902,
+                    ),
+                    (
+                        cel: 903,
+                    ),
+                ],
+            ),
+        },
+    ),
+}

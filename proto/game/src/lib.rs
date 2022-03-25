@@ -61,10 +61,10 @@ impl Game for ProtoGame {
             let entry = OamTableEntry::new(
                 from_unchecked(sprite.position.x.0),
                 from_unchecked(sprite.position.y.0),
-                from_unchecked(sprite.palette.0),
+                from_unchecked(sprite.palette),
                 u8::from(sprite.h_flip),
                 u8::from(sprite.v_flip),
-                from_unchecked(sprite.tile.0),
+                from_unchecked(sprite.tile),
             );
             self.core
                 .oam_set(&OamTableIndex::new(from_unchecked(i)), &entry);

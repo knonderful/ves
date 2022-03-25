@@ -45,7 +45,7 @@ impl Color {
 macro_rules! primitive_wrapper {
     ($(#[doc = $doc:expr])* $vis:vis $name:ident < $ty:ty >) => {
         $(#[doc = $doc])*
-        #[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize))]
+        #[cfg_attr(feature = "serde_support", derive(serde::Serialize, serde::Deserialize), serde(transparent))]
         #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
         $vis struct $name($ty);
 

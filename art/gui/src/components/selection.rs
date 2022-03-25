@@ -63,7 +63,7 @@ impl<T> Selectable<T> {
 }
 
 /// A range of GUI elements that have a [`SelectionState`].
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct SelectionRange {
     selection_root: Option<usize>,
 }

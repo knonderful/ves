@@ -6,7 +6,7 @@ use crate::ToEgui as _;
 
 const ZOOM: f32 = 2.0;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[must_use = "You should call .store()"]
 struct State {
     selection: SelectionRange,

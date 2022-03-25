@@ -1,20 +1,11 @@
 use linked_hash_map::LinkedHashMap;
-use serde::de::{MapAccess, Visitor};
-use serde::ser::SerializeMap;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
-use std::fmt::Formatter;
-use std::hash::Hash;
-use std::marker::PhantomData;
 use ves_art_core::sprite::Animation;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Entities(
-    #[serde(
-        serialize_with = "serialize_linked_hash_map",
-        deserialize_with = "deserialize_linked_hash_map"
-    )]
     LinkedHashMap<Cow<'static, str>, Entity>,
 );
 
@@ -56,10 +47,6 @@ impl Entity {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Animations(
-    #[serde(
-        serialize_with = "serialize_linked_hash_map",
-        deserialize_with = "deserialize_linked_hash_map"
-    )]
     LinkedHashMap<Cow<'static, str>, Animation>,
 );
 
@@ -81,70 +68,6 @@ impl Animations {
 
         Ok(())
     }
-}
-
-fn serialize_linked_hash_map<A, B, S>(
-    map: &LinkedHashMap<A, B>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-    A: Serialize + Eq + Hash,
-    B: Serialize,
-{
-    let mut ser = serializer.serialize_map(Some(map.len()))?;
-    for (key, value) in map {
-        ser.serialize_entry(key, value)?;
-    }
-    ser.end()
-}
-
-struct LinkedHashMapVisitor<K, V> {
-    marker: PhantomData<fn() -> LinkedHashMap<K, V>>,
-}
-
-impl<K, V> LinkedHashMapVisitor<K, V> {
-    fn new() -> Self {
-        Self {
-            marker: PhantomData::default(),
-        }
-    }
-}
-
-impl<'de, K, V> Visitor<'de> for LinkedHashMapVisitor<K, V>
-where
-    K: Deserialize<'de> + Hash + Eq,
-    V: Deserialize<'de>,
-{
-    type Value = LinkedHashMap<K, V>;
-
-    fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
-        formatter.write_str("a map")
-    }
-
-    fn visit_map<A>(self, mut map_access: A) -> Result<Self::Value, A::Error>
-    where
-        A: MapAccess<'de>,
-    {
-        let mut map = LinkedHashMap::with_capacity(map_access.size_hint().unwrap_or(0));
-
-        while let Some((key, value)) = map_access.next_entry()? {
-            map.insert(key, value);
-        }
-
-        Ok(map)
-    }
-}
-
-fn deserialize_linked_hash_map<'de, D, K, V>(
-    deserializer: D,
-) -> Result<LinkedHashMap<K, V>, D::Error>
-where
-    D: Deserializer<'de>,
-    K: Deserialize<'de> + Hash + Eq,
-    V: Deserialize<'de>,
-{
-    deserializer.deserialize_map(LinkedHashMapVisitor::new())
 }
 
 #[cfg(test)]

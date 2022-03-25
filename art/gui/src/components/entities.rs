@@ -1,14 +1,21 @@
 use linked_hash_map::LinkedHashMap;
+use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::borrow::Cow;
+use std::fmt::Formatter;
 use std::hash::Hash;
+use std::marker::PhantomData;
 use ves_art_core::sprite::Animation;
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Entities(
-    #[serde(serialize_with = "serialize_linked_hash_map")] LinkedHashMap<Cow<'static, str>, Entity>,
+    #[serde(
+        serialize_with = "serialize_linked_hash_map",
+        deserialize_with = "deserialize_linked_hash_map"
+    )]
+    LinkedHashMap<Cow<'static, str>, Entity>,
 );
 
 impl Entities {
@@ -28,7 +35,7 @@ impl Entities {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Entity {
     animations: Animations,
 }
@@ -46,10 +53,13 @@ impl Entity {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct Animations(
-    #[serde(serialize_with = "serialize_linked_hash_map")]
+    #[serde(
+        serialize_with = "serialize_linked_hash_map",
+        deserialize_with = "deserialize_linked_hash_map"
+    )]
     LinkedHashMap<Cow<'static, str>, Animation>,
 );
 
@@ -89,10 +99,70 @@ where
     ser.end()
 }
 
+struct LinkedHashMapVisitor<K, V> {
+    marker: PhantomData<fn() -> LinkedHashMap<K, V>>,
+}
+
+impl<K, V> LinkedHashMapVisitor<K, V> {
+    fn new() -> Self {
+        Self {
+            marker: PhantomData::default(),
+        }
+    }
+}
+
+impl<'de, K, V> Visitor<'de> for LinkedHashMapVisitor<K, V>
+where
+    K: Deserialize<'de> + Hash + Eq,
+    V: Deserialize<'de>,
+{
+    type Value = LinkedHashMap<K, V>;
+
+    fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {
+        formatter.write_str("a map")
+    }
+
+    fn visit_map<A>(self, mut map_access: A) -> Result<Self::Value, A::Error>
+    where
+        A: MapAccess<'de>,
+    {
+        let mut map = LinkedHashMap::with_capacity(map_access.size_hint().unwrap_or(0));
+
+        while let Some((key, value)) = map_access.next_entry()? {
+            map.insert(key, value);
+        }
+
+        Ok(map)
+    }
+}
+
+fn deserialize_linked_hash_map<'de, D, K, V>(
+    deserializer: D,
+) -> Result<LinkedHashMap<K, V>, D::Error>
+where
+    D: Deserializer<'de>,
+    K: Deserialize<'de> + Hash + Eq,
+    V: Deserialize<'de>,
+{
+    deserializer.deserialize_map(LinkedHashMapVisitor::new())
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
     use ves_art_core::sprite::{AnimationFrame, CelRef};
+
+    const ENTITIES_RON: &'static str = "resources/test/components/entities/entities.ron";
+
+    fn assert_serializes_to(entities: &Entities, path: &'static str) {
+        let mut buffer = Vec::new();
+        ron::ser::to_writer_pretty(&mut buffer, &entities, ron::ser::PrettyConfig::default())
+            .unwrap();
+        let actual = String::from_utf8(buffer).unwrap();
+        let expected = std::fs::read_to_string(path).unwrap();
+
+        assert_eq!(expected, actual);
+    }
 
     #[test]
     fn test_serialize() {
@@ -145,13 +215,14 @@ mod test {
         entities.push("yoshi", yoshi).unwrap();
         entities.push("shy_guy", shy_guy).unwrap();
 
-        let mut buffer = Vec::new();
-        ron::ser::to_writer_pretty(&mut buffer, &entities, ron::ser::PrettyConfig::default())
-            .unwrap();
-        let actual = String::from_utf8(buffer).unwrap();
-        let expected =
-            std::fs::read_to_string("resources/test/components/entities/entities.ron").unwrap();
+        assert_serializes_to(&entities, ENTITIES_RON);
+    }
 
-        assert_eq!(expected, actual);
+    #[test]
+    fn test_deserialize() {
+        let input = std::fs::File::open(ENTITIES_RON).unwrap();
+        let entities: Entities = ron::de::from_reader(input).unwrap();
+
+        assert_serializes_to(&entities, ENTITIES_RON);
     }
 }

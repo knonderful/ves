@@ -146,9 +146,11 @@ mod test {
         entities.push("shy_guy", shy_guy).unwrap();
 
         let mut buffer = Vec::new();
-        ron::ser::to_writer_pretty(&mut buffer, &entities, ron::ser::PrettyConfig::default()).unwrap();
+        ron::ser::to_writer_pretty(&mut buffer, &entities, ron::ser::PrettyConfig::default())
+            .unwrap();
         let actual = String::from_utf8(buffer).unwrap();
-        let expected = std::fs::read_to_string("resources/test/components/entities/entities.ron").unwrap();
+        let expected =
+            std::fs::read_to_string("resources/test/components/entities/entities.ron").unwrap();
 
         assert_eq!(expected, actual);
     }

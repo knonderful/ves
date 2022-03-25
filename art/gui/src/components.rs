@@ -6,6 +6,7 @@ pub mod selection;
 pub mod sprite;
 pub mod sprite_table;
 pub mod sprite_details;
+pub mod window;
 
 use crate::egui;
 

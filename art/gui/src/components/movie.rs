@@ -273,17 +273,14 @@ impl Movie {
     }
 
     pub fn show(&mut self, ui: &mut egui::Ui) {
-        ui.with_layout(egui::Layout::bottom_up(egui::Align::Center), |ui| {
-            MovieControls::new(self.playback_state.clone(), self.playback_repeat, |msg| {
-                self.control_messages.push(msg)
-            })
-            .show(ui);
-
-            // Some space between controls and render window
-            ui.add_space(8.0);
-
+        ui.vertical(|ui| {
             if let Some(current_frame) = self.current_frame.as_ref() {
                 let frame_nr = current_frame.frame_nr();
+                ui.horizontal(|ui| {
+                    ui.label("Frame nr");
+                    ui.label(format!("{}", frame_nr));
+                });
+
                 let sprites = current_frame.sprites();
                 let screen_size = self.movie.screen_size();
                 let movie_frame_size = screen_size.to_egui() * ZOOM;
@@ -335,18 +332,16 @@ impl Movie {
                             });
                     },
                 );
-
-                ui.horizontal(|ui| {
-                    ui.label("Frame nr");
-                    ui.label(format!("{}", frame_nr));
-                });
-
-                // HACK: This seems to be necessary to prevent the scroll area from rendering into
-                //       the window header.
-                ui.add_space(8.0);
             } else {
                 ui.label("No movie frame available.");
             }
+
+            // Some space between controls and render window
+            ui.add_space(8.0);
+            MovieControls::new(self.playback_state.clone(), self.playback_repeat, |msg| {
+                self.control_messages.push(msg)
+            })
+            .show(ui);
         });
     }
 

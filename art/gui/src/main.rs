@@ -9,6 +9,7 @@ use std::collections::VecDeque;
 use std::time::Instant;
 use ves_art_core::geom_art::ArtworkSpaceUnit;
 use crate::components::sprite_details::SpriteDetails;
+use crate::components::window::Window;
 
 struct LogEntry {
     timestamp: DateTime<Local>,
@@ -109,7 +110,7 @@ impl epi::App for ArtDirectorApp {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            egui::Window::new("Movie").show(ui.ctx(), |ui| match &mut self.movie {
+            Window::new("Movie").show(ui.ctx(), |ui| match &mut self.movie {
                 None => {
                     ui.label("No movie loaded.");
                 }
@@ -118,7 +119,7 @@ impl epi::App for ArtDirectorApp {
                 }
             });
 
-            egui::Window::new("Sprites").show(ui.ctx(), |ui| {
+            Window::new("Sprites").show(ui.ctx(), |ui| {
                 match self.movie.as_mut().and_then(|movie| movie.sprites_mut()) {
                     None => {
                         ui.label("No movie loaded.");
@@ -129,7 +130,7 @@ impl epi::App for ArtDirectorApp {
                 }
             });
 
-            egui::Window::new("Sprite Details").show(ui.ctx(), |ui| {
+            Window::new("Sprite Details").show(ui.ctx(), |ui| {
                 match self.movie.as_ref().and_then(|movie| movie.sprites()) {
                     None => {
                         ui.label("No movie loaded.");

@@ -334,7 +334,6 @@ ref_type!(
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct AnimationFrame {
     cel: CelRef,
-    duration: std::time::Duration,
 }
 
 /// An animation. This is a sequence of [`AnimationFrame`]s.

@@ -3,40 +3,16 @@ mod components;
 use crate::components::movie::Movie;
 use crate::components::selection::SelectionState;
 use crate::components::sprite_table::SpriteTable;
-use chrono::{DateTime, Local};
 use eframe::{egui, epi};
-use std::collections::VecDeque;
 use std::time::Instant;
+use log::info;
 use ves_art_core::geom_art::ArtworkSpaceUnit;
 use crate::components::sprite_details::SpriteDetails;
 use crate::components::window::Window;
 
-struct LogEntry {
-    timestamp: DateTime<Local>,
-    message: String,
-}
-
 #[derive(Default)]
 struct ArtDirectorApp {
-    show_log: bool,
-    log: VecDeque<LogEntry>,
     movie: Option<Movie>,
-}
-
-impl ArtDirectorApp {
-    #[allow(unused)]
-    fn log(&mut self, msg: impl AsRef<str>) {
-        const MAX_LOG_ENTRIES: usize = 50;
-        let log = &mut self.log;
-        if log.len() >= MAX_LOG_ENTRIES {
-            log.pop_front();
-        }
-
-        log.push_back(LogEntry {
-            timestamp: chrono::Local::now(),
-            message: String::from(msg.as_ref()),
-        });
-    }
 }
 
 impl epi::App for ArtDirectorApp {
@@ -59,10 +35,10 @@ impl epi::App for ArtDirectorApp {
                     let gui_movie = Movie::new(core_movie);
                     // gui_movie.play(current_instant);
                     self.movie = Some(gui_movie);
-                    self.log("Successfully loaded test movie.");
+                    info!("Successfully loaded test movie.");
                 }
                 Err(err) => {
-                    self.log(format!("Could not load test movie: {}", err));
+                    info!("Could not load test movie: {}", err);
                 }
             }
         }
@@ -72,42 +48,9 @@ impl epi::App for ArtDirectorApp {
                 // Mini menu icons
                 ui.with_layout(egui::Layout::right_to_left(), |ui| {
                     egui::global_dark_light_mode_switch(ui);
-
-                    let log_toggle = ui
-                        .add(egui::Button::new("📋").frame(false))
-                        .on_hover_text("Toggle application log");
-                    if log_toggle.clicked() {
-                        self.show_log = !self.show_log;
-                    }
                 });
             })
         });
-
-        if self.show_log {
-            egui::TopBottomPanel::bottom("application_log")
-                .height_range(100.0..=100.0)
-                .show(ctx, |ui| {
-                    egui::ScrollArea::both().stick_to_bottom().show(ui, |ui| {
-                        egui::Grid::new("log_grid")
-                            .striped(true)
-                            .max_col_width(f32::INFINITY)
-                            .show(ui, |ui| {
-                                for entry in self.log.iter() {
-                                    ui.label(entry.timestamp.format("%H:%M:%S").to_string());
-                                    ui.label(entry.message.as_str());
-                                    ui.end_row();
-                                }
-                            });
-                    });
-
-                    // egui::ScrollArea::vertical().stick_to_bottom().show(ui, |ui| {
-                    //     // The '&mut log.as_str()' makes it a read-only TextBuffer
-                    //     ui.add(egui::TextEdit::multiline(&mut log.as_str())
-                    //         .text_style(LOG_FONT)
-                    //         .desired_width(f32::INFINITY));
-                    // });
-                });
-        }
 
         egui::CentralPanel::default().show(ctx, |ui| {
             Window::new("Movie").show(ui.ctx(), |ui| match &mut self.movie {
@@ -216,6 +159,8 @@ impl ToEgui for ves_art_core::geom_art::Size {
 }
 
 fn main() {
+    simple_logger::SimpleLogger::new().init().unwrap();
+
     let options = eframe::NativeOptions::default();
     eframe::run_native(Box::new(ArtDirectorApp::default()), options);
 }

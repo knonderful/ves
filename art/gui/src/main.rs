@@ -1,4 +1,5 @@
 mod components;
+mod model;
 
 use crate::components::movie::Movie;
 use crate::components::selection::SelectionState;

@@ -1,3 +1,4 @@
+pub mod animations;
 pub mod cursor;
 pub mod entities;
 pub mod mouse;

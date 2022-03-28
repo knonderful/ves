@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use linked_hash_map::LinkedHashMap;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
@@ -23,6 +25,18 @@ impl Entities {
         self.0.insert(name, entity);
 
         Ok(())
+    }
+
+    pub fn entries(&self) -> impl Iterator<Item = (&Cow<'static, str>, &Entity)> {
+        self.0.iter()
+    }
+
+    pub fn get(&self, key: &Cow<'static, str>) -> Option<&Entity> {
+        self.0.get(key)
+    }
+
+    pub fn get_mut(&mut self, key: &Cow<'static, str>) -> Option<&mut Entity> {
+        self.0.get_mut(key)
     }
 }
 
@@ -67,6 +81,10 @@ impl Animations {
         self.0.insert(name, animation);
 
         Ok(())
+    }
+
+    pub fn entries(&self) -> impl Iterator<Item = (&Cow<'static, str>, &Animation)> {
+        self.0.iter()
     }
 }
 

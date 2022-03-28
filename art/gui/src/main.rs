@@ -1,19 +1,23 @@
 mod components;
 mod model;
 
+use crate::components::animations::Animations;
+use crate::components::entities::Entities;
 use crate::components::movie::Movie;
 use crate::components::selection::SelectionState;
-use crate::components::sprite_table::SpriteTable;
-use eframe::{egui, epi};
-use std::time::Instant;
-use log::info;
-use ves_art_core::geom_art::ArtworkSpaceUnit;
 use crate::components::sprite_details::SpriteDetails;
+use crate::components::sprite_table::SpriteTable;
 use crate::components::window::Window;
+use eframe::{egui, epi};
+use log::info;
+use std::time::Instant;
+use ves_art_core::geom_art::ArtworkSpaceUnit;
+use crate::model::entities::Entity;
 
 #[derive(Default)]
 struct ArtDirectorApp {
     movie: Option<Movie>,
+    entities: model::entities::Entities,
 }
 
 impl epi::App for ArtDirectorApp {
@@ -42,6 +46,16 @@ impl epi::App for ArtDirectorApp {
                     info!("Could not load test movie: {}", err);
                 }
             }
+
+            let mut yoshi = Entity::default();
+            yoshi.animations_mut().push("walk", Default::default()).unwrap();
+            yoshi.animations_mut().push("run", Default::default()).unwrap();
+            self.entities.push("yoshi", yoshi).unwrap();
+            let mut shy_guy = Entity::default();
+            shy_guy.animations_mut().push("walk", Default::default()).unwrap();
+            shy_guy.animations_mut().push("jump", Default::default()).unwrap();
+            shy_guy.animations_mut().push("bite", Default::default()).unwrap();
+            self.entities.push("shy_guy", shy_guy).unwrap();
         }
 
         egui::TopBottomPanel::top("main_menu").show(ctx, |ui| {
@@ -98,6 +112,25 @@ impl epi::App for ArtDirectorApp {
                             }
                         };
                     }
+                }
+            });
+
+            let ents = &mut self.entities;
+            let response = Window::new("Entities")
+                .show(ui.ctx(), |ui| Entities::new(ents).show(ui));
+
+            Window::new("Animations").show(ui.ctx(), |ui| {
+                if let Some(entity_name) = response.map(|resp| resp.inner.flatten()).flatten() {
+                    if let Some(entity) = self.entities.get_mut(&entity_name) {
+                        Animations::new(entity.animations_mut()).show(ui);
+                    } else {
+                        ui.label(format!(
+                            "Could not find entity with name: {}.",
+                            &entity_name
+                        ));
+                    }
+                } else {
+                    ui.label("No entity selected.");
                 }
             });
         });

@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use ves_art_core::sprite::Animation;
 use crate::egui;
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -8,7 +8,7 @@ struct State {
 }
 
 impl State {
-    const ID: &'static str = "entities";
+    const ID: &'static str = "animations";
 
     pub fn load(ctx: &egui::Context) -> Option<Self> {
         ctx.data().get_persisted(egui::Id::new(Self::ID))
@@ -20,33 +20,33 @@ impl State {
     }
 }
 
-pub struct Entities<'a> {
-    entities: &'a mut crate::model::entities::Entities,
+pub struct Animations<'a> {
+    animations: &'a mut crate::model::entities::Animations,
 }
 
-impl<'a> Entities<'a> {
-    pub fn new(entities: &'a mut crate::model::entities::Entities) -> Self {
-        Self { entities }
+impl<'a> Animations<'a> {
+    pub fn new(animations: &'a mut crate::model::entities::Animations) -> Self {
+        Self { animations }
     }
 }
 
-impl Entities<'_> {
+impl Animations<'_> {
     /// Shows the widget.
     ///
     /// # Arguments
     ///
     /// * `ui`: The [`Ui`](egui::Ui).
     ///
-    /// returns: the selected [`Entity`] or `None` if no [`Entity`] was selected.
-    pub fn show(&mut self, ui: &mut egui::Ui) -> Option<Cow<'static, str>> {
+    /// returns: the selected [`Animation`] or `None` if no [`Animation`] was selected.
+    pub fn show(&mut self, ui: &mut egui::Ui) -> Option<&Animation> {
         let mut state = State::load(ui.ctx()).unwrap_or_default();
 
         let mut out = None;
-        for (name, _) in self.entities.entries() {
+        for (name, animation) in self.animations.entries() {
             let name_str: &str = &*name;
             let selected = name_str == &state.selection;
             if selected {
-                out.replace(name.clone());
+                out.replace(animation);
             }
             if ui.radio(selected, name_str).clicked() {
                 state.selection = name.clone().into_owned();
